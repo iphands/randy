@@ -10,12 +10,25 @@ fn get_hostname() -> String {
 }
 
 fn get_uname() -> String {
-    let max = 65;
     let mut uname: libc::utsname = unsafe { mem::zeroed() };
     unsafe { libc::uname(&mut uname); };
 
     let release: &[u8] = unsafe{ slice::from_raw_parts(uname.release.as_ptr() as *const u8, uname.release.len()) };
     return str_from_bytes(release.to_vec());
+}
+
+fn get_uptime_string(uptime: i64) -> String {
+    let d = uptime / 60 / 60 / 24;
+    let h = (uptime / 60 / 60) - (d * 24);
+    let m = (uptime / 60) - (h * 60) - ((d * 24) * 60);
+
+    return format!("{}d {}h {}m", d, h, m);
+}
+
+fn get_sysinfo() -> libc::sysinfo {
+    let mut sysinfo: libc::sysinfo = unsafe { mem::zeroed() };
+    unsafe { libc::sysinfo(&mut sysinfo); };
+    return sysinfo;
 }
 
 fn str_from_bytes(mut buffer: Vec<u8>) -> String {
@@ -26,10 +39,11 @@ fn str_from_bytes(mut buffer: Vec<u8>) -> String {
 }
 
 pub fn do_func(s: &str) -> String {
-    get_uname();
+    get_sysinfo();
     let ret: String = match s {
         "hostname" => get_hostname(),
         "kernel" => get_uname(),
+        "uptime" => get_uptime_string(get_sysinfo().uptime),
         _ => {
             println!("Unkown func");
             return String::from("unimpl");
