@@ -1,4 +1,5 @@
-use std::{str, mem, slice};
+
+use std::{str, mem, slice, fs};
 use libc::{c_char, sysconf, _SC_HOST_NAME_MAX};
 
 fn get_hostname_from_utsname(n: [i8; 65]) -> String {
@@ -64,8 +65,19 @@ fn get_load(loads: [u64; 3]) -> String {
     return String::from(format!("{:.2} {:.2} {:.2}", load_arr[0], load_arr[1], load_arr[2]));
 }
 
-fn get_procs(procs: u16) -> String {
-    return String::from(format!("{}", procs));
+fn get_procs(procs: u16, proc_stat: String) -> String {
+    let mut running: Option<String> = None;
+
+    for line in proc_stat.split('\n') {
+        if line.starts_with("procs_running") {
+            running = Some(line.replace("procs_running ", ""));
+        }
+    }
+
+    match running {
+        Some(r) => return String::from(format!("{} Running: {}", procs, r)),
+        _ => return String::from(format!("{}", procs)),
+    }
 }
 
 fn get_ram_usage(totalram: u64, freeram: u64) -> String {
@@ -74,16 +86,24 @@ fn get_ram_usage(totalram: u64, freeram: u64) -> String {
     return String::from(format!("{:.2}GB / {:.2}GB", free, total));
 }
 
+fn get_proc_stat() -> String {
+    return match fs::read_to_string("/proc/stat") {
+        Ok(s)  => s,
+        Err(_) => panic!("fdsaf"),
+    };
+}
+
 pub fn do_func(s: &str) -> String {
     let sysinfo = get_sysinfo();
     let utsname = get_utsname();
+    let proc_stat = get_proc_stat();
 
     let ret: String = match s {
         "hostname" => get_hostname_from_utsname(utsname.nodename),
         "kernel" => get_uname(utsname.release),
         "uptime" => get_uptime_string(sysinfo.uptime),
         "load" => get_load(sysinfo.loads),
-        "procs" => get_procs(sysinfo.procs),
+        "procs" => get_procs(sysinfo.procs, proc_stat),
         "ram_usage" => get_ram_usage(sysinfo.totalram, sysinfo.freeram),
         _ => {
             println!("Unkown func: {}", s);
