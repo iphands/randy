@@ -35,7 +35,6 @@ fn get_sysinfo() -> libc::sysinfo {
 fn str_from_bytes(mut buffer: Vec<u8>) -> String {
     let end = buffer.iter().position(|&b| b == 0).unwrap_or_else(|| buffer.len());
     buffer.resize(end, 0);
-
     return String::from_utf8(buffer).unwrap();
 }
 

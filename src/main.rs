@@ -29,6 +29,17 @@ fn build_ui(application: &gtk::Application, yaml: &yaml_rust::Yaml) {
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, 10);
     let mut values = HashMap::new();
 
+    init_ui(&mut values, &vbox);
+    update_ui(values);
+
+    window.add(&vbox);
+    window.show_all();
+}
+
+fn init_ui(values: &mut HashMap<String, gtk::Label>, vbox: &gtk::Box) {
+    let s: &str = &get_file();
+    let yaml = &get_config(s)[0];
+
     for i in yaml.as_vec().unwrap() {
         let label = Some(i["text"].as_str().unwrap());
         let frame = gtk::Frame::new(label);
@@ -56,10 +67,6 @@ fn build_ui(application: &gtk::Application, yaml: &yaml_rust::Yaml) {
             values.insert(String::from(func), val);
         }
     }
-
-    update_ui(values);
-    window.add(&vbox);
-    window.show_all();
 }
 
 fn update_ui(values: HashMap<String, gtk::Label>) {
