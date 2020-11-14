@@ -13,18 +13,16 @@ use std::fs;
 
 use std::collections::HashMap;
 
-fn build_ui(application: &gtk::Application) {
-    let s: &str = &get_file();
-    let yaml = &get_config(s)[0];
-
+fn build_ui(application: &gtk::Application, yaml: &yaml_rust::Yaml) {
     let window = gtk::ApplicationWindow::new(application);
 
-    window.set_title("First GTK+ Program");
+    window.set_title("Ronky");
     window.set_border_width(0);
     window.set_decorated(false);
     window.set_position(gtk::WindowPosition::Center);
     window.set_resizable(false);
     window.set_default_size(375, 1000);
+
     // window.move_(3840 - 375 - 20 - 375, 20);
     // window.set_default_size(375, 2100);
 
@@ -98,7 +96,9 @@ fn main() {
         .expect("Initialization failed...");
 
     application.connect_activate(|app| {
-        build_ui(app);
+        let s: &str = &get_file();
+        let yaml = &get_config(s)[0];
+        build_ui(app, yaml);
     });
 
     application.run(&args().collect::<Vec<_>>());

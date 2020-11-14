@@ -21,8 +21,9 @@ fn get_uptime_string(uptime: i64) -> String {
     let d = uptime / 60 / 60 / 24;
     let h = (uptime / 60 / 60) - (d * 24);
     let m = (uptime / 60) - (h * 60) - ((d * 24) * 60);
+    let s = (uptime) - ((d * 24) * 60 * 60) - (h * 60 * 60) - (m * 60);
 
-    return format!("{}d {}h {}m", d, h, m);
+    return format!("{}d {}h {:02}m {:02}s", d, h, m, s);
 }
 
 fn get_sysinfo() -> libc::sysinfo {
@@ -56,6 +57,7 @@ fn get_procs(procs: u16) -> String {
 
 pub fn do_func(s: &str) -> String {
     let sysinfo = get_sysinfo();
+
     let ret: String = match s {
         "hostname" => get_hostname(),
         "kernel" => get_uname(),
