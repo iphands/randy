@@ -11,6 +11,8 @@ use gtk::prelude::*;
 use std::env::args;
 use std::fs;
 
+use std::collections::HashMap;
+
 fn build_ui(application: &gtk::Application) {
     let s: &str = &get_file();
     let yaml = &get_config(s)[0];
@@ -27,24 +29,51 @@ fn build_ui(application: &gtk::Application) {
     // window.set_default_size(375, 2100);
 
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, 10);
-
+    let mut values = HashMap::new();
 
     for i in yaml.as_vec().unwrap() {
-        let label = gtk::Label::new(None);
-        label.set_text(&format!("> {}", i["text"].as_str().unwrap()));
-        vbox.add(&label);
+        let label = Some(i["text"].as_str().unwrap());
+        let frame = gtk::Frame::new(label);
+        vbox.add(&frame);
+
+        let inner_box = gtk::Box::new(gtk::Orientation::Vertical, 10);
+        frame.add(&inner_box);
 
         for item in i["items"].as_vec().unwrap() {
+            let func = item["func"].as_str().unwrap();
             let deet = deets::do_func(item["func"].as_str().unwrap());
-            let text = item["text"].as_str().unwrap().replace("{}", deet.as_str());
-            let label = gtk::Label::new(None);
-            label.set_text(&format!("{}", text));
-            vbox.add(&label);
+            // let text = item["text"].as_str().unwrap().replace("{}", deet.as_str());
+
+            let line_box = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+
+            let key = gtk::Label::new(None);
+            key.set_text(&format!("{}", item["text"].as_str().unwrap()));
+
+            let val = gtk::Label::new(None);
+            val.set_text(&deet.as_str());
+
+            line_box.add(&key);
+            line_box.add(&val);
+            inner_box.add(&line_box);
+            values.insert(String::from(func), val);
         }
     }
 
+    update_ui(values);
     window.add(&vbox);
     window.show_all();
+}
+
+fn update_ui(values: HashMap<String, gtk::Label>) {
+    let foo = move || {
+        for (func, val) in values.iter() {
+            let deet = deets::do_func(func);
+            val.set_text(&deet.as_str());
+        }
+        return glib::Continue(true);
+    };
+
+    glib::timeout_add_seconds_local(1, foo);
 }
 
 fn get_file() -> String {

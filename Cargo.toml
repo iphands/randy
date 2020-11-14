@@ -7,6 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+glib = "0.10.3"
 gio = "0.9.1"
 gtk = "0.9.2"
 minimal-yaml = "0.1.2"
