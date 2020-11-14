@@ -1,6 +1,11 @@
-
+use std::sync::RwLock;
 use std::{str, mem, slice, fs};
 use libc::{c_char, sysconf, _SC_HOST_NAME_MAX};
+
+lazy_static! {
+    static ref LAST_IDLE:  RwLock<u64> = RwLock::new(0);
+    static ref LAST_TOTAL: RwLock<u64> = RwLock::new(0);
+}
 
 fn get_hostname_from_utsname(n: [i8; 65]) -> String {
     let hostname: &[u8] = unsafe{ slice::from_raw_parts(n.as_ptr() as *const u8, n.len()) };
@@ -65,10 +70,10 @@ fn get_load(loads: [u64; 3]) -> String {
     return String::from(format!("{:.2} {:.2} {:.2}", load_arr[0], load_arr[1], load_arr[2]));
 }
 
-fn get_procs(procs: u16, proc_stat: String) -> String {
+fn get_procs(procs: u16, proc_stat: Vec<String>) -> String {
     let mut running: Option<String> = None;
 
-    for line in proc_stat.split('\n') {
+    for line in proc_stat {
         if line.starts_with("procs_running") {
             running = Some(line.replace("procs_running ", ""));
         }
@@ -86,11 +91,28 @@ fn get_ram_usage(totalram: u64, freeram: u64) -> String {
     return String::from(format!("{:.2}GB / {:.2}GB", free, total));
 }
 
-fn get_proc_stat() -> String {
+fn get_proc_stat() -> Vec<String> {
     return match fs::read_to_string("/proc/stat") {
-        Ok(s)  => s,
+        Ok(s)  => s.lines().map(|s| String::from(s)).collect(),
         Err(_) => panic!("fdsaf"),
     };
+}
+
+fn get_cpu_usage(proc_stat: Vec<String>) -> String {
+    let i: Vec<u64> = proc_stat[0].split(' ').filter_map(|s| s.parse::<u64>().ok()).collect();
+
+    let idle:  u64 = i[3];
+    let total: u64 = i.iter().fold(0, |a, b| a + b);
+
+    let totals = total - *LAST_TOTAL.read().unwrap();
+    let idles  = idle -  *LAST_IDLE.read().unwrap();
+
+    let percent = ((totals as f64 - (idles as f64)) / totals as f64) * 100.0;
+
+    *LAST_IDLE.write().unwrap() = idle;
+    *LAST_TOTAL.write().unwrap() = total;
+
+    return String::from(format!("{:.2}%", percent));
 }
 
 pub fn do_func(s: &str) -> String {
@@ -105,6 +127,7 @@ pub fn do_func(s: &str) -> String {
         "load" => get_load(sysinfo.loads),
         "procs" => get_procs(sysinfo.procs, proc_stat),
         "ram_usage" => get_ram_usage(sysinfo.totalram, sysinfo.freeram),
+        "cpu_usage" => get_cpu_usage(proc_stat),
         _ => {
             println!("Unkown func: {}", s);
             return String::from("unimpl");
