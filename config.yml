@@ -1,0 +1,21 @@
+---
+- text: SYSTEM
+  items:
+    - func: hostname
+      text: "Hostname: {}"
+    - func: kernel
+      text: "Kernel: {}"
+    - func: uptime
+      text: "Uptime: {}"
+    - func: cpu_temp
+      text: "CPU Temp: {}"
+    - func: gpu_temp
+      text: "GPU Temp: {}"
+    - func: ps_len
+      text: "Processes: {}"
+    - func: load
+      text: "Load: {}"
+# - text: FILESYSTEM
+#   items:
+# - text: NETWORKING
+#   items:
