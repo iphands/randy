@@ -7,6 +7,8 @@
       text: "Kernel:"
     - func: uptime
       text: "Uptime:"
+    - func: ram_usage
+      text: "RAM Usage:"
     - func: cpu_temp
       text: "CPU Temp:"
     - func: gpu_temp

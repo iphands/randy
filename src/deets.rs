@@ -68,6 +68,12 @@ fn get_procs(procs: u16) -> String {
     return String::from(format!("{}", procs));
 }
 
+fn get_ram_usage(totalram: u64, freeram: u64) -> String {
+    let free =  (freeram as f64)  / 1024.0 / 1024.0 / 1024.0;
+    let total = (totalram as f64) / 1024.0 / 1024.0 / 1024.0;
+    return String::from(format!("{:.2}GB / {:.2}GB", free, total));
+}
+
 pub fn do_func(s: &str) -> String {
     let sysinfo = get_sysinfo();
     let utsname = get_utsname();
@@ -78,6 +84,7 @@ pub fn do_func(s: &str) -> String {
         "uptime" => get_uptime_string(sysinfo.uptime),
         "load" => get_load(sysinfo.loads),
         "procs" => get_procs(sysinfo.procs),
+        "ram_usage" => get_ram_usage(sysinfo.totalram, sysinfo.freeram),
         _ => {
             println!("Unkown func: {}", s);
             return String::from("unimpl");
