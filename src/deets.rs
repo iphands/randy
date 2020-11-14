@@ -38,12 +38,25 @@ fn str_from_bytes(mut buffer: Vec<u8>) -> String {
     return String::from_utf8(buffer).unwrap();
 }
 
+fn get_load(loads: [u64; 3]) -> String {
+    let mut load_arr: [f32; 3] = [0.0, 0.0, 0.0];
+
+    for (i, t) in loads.iter().enumerate() {
+        let load: f32 = *t as f32;
+        let info: f32 = (load / 8.0 / 8000.0);
+        load_arr[i] = info;
+    }
+
+    return String::from(format!("{:.2} {:.2} {:.2}", load_arr[0], load_arr[1], load_arr[2]));
+}
+
 pub fn do_func(s: &str) -> String {
-    get_sysinfo();
+    let sysinfo = get_sysinfo();
     let ret: String = match s {
         "hostname" => get_hostname(),
         "kernel" => get_uname(),
-        "uptime" => get_uptime_string(get_sysinfo().uptime),
+        "uptime" => get_uptime_string(sysinfo.uptime),
+        "load" => get_load(sysinfo.loads),
         _ => {
             println!("Unkown func");
             return String::from("unimpl");

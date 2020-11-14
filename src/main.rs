@@ -21,9 +21,10 @@ fn build_ui(application: &gtk::Application) {
     window.set_border_width(0);
     window.set_decorated(false);
     window.set_position(gtk::WindowPosition::Center);
-    window.set_default_size(375, 2100);
     window.set_resizable(false);
-    window.move_(3840 - 375 - 20 - 375, 20);
+    window.set_default_size(375, 1000);
+    // window.move_(3840 - 375 - 20 - 375, 20);
+    // window.set_default_size(375, 2100);
 
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, 10);
 
