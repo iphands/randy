@@ -1,19 +1,33 @@
 use std::{str, mem, slice};
 use libc::{c_char, sysconf, _SC_HOST_NAME_MAX};
 
+fn get_hostname_from_utsname(n: [i8; 65]) -> String {
+    let hostname: &[u8] = unsafe{ slice::from_raw_parts(n.as_ptr() as *const u8, n.len()) };
+    return str_from_bytes(hostname.to_vec());
+}
+
+#[allow(dead_code)]
 fn get_hostname() -> String {
     let hostname_max = unsafe { sysconf(_SC_HOST_NAME_MAX) };
+
     let mut name = vec![0 as u8; (hostname_max as usize) + 1];
     unsafe { libc::gethostname(name.as_mut_ptr() as *mut c_char, name.len()) };
 
+    let mut domain = vec![0 as u8; (hostname_max as usize) + 1];
+    unsafe { libc::getdomainname(domain.as_mut_ptr() as *mut c_char, domain.len()) };
+
+    println!("{}", str_from_bytes(domain));
     return str_from_bytes(name);
 }
 
-fn get_uname() -> String {
-    let mut uname: libc::utsname = unsafe { mem::zeroed() };
-    unsafe { libc::uname(&mut uname); };
+fn get_utsname() -> libc::utsname {
+    let mut utsname: libc::utsname = unsafe { mem::zeroed() };
+    unsafe { libc::uname(&mut utsname); };
+    return utsname;
+}
 
-    let release: &[u8] = unsafe{ slice::from_raw_parts(uname.release.as_ptr() as *const u8, uname.release.len()) };
+fn get_uname(r: [i8; 65]) -> String {
+    let release: &[u8] = unsafe{ slice::from_raw_parts(r.as_ptr() as *const u8, r.len()) };
     return str_from_bytes(release.to_vec());
 }
 
@@ -56,10 +70,11 @@ fn get_procs(procs: u16) -> String {
 
 pub fn do_func(s: &str) -> String {
     let sysinfo = get_sysinfo();
+    let utsname = get_utsname();
 
     let ret: String = match s {
-        "hostname" => get_hostname(),
-        "kernel" => get_uname(),
+        "hostname" => get_hostname_from_utsname(utsname.nodename),
+        "kernel" => get_uname(utsname.release),
         "uptime" => get_uptime_string(sysinfo.uptime),
         "load" => get_load(sysinfo.loads),
         "procs" => get_procs(sysinfo.procs),

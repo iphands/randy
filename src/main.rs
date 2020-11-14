@@ -13,7 +13,7 @@ use std::fs;
 
 use std::collections::HashMap;
 
-fn build_ui(application: &gtk::Application, yaml: &yaml_rust::Yaml) {
+fn build_ui(application: &gtk::Application) {
     let window = gtk::ApplicationWindow::new(application);
 
     window.set_title("Ronky");
@@ -21,7 +21,7 @@ fn build_ui(application: &gtk::Application, yaml: &yaml_rust::Yaml) {
     window.set_decorated(false);
     window.set_position(gtk::WindowPosition::Center);
     window.set_resizable(false);
-    window.set_default_size(375, 1000);
+    window.set_default_size(375, -1);
 
     // window.move_(3840 - 375 - 20 - 375, 20);
     // window.set_default_size(375, 2100);
@@ -44,6 +44,7 @@ fn init_ui(values: &mut HashMap<String, gtk::Label>, vbox: &gtk::Box) {
         let label = Some(i["text"].as_str().unwrap());
         let frame = gtk::Frame::new(label);
         vbox.add(&frame);
+        // vbox.pack_start(&frame, false, false, 10);
 
         let inner_box = gtk::Box::new(gtk::Orientation::Vertical, 10);
         frame.add(&inner_box);
@@ -103,9 +104,7 @@ fn main() {
         .expect("Initialization failed...");
 
     application.connect_activate(|app| {
-        let s: &str = &get_file();
-        let yaml = &get_config(s)[0];
-        build_ui(app, yaml);
+        build_ui(app);
     });
 
     application.run(&args().collect::<Vec<_>>());
