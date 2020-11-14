@@ -11,7 +11,7 @@
       text: "CPU Temp: {}"
     - func: gpu_temp
       text: "GPU Temp: {}"
-    - func: ps_len
+    - func: procs
       text: "Processes: {}"
     - func: load
       text: "Load: {}"

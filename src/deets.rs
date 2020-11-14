@@ -43,11 +43,15 @@ fn get_load(loads: [u64; 3]) -> String {
 
     for (i, t) in loads.iter().enumerate() {
         let load: f32 = *t as f32;
-        let info: f32 = (load / 8.0 / 8000.0);
+        let info: f32 = load / 8.0 / 8000.0;
         load_arr[i] = info;
     }
 
     return String::from(format!("{:.2} {:.2} {:.2}", load_arr[0], load_arr[1], load_arr[2]));
+}
+
+fn get_procs(procs: u16) -> String {
+    return String::from(format!("{}", procs));
 }
 
 pub fn do_func(s: &str) -> String {
@@ -57,8 +61,9 @@ pub fn do_func(s: &str) -> String {
         "kernel" => get_uname(),
         "uptime" => get_uptime_string(sysinfo.uptime),
         "load" => get_load(sysinfo.loads),
+        "procs" => get_procs(sysinfo.procs),
         _ => {
-            println!("Unkown func");
+            println!("Unkown func: {}", s);
             return String::from("unimpl");
         },
     };
