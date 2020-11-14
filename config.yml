@@ -11,14 +11,15 @@
       text: "CPU Usage:"
     - func: ram_usage
       text: "RAM Usage:"
-    - func: cpu_temp
-      text: "CPU Temp:"
-    - func: gpu_temp
-      text: "GPU Temp:"
     - func: procs
       text: "Processes:"
     - func: load
       text: "Load:"
+    - func: cpu_temp
+      text: "CPU Temp:"
+    - func: gpu_temp
+      text: "GPU Temp:"
+
 # - text: FILESYSTEM
 #   items:
 # - text: NETWORKING
