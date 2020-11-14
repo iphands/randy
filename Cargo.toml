@@ -4,7 +4,16 @@ version = "0.1.0"
 authors = ["Ian Page Hands <iphands@gmail.com>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.dev]
+opt-level = "s"
+debug = 0
+
+[profile.release]
+opt-level = "s"
+codegen-units = 1
+panic = 'abort'
+lto = true
+overflow-checks = false
 
 [dependencies]
 glib = "0.10.3"

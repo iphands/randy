@@ -2,6 +2,7 @@
 extern crate lazy_static;
 extern crate gio;
 extern crate gtk;
+extern crate yaml_rust;
 
 mod deets;
 
@@ -87,14 +88,14 @@ fn update_ui(values: HashMap<String, gtk::Label>) {
 fn get_file() -> String {
     return match fs::read_to_string("./config.yml") {
         Ok(s)  => s,
-        Err(_) => panic!("fdsaf"),
+        Err(_) => panic!("Unable to open/read ./config.yml"),
     };
 }
 
 fn get_config(yaml_str: &str) -> Vec<Yaml> {
     let yaml = match YamlLoader::load_from_str(yaml_str) {
         Ok(y)  => y,
-        Err(_) => panic!("fdsaf"),
+        Err(_) => panic!("Unable to parse YAML from ./config.yml"),
     };
 
     return yaml;
