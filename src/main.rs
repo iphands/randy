@@ -86,6 +86,12 @@ fn update_ui(values: HashMap<String, gtk::Label>) {
 }
 
 fn get_file() -> String {
+    let input = args().collect::<Vec<String>>();
+    let config_path = &input[1];
+    if !config_path.ends_with(".yml") && !config_path.ends_with(".yaml") {
+        panic!("Need to provide a valid config path: {}", config_path);
+    }
+
     return match fs::read_to_string("./config.yml") {
         Ok(s)  => s,
         Err(_) => panic!("Unable to open/read ./config.yml"),
@@ -110,5 +116,5 @@ fn main() {
         build_ui(app);
     });
 
-    application.run(&args().collect::<Vec<_>>());
+    application.run(&Vec::new());
 }
