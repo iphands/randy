@@ -98,21 +98,30 @@ fn get_ram_usage() -> String {
             .replace("kB", "").parse().unwrap();
     }
 
-    let meminfo = get_file(String::from("/proc/meminfo"));
+    let meminfo = get_file(String::from("/proc/meminfo"), 3);
     let free  = reduce(get_item(2, &meminfo));
     let total = reduce(get_item(0, &meminfo));
     return String::from(format!("{:.2}GB / {:.2}GB", (total - free), total));
 }
 
-fn get_file(path: String) -> Vec<String> {
+fn get_file(path: String, line_end: usize) -> Vec<String> {
+    // TODO right now I return less, cool but I really want to read
+    // less too. Impl a reader that does not read_to_string the whole file
     return match fs::read_to_string(&path) {
-        Ok(s)  => s.lines().map(|s| String::from(s)).collect(),
+        Ok(s)  => {
+            s.lines().enumerate().filter_map(|(i, s)| {
+                if i < line_end {
+                    return Some(String::from(s));
+                }
+                return None;
+            }).collect()
+        },
         Err(_) => panic!("Unable to open / read {}", &path),
     };
 }
 
 fn get_proc_stat() -> Vec<String> {
-    return get_file(String::from("/proc/stat"));
+    return get_file(String::from("/proc/stat"), 1);
 }
 
 fn get_cpu_usage(proc_stat: Vec<String>) -> String {
