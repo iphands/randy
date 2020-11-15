@@ -85,9 +85,14 @@ fn get_procs(procs: u16, proc_stat: Vec<String>) -> String {
     }
 }
 
-fn get_ram_usage(totalram: u64, freeram: u64) -> String {
-    let free =  (freeram as f64)  / 1024.0 / 1024.0 / 1024.0;
-    let total = (totalram as f64) / 1024.0 / 1024.0 / 1024.0;
+// fn get_ram_usage(totalram: u64, freeram: u64) -> String {
+fn get_ram_usage(sysinfo: libc::sysinfo) -> String {
+    fn reduce(i: u64) -> f64 {
+        return (i as f64) / 1024.0 / 1024.0 / 1024.0;
+    }
+
+    let free  = reduce(sysinfo.freeram);
+    let total = reduce(sysinfo.totalram);
     return String::from(format!("{:.2}GB / {:.2}GB", (total - free), total));
 }
 
@@ -126,7 +131,7 @@ pub fn do_func(s: &str) -> String {
         "uptime" => get_uptime_string(sysinfo.uptime),
         "load" => get_load(sysinfo.loads),
         "procs" => get_procs(sysinfo.procs, proc_stat),
-        "ram_usage" => get_ram_usage(sysinfo.totalram, sysinfo.freeram),
+        "ram_usage" => get_ram_usage(sysinfo),
         "cpu_usage" => get_cpu_usage(proc_stat),
         _ => {
             println!("Unkown func: {}", s);
