@@ -150,10 +150,10 @@ pub fn do_func(s: &str) -> String {
     let proc_stat = get_proc_stat();
 
     let ret: String = match s {
-        "hostname" => get_hostname_from_utsname(utsname.nodename),
-        "kernel" => get_uname(utsname.release),
-        "uptime" => get_uptime_string(sysinfo.uptime),
-        "load" => get_load(sysinfo.loads),
+        "hostname" => get_hostname_from_utsname(utsname.nodename as [c_char; 65]),
+        "kernel" => get_uname(utsname.release as [c_char; 65]),
+        "uptime" => get_uptime_string(sysinfo.uptime as c_int),
+        "load" => get_load(sysinfo.loads as [c_ulong; 3]),
         "procs" => get_procs(sysinfo.procs, proc_stat),
         "ram_usage" => get_ram_usage(),
         "cpu_usage" => get_cpu_usage(proc_stat),
