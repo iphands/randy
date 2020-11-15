@@ -12,20 +12,6 @@ fn get_hostname_from_utsname(n: [c_char; 65]) -> String {
     return str_from_bytes(hostname.to_vec());
 }
 
-#[allow(dead_code)]
-fn get_hostname() -> String {
-    let hostname_max = unsafe { sysconf(_SC_HOST_NAME_MAX) };
-
-    let mut name = vec![0 as u8; (hostname_max as usize) + 1];
-    unsafe { libc::gethostname(name.as_mut_ptr() as *mut c_char, name.len()) };
-
-    let mut domain = vec![0 as u8; (hostname_max as usize) + 1];
-    unsafe { libc::getdomainname(domain.as_mut_ptr() as *mut c_char, domain.len()) };
-
-    println!("{}", str_from_bytes(domain));
-    return str_from_bytes(name);
-}
-
 fn get_utsname() -> libc::utsname {
     let mut utsname: libc::utsname = unsafe { mem::zeroed() };
     unsafe { libc::uname(&mut utsname); };
