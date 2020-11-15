@@ -132,6 +132,18 @@ fn get_cpu_usage(proc_stat: Vec<String>) -> String {
     return String::from(format!("{:.2}%", percent));
 }
 
+fn get_cpu_temp() -> String {
+    match fs::read_to_string("/sys/class/thermal/thermal_zone0/temp") {
+        Ok(s) => { 
+            match s.trim().parse::<u32>() {
+                Ok(i) => (i / 1000).to_string(),
+                Err(e) => e.to_string(),
+            }
+        },
+        _ => "unknown".to_string(),
+    }
+}
+
 pub fn do_func(s: &str) -> String {
     let sysinfo = get_sysinfo();
     let utsname = get_utsname();
@@ -145,6 +157,7 @@ pub fn do_func(s: &str) -> String {
         "procs" => get_procs(sysinfo.procs, proc_stat),
         "ram_usage" => get_ram_usage(),
         "cpu_usage" => get_cpu_usage(proc_stat),
+        "cpu_temp" => get_cpu_temp(),
         _ => {
             println!("Unkown func: {}", s);
             return String::from("unimpl");
