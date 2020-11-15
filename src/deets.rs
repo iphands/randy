@@ -1,3 +1,4 @@
+use yaml_rust::{Yaml};
 use std::sync::RwLock;
 use std::{str, mem, slice, fs};
 use libc::{c_char, c_int, c_ulong};
@@ -127,7 +128,29 @@ fn get_cpu_usage(proc_stat: Vec<String>) -> String {
     return String::from(format!("{:.2}%", percent));
 }
 
-fn get_cpu_temp() -> String {
+fn get_sensor_info(sensor_name: &str, label_name: &str, val: &str) -> String {
+    for chip in sensors::Sensors::new() {
+        let name = chip.get_name().expect("name");
+        if sensor_name == name {
+            for feature in chip {
+                let label = feature.get_label().expect("label");
+                if label == label_name {
+                    for subfeature in feature {
+                        let value = subfeature.get_value().expect("value");
+                        // TODO this beeegs for a proper templating solution
+                        // I think I want to start returning the raw info and
+                        // applying the tempates in main ui_update
+                        return String::from(val).replace("{}", format!("{:.2}", value).as_str());
+                    }
+                }
+            }
+        }
+    }
+
+    return String::from("unknown");
+}
+
+fn get_cpu_temp_sys() -> String {
     match fs::read_to_string("/sys/class/thermal/thermal_zone0/temp") {
         Ok(s) => {
             match s.trim().parse::<u32>() {
@@ -139,12 +162,13 @@ fn get_cpu_temp() -> String {
     }
 }
 
-pub fn do_func(s: &str) -> String {
+pub fn do_func(item: &Yaml) -> String {
+    let func: &str = item["func"].as_str().unwrap();
     let sysinfo = get_sysinfo();
     let utsname = get_utsname();
     let proc_stat = get_proc_stat();
 
-    let ret: String = match s {
+    let ret: String = match func {
         "hostname" => get_hostname_from_utsname(utsname.nodename as [c_char; 65]),
         "kernel" => get_uname(utsname.release as [c_char; 65]),
         "uptime" => get_uptime_string(sysinfo.uptime as c_int),
@@ -152,9 +176,14 @@ pub fn do_func(s: &str) -> String {
         "procs" => get_procs(sysinfo.procs, proc_stat),
         "ram_usage" => get_ram_usage(),
         "cpu_usage" => get_cpu_usage(proc_stat),
-        "cpu_temp" => get_cpu_temp(),
+        "cpu_temp_sys" => get_cpu_temp_sys(),
+        "sensor_info" => get_sensor_info(
+            item["sensor_name"].as_str().unwrap(),
+            item["label_name"].as_str().unwrap(),
+            item["val"].as_str().unwrap(),
+        ),
         _ => {
-            println!("Unkown func: {}", s);
+            println!("Unkown func: {}", func);
             return String::from("unimpl");
         },
     };

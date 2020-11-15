@@ -49,7 +49,7 @@ fn build_ui(application: &gtk::Application) {
     window.show_all();
 }
 
-fn init_ui(values: &mut HashMap<String, gtk::Label>, vbox: &gtk::Box, ui_config: &yaml_rust::Yaml) {
+fn init_ui(values: &mut HashMap<yaml_rust::Yaml, gtk::Label>, vbox: &gtk::Box, ui_config: &yaml_rust::Yaml) {
     for i in ui_config.as_vec().unwrap() {
         let label = Some(i["text"].as_str().unwrap());
         let frame = gtk::Frame::new(label);
@@ -61,9 +61,7 @@ fn init_ui(values: &mut HashMap<String, gtk::Label>, vbox: &gtk::Box, ui_config:
         frame.add(&inner_box);
 
         for item in i["items"].as_vec().unwrap() {
-            let func = item["func"].as_str().unwrap();
-            let deet = deets::do_func(item["func"].as_str().unwrap());
-            // let text = item["text"].as_str().unwrap().replace("{}", deet.as_str());
+            let deet = deets::do_func(item);
 
             let line_box = gtk::Box::new(gtk::Orientation::Horizontal, 10);
 
@@ -88,15 +86,16 @@ fn init_ui(values: &mut HashMap<String, gtk::Label>, vbox: &gtk::Box, ui_config:
                 _ => (),
             }
 
-            values.insert(String::from(func), val);
+            values.insert(item.clone(), val);
         }
     }
 }
 
-fn update_ui(timeout: i64, values: HashMap<String, gtk::Label>) {
+fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, gtk::Label>) {
     let foo = move || {
-        for (func, val) in values.iter() {
-            let deet = deets::do_func(func);
+        for (item, val) in values.iter() {
+            let func: &str = item["func"].as_str().unwrap();
+            let deet = deets::do_func(item);
             val.set_text(&deet.as_str());
 
             // TODO this is shiiiitty

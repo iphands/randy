@@ -10,24 +10,44 @@ ui:
     items:
       - func: hostname
         text: "Hostname:"
+
       - func: kernel
         text: "Kernel:"
+
       - func: uptime
         text: "Uptime:"
+
       - func: cpu_usage
         text: "CPU Usage:"
+
         widget: bar
       - func: ram_usage
         text: "RAM Usage:"
+
         widget: bar
       - func: procs
         text: "Processes:"
+
       - func: load
         text: "Load:"
-      - func: cpu_temp
+
+      - func: sensor_info
+        sensor_name: k10temp-pci-00c3
+        label_name: Tdie
+        val: "{}C"
         text: "CPU Temp:"
-      - func: gpu_temp
-        text: "GPU Temp:"
+
+      - func: sensor_info
+        sensor_name: k10temp-pci-00c3
+        label_name: Vcore
+        val: "{}mV"
+        text: "CPU Vcore:"
+
+      # - func: cpu_temp_sys
+      #   text: "CPU Temp:"
+
+      # - func: gpu_temp
+      #   text: "GPU Temp:"
 
 # - text: FILESYSTEM
 #   items:

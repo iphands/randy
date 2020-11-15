@@ -403,6 +403,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d58d1b70b004888f764dfbf6a26a3b0342a1632d33968e4a179d8011c760614"
 
 [[package]]
+name = "libsensors-sys"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1730cc7164b96de1d460c1f87c993430a3dda88ee336f0d2ea9a52097243132"
+
+[[package]]
 name = "linked-hash-map"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -558,7 +564,18 @@ dependencies = [
  "lazy_static",
  "libc",
  "minimal-yaml",
+ "sensors",
  "yaml-rust",
+]
+
+[[package]]
+name = "sensors"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6993a8ec96ef1f96f4285b5fbe7f80d7c8b2674b20f0c9bbbdaab80d14f0c06e"
+dependencies = [
+ "libc",
+ "libsensors-sys",
 ]
 
 [[package]]
