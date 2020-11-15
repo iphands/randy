@@ -39,9 +39,11 @@ progressbar {
 }
 
 trough {
+    background-color: #000;
     min-height: 10px;
 }
 
-progress {
+progressbar > trough > progress {
+    background-color: #fff;
     min-height: 10px;
 }
