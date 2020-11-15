@@ -29,7 +29,7 @@ fn build_ui(application: &gtk::Application) {
     provider.load_from_data(CSS.as_bytes()).expect("Failed to load CSS");
     gtk::StyleContext::add_provider_for_screen(&screen, &provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
 
-    window.set_title("Ronky");
+    window.set_title("Randy");
     window.set_border_width(config["settings"]["border"].as_i64().unwrap() as u32);
     window.set_decorated(config["settings"]["decoration"].as_bool().unwrap());
     window.set_position(gtk::WindowPosition::Center);
