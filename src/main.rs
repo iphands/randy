@@ -43,7 +43,7 @@ fn build_ui(application: &gtk::Application) {
     let mut values = HashMap::new();
 
     init_ui(&mut values, &vbox, &config["ui"]);
-    update_ui(values);
+    update_ui(config["settings"]["timeout"].as_i64().unwrap(), values);
 
     window.add(&vbox);
     window.show_all();
@@ -93,7 +93,7 @@ fn init_ui(values: &mut HashMap<String, gtk::Label>, vbox: &gtk::Box, ui_config:
     }
 }
 
-fn update_ui(values: HashMap<String, gtk::Label>) {
+fn update_ui(timeout: i64, values: HashMap<String, gtk::Label>) {
     let foo = move || {
         for (func, val) in values.iter() {
             let deet = deets::do_func(func);
@@ -125,7 +125,7 @@ fn update_ui(values: HashMap<String, gtk::Label>) {
         return glib::Continue(true);
     };
 
-    glib::timeout_add_seconds_local(1, foo);
+    glib::timeout_add_seconds_local(timeout as u32, foo);
 }
 
 fn get_file() -> String {

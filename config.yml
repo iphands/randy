@@ -4,6 +4,7 @@ settings:
   decoration: false
   resizable: false
   border: 10
+  timeout: 5
 ui:
   - text: SYSTEM
     items:
