@@ -134,9 +134,9 @@ fn get_cpu_usage(proc_stat: Vec<String>) -> String {
 
 fn get_cpu_temp() -> String {
     match fs::read_to_string("/sys/class/thermal/thermal_zone0/temp") {
-        Ok(s) => { 
+        Ok(s) => {
             match s.trim().parse::<u32>() {
-                Ok(i) => (i / 1000).to_string(),
+                Ok(i) => String::from(format!("{}C", (i / 1000))),
                 Err(e) => e.to_string(),
             }
         },
