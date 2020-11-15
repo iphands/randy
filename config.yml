@@ -1,24 +1,30 @@
 ---
-- text: SYSTEM
-  items:
-    - func: hostname
-      text: "Hostname:"
-    - func: kernel
-      text: "Kernel:"
-    - func: uptime
-      text: "Uptime:"
-    - func: cpu_usage
-      text: "CPU Usage:"
-    - func: ram_usage
-      text: "RAM Usage:"
-    - func: procs
-      text: "Processes:"
-    - func: load
-      text: "Load:"
-    - func: cpu_temp
-      text: "CPU Temp:"
-    - func: gpu_temp
-      text: "GPU Temp:"
+settings:
+  debug: false
+  decoration: false
+  resizable: false
+  border: 10
+ui:
+  - text: SYSTEM
+    items:
+      - func: hostname
+        text: "Hostname:"
+      - func: kernel
+        text: "Kernel:"
+      - func: uptime
+        text: "Uptime:"
+      - func: cpu_usage
+        text: "CPU Usage:"
+      - func: ram_usage
+        text: "RAM Usage:"
+      - func: procs
+        text: "Processes:"
+      - func: load
+        text: "Load:"
+      - func: cpu_temp
+        text: "CPU Temp:"
+      - func: gpu_temp
+        text: "GPU Temp:"
 
 # - text: FILESYSTEM
 #   items:

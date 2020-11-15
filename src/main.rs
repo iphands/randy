@@ -19,11 +19,21 @@ use std::collections::HashMap;
 fn build_ui(application: &gtk::Application) {
     let window = gtk::ApplicationWindow::new(application);
 
+    let s: &str = &get_file();
+    let config = &get_config(s)[0];
+
+    //Add custom CSS
+    const CSS: &str = include_str!("styles/app.css");
+    let screen = window.get_screen().unwrap();
+    let provider = gtk::CssProvider::new();
+    provider.load_from_data(CSS.as_bytes()).expect("Failed to load CSS");
+    gtk::StyleContext::add_provider_for_screen(&screen, &provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
+
     window.set_title("Ronky");
-    window.set_border_width(0);
-    window.set_decorated(false);
+    window.set_border_width(config["settings"]["border"].as_i64().unwrap() as u32);
+    window.set_decorated(config["settings"]["decoration"].as_bool().unwrap());
     window.set_position(gtk::WindowPosition::Center);
-    window.set_resizable(false);
+    window.set_resizable(config["settings"]["resizable"].as_bool().unwrap());
     window.set_default_size(375, -1);
 
     // window.move_(3840 - 375 - 20 - 375, 20);
@@ -32,24 +42,22 @@ fn build_ui(application: &gtk::Application) {
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, 10);
     let mut values = HashMap::new();
 
-    init_ui(&mut values, &vbox);
+    init_ui(&mut values, &vbox, &config["ui"]);
     update_ui(values);
 
     window.add(&vbox);
     window.show_all();
 }
 
-fn init_ui(values: &mut HashMap<String, gtk::Label>, vbox: &gtk::Box) {
-    let s: &str = &get_file();
-    let yaml = &get_config(s)[0];
-
-    for i in yaml.as_vec().unwrap() {
+fn init_ui(values: &mut HashMap<String, gtk::Label>, vbox: &gtk::Box, ui_config: &yaml_rust::Yaml) {
+    for i in ui_config.as_vec().unwrap() {
         let label = Some(i["text"].as_str().unwrap());
         let frame = gtk::Frame::new(label);
+        frame.get_style_context().add_class("frame");
         vbox.add(&frame);
-        // vbox.pack_start(&frame, false, false, 10);
 
         let inner_box = gtk::Box::new(gtk::Orientation::Vertical, 10);
+        inner_box.get_style_context().add_class("innerbox");
         frame.add(&inner_box);
 
         for item in i["items"].as_vec().unwrap() {
@@ -60,9 +68,11 @@ fn init_ui(values: &mut HashMap<String, gtk::Label>, vbox: &gtk::Box) {
             let line_box = gtk::Box::new(gtk::Orientation::Horizontal, 10);
 
             let key = gtk::Label::new(None);
+            key.get_style_context().add_class("key");
             key.set_text(&format!("{}", item["text"].as_str().unwrap()));
 
             let val = gtk::Label::new(None);
+            val.get_style_context().add_class("val");
             val.set_text(&deet.as_str());
 
             line_box.add(&key);
