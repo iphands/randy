@@ -19,17 +19,7 @@ ui:
 
       - func: cpu_usage
         text: "CPU Usage:"
-
         widget: bar
-      - func: ram_usage
-        text: "RAM Usage:"
-
-        widget: bar
-      - func: procs
-        text: "Processes:"
-
-      - func: load
-        text: "Load:"
 
       - func: sensor_info
         sensor_name: k10temp-pci-00c3
@@ -42,6 +32,16 @@ ui:
         label_name: Vcore
         val: "{}mV"
         text: "CPU Vcore:"
+
+      - func: ram_usage
+        text: "RAM Usage:"
+        widget: bar
+
+      - func: procs
+        text: "Processes:"
+
+      - func: load
+        text: "Load:"
 
       # - func: cpu_temp_sys
       #   text: "CPU Temp:"

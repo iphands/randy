@@ -1,3 +1,5 @@
+@define-color bg_color #000;
+
 GtkLayout {
   background-color: transparent;
 }
@@ -8,7 +10,7 @@ GtkViewport {
 
 window {
     color: white;
-    background-color: transparent;
+    background-color: @bg_color;
     font-family: monospace;
     font-size: large;
 }
@@ -39,7 +41,7 @@ progressbar {
 }
 
 trough {
-    background-color: #000;
+    background-color: @bg_color;
     min-height: 10px;
 }
 
