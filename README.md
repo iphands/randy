@@ -1,5 +1,5 @@
 # Randy
-Conky inspired system info viewer written in Rust
+Conky inspired system info viewer written in Rust / GTK3
 
 ## Screenshot
 ![screenshot](https://raw.githubusercontent.com/iphands/ronky/main/assets/screenshot.png)
