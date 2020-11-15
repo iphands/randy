@@ -1,4 +1,5 @@
 use std::sync::RwLock;
+use easy_reader::EasyReader;
 use std::{str, mem, slice, fs};
 use libc::{c_char, sysconf, _SC_HOST_NAME_MAX};
 
@@ -105,6 +106,25 @@ fn get_ram_usage() -> String {
 }
 
 fn get_file(path: String) -> Vec<String> {
+    let file = match fs::File::open(&path) {
+        Ok(f)  => f,
+        Err(_) => panic!("Unable to open: {}", &path),
+    };
+
+    let mut reader = match EasyReader::new(file) {
+        Ok(r)  => r,
+        Err(e) => panic!("Unable to read: {}\n{}", &path, e),
+    };
+
+
+    for i in 1..10 {
+        let line = match reader.next_line() {
+            Ok(l) => l.unwrap(),
+            Err(_) => panic!("line Unable to read: {}", &path),
+        };
+        println!("{}", line);
+    }
+
     return match fs::read_to_string(&path) {
         Ok(s)  => s.lines().map(|s| String::from(s)).collect(),
         Err(_) => panic!("Unable to open / read {}", &path),
