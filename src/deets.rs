@@ -1,13 +1,13 @@
 use std::sync::RwLock;
 use std::{str, mem, slice, fs};
-use libc::{c_char, sysconf, _SC_HOST_NAME_MAX};
+use libc::{c_char, c_int, c_ulong, sysconf, _SC_HOST_NAME_MAX};
 
 lazy_static! {
     static ref LAST_IDLE:  RwLock<u64> = RwLock::new(0);
     static ref LAST_TOTAL: RwLock<u64> = RwLock::new(0);
 }
 
-fn get_hostname_from_utsname(n: [i8; 65]) -> String {
+fn get_hostname_from_utsname(n: [c_char; 65]) -> String {
     let hostname: &[u8] = unsafe{ slice::from_raw_parts(n.as_ptr() as *const u8, n.len()) };
     return str_from_bytes(hostname.to_vec());
 }
@@ -32,12 +32,12 @@ fn get_utsname() -> libc::utsname {
     return utsname;
 }
 
-fn get_uname(r: [i8; 65]) -> String {
+fn get_uname(r: [c_char; 65]) -> String {
     let release: &[u8] = unsafe{ slice::from_raw_parts(r.as_ptr() as *const u8, r.len()) };
     return str_from_bytes(release.to_vec());
 }
 
-fn get_uptime_string(uptime: i64) -> String {
+fn get_uptime_string(uptime: c_int) -> String {
     let d = uptime / 60 / 60 / 24;
     let h = (uptime / 60 / 60) - (d * 24);
     let m = (uptime / 60) - (h * 60) - ((d * 24) * 60);
@@ -58,7 +58,7 @@ fn str_from_bytes(mut buffer: Vec<u8>) -> String {
     return String::from_utf8(buffer).unwrap();
 }
 
-fn get_load(loads: [u64; 3]) -> String {
+fn get_load(loads: [c_ulong; 3]) -> String {
     let mut load_arr: [f32; 3] = [0.0, 0.0, 0.0];
 
     for (i, t) in loads.iter().enumerate() {
