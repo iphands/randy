@@ -18,6 +18,7 @@ ui:
         widget: bar
       - func: ram_usage
         text: "RAM Usage:"
+        widget: bar
       - func: procs
         text: "Processes:"
       - func: load

@@ -99,6 +99,20 @@ fn update_ui(values: HashMap<String, gtk::Label>) {
             let deet = deets::do_func(func);
             val.set_text(&deet.as_str());
 
+            // TODO this is shiiiitty
+            // refactor so that the deets::do_func returns raw data
+
+            if func == "ram_usage" {
+                let parent: gtk::Box = val.get_parent().unwrap().downcast().unwrap();
+                let tmp: &gtk::Widget = &parent.get_children()[2]; //.downcast::<gtk::ProgressBar>().unwrap();
+                let progress = tmp.downcast_ref::<gtk::ProgressBar>().unwrap();
+
+                let data: Vec<&str> = deet.split(" / ").collect(); // .map(String::from);
+                let used = data[0].replace("GB", "").parse::<f64>().unwrap();
+                let total = data[1].replace("GB", "").parse::<f64>().unwrap();
+                progress.set_fraction(used / total);
+            }
+
             if func == "cpu_usage" {
                 let parent: gtk::Box = val.get_parent().unwrap().downcast().unwrap();
                 let tmp: &gtk::Widget = &parent.get_children()[2]; //.downcast::<gtk::ProgressBar>().unwrap();
