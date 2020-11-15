@@ -86,21 +86,33 @@ fn get_procs(procs: u16, proc_stat: Vec<String>) -> String {
 }
 
 // fn get_ram_usage(totalram: u64, freeram: u64) -> String {
-fn get_ram_usage(sysinfo: libc::sysinfo) -> String {
+fn get_ram_usage() -> String {
     fn reduce(i: u64) -> f64 {
-        return (i as f64) / 1024.0 / 1024.0 / 1024.0;
+        return (i as f64) / 1024.0 / 1024.0;
     }
 
-    let free  = reduce(sysinfo.freeram);
-    let total = reduce(sysinfo.totalram);
+    fn get_item(i: usize, v: &Vec<String>) -> u64 {
+        return v[i]
+            .split(' ').collect::<String>()
+            .split(':').collect::<Vec<&str>>()[1]
+            .replace("kB", "").parse().unwrap();
+    }
+
+    let meminfo = get_file(String::from("/proc/meminfo"));
+    let free  = reduce(get_item(2, &meminfo));
+    let total = reduce(get_item(0, &meminfo));
     return String::from(format!("{:.2}GB / {:.2}GB", (total - free), total));
 }
 
-fn get_proc_stat() -> Vec<String> {
-    return match fs::read_to_string("/proc/stat") {
+fn get_file(path: String) -> Vec<String> {
+    return match fs::read_to_string(&path) {
         Ok(s)  => s.lines().map(|s| String::from(s)).collect(),
-        Err(_) => panic!("fdsaf"),
+        Err(_) => panic!("Unable to open / read {}", &path),
     };
+}
+
+fn get_proc_stat() -> Vec<String> {
+    return get_file(String::from("/proc/stat"));
 }
 
 fn get_cpu_usage(proc_stat: Vec<String>) -> String {
@@ -131,7 +143,7 @@ pub fn do_func(s: &str) -> String {
         "uptime" => get_uptime_string(sysinfo.uptime),
         "load" => get_load(sysinfo.loads),
         "procs" => get_procs(sysinfo.procs, proc_stat),
-        "ram_usage" => get_ram_usage(sysinfo),
+        "ram_usage" => get_ram_usage(),
         "cpu_usage" => get_cpu_usage(proc_stat),
         _ => {
             println!("Unkown func: {}", s);
