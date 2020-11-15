@@ -15,6 +15,7 @@ ui:
         text: "Uptime:"
       - func: cpu_usage
         text: "CPU Usage:"
+        widget: bar
       - func: ram_usage
         text: "RAM Usage:"
       - func: procs

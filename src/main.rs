@@ -78,6 +78,16 @@ fn init_ui(values: &mut HashMap<String, gtk::Label>, vbox: &gtk::Box, ui_config:
             line_box.add(&key);
             line_box.add(&val);
             inner_box.add(&line_box);
+
+            match item["widget"].as_str() {
+                Some("bar") => {
+                    let progress = gtk::ProgressBar::new();
+                    progress.set_hexpand(true);
+                    line_box.add(&progress);
+                },
+                _ => (),
+            }
+
             values.insert(String::from(func), val);
         }
     }
@@ -88,7 +98,16 @@ fn update_ui(values: HashMap<String, gtk::Label>) {
         for (func, val) in values.iter() {
             let deet = deets::do_func(func);
             val.set_text(&deet.as_str());
+
+            if func == "cpu_usage" {
+                let parent: gtk::Box = val.get_parent().unwrap().downcast().unwrap();
+                let tmp: &gtk::Widget = &parent.get_children()[2]; //.downcast::<gtk::ProgressBar>().unwrap();
+                let progress = tmp.downcast_ref::<gtk::ProgressBar>().unwrap();
+                let data = deet.replace("%", "").parse::<f64>().unwrap();
+                progress.set_fraction(data / 100.0);
+            }
         }
+
         return glib::Continue(true);
     };
 

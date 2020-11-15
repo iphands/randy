@@ -32,3 +32,16 @@ label.key {
     color: #ccc;
     padding-left: 0.5em;
 }
+
+progressbar {
+    padding-bottom: 5px;
+    padding-right: 5px;
+}
+
+trough {
+    min-height: 10px;
+}
+
+progress {
+    min-height: 10px;
+}
