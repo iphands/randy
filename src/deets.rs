@@ -1,6 +1,6 @@
 use std::sync::RwLock;
 use std::{str, mem, slice, fs};
-use libc::{c_char, c_int, c_ulong, sysconf, _SC_HOST_NAME_MAX};
+use libc::{c_char, c_int, c_ulong};
 
 lazy_static! {
     static ref LAST_IDLE:  RwLock<u64> = RwLock::new(0);
