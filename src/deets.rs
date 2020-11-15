@@ -88,7 +88,7 @@ fn get_procs(procs: u16, proc_stat: Vec<String>) -> String {
 fn get_ram_usage(totalram: u64, freeram: u64) -> String {
     let free =  (freeram as f64)  / 1024.0 / 1024.0 / 1024.0;
     let total = (totalram as f64) / 1024.0 / 1024.0 / 1024.0;
-    return String::from(format!("{:.2}GB / {:.2}GB", free, total));
+    return String::from(format!("{:.2}GB / {:.2}GB", (total - free), total));
 }
 
 fn get_proc_stat() -> Vec<String> {
