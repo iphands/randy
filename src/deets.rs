@@ -181,7 +181,7 @@ pub fn get_cpu_usage(cpu_num: i32) -> f64 {
     return last_load.percent;
 }
 
-#[cfg(feature = "rand")]
+#[cfg(feature = "sensors")]
 fn get_sensor_info(sensor_name: &str, label_name: &str, val: &str) -> String {
     for chip in sensors::Sensors::new() {
         let name = chip.get_name().expect("name");
