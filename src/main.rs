@@ -109,7 +109,7 @@ fn add_cpus(item: &yaml_rust::Yaml, inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
 
         let val = gtk::Label::new(None);
         val.get_style_context().add_class("val");
-        val.set_text("0000 MHz");
+        val.set_text("---- MHz");
 
         let progress = gtk::ProgressBar::new();
         progress.set_hexpand(true);
@@ -164,7 +164,7 @@ fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, gtk::Label>, cpus: V
         for (i, cpu) in cpus.iter().enumerate() {
             let mhz = (cpu_mhz_vec[i] as u32).to_string();
             cpu.mhz.set_text(&format!("{} MHz", mhz));
-            // cpu.progress.set_fraction(cpu_mhz_vec[i] / 5000.0)
+            cpu.progress.set_fraction(deets::get_cpu_usage(i as i32) / 100.0)
         }
 
         for (item, val) in values.iter() {
@@ -190,8 +190,7 @@ fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, gtk::Label>, cpus: V
                 let parent: gtk::Box = val.get_parent().unwrap().downcast().unwrap();
                 let tmp: &gtk::Widget = &parent.get_children()[2]; //.downcast::<gtk::ProgressBar>().unwrap();
                 let progress = tmp.downcast_ref::<gtk::ProgressBar>().unwrap();
-                let data = deet.replace("%", "").parse::<f64>().unwrap();
-                progress.set_fraction(data / 100.0);
+                progress.set_fraction(deets::get_cpu_usage(-1) / 100.0);
             }
         }
 

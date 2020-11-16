@@ -1,13 +1,20 @@
 use std::io::{BufRead, BufReader};
 use std::fs::File;
 use yaml_rust::{Yaml};
-use std::sync::RwLock;
+use std::sync::Mutex;
 use std::{str, mem, slice, fs};
 use libc::{c_char, c_int, c_ulong};
+use std::collections::HashMap;
+
+struct CpuLoad {
+    idle:  u64,
+    total: u64,
+    percent: f64,
+}
 
 lazy_static! {
-    static ref LAST_IDLE:  RwLock<u64> = RwLock::new(0);
-    static ref LAST_TOTAL: RwLock<u64> = RwLock::new(0);
+    static ref CPU_LOADS: Mutex<HashMap<i32 ,CpuLoad>> = Mutex::new(HashMap::new());
+    static ref CPU_COUNT: i32 = get_cpu_mhz().len() as i32;
 }
 
 fn get_hostname_from_utsname(n: [c_char; 65]) -> String {
@@ -135,21 +142,43 @@ fn get_proc_stat() -> Vec<String> {
     return get_file(String::from("/proc/stat"), "", 0);
 }
 
-fn get_cpu_usage(proc_stat: Vec<String>) -> String {
-    let i: Vec<u64> = proc_stat[0].split(' ').filter_map(|s| s.parse::<u64>().ok()).collect();
+fn do_all_cpu_usage(proc_stat: &Vec<String>) {
+    let mut loads_map = CPU_LOADS.lock().unwrap();
 
-    let idle:  u64 = i[3];
-    let total: u64 = i.iter().fold(0, |a, b| a + b);
+    for cpu_num in -1..*CPU_COUNT {
+        if !loads_map.contains_key(&cpu_num) {
+            loads_map.insert(cpu_num, CpuLoad {
+                idle:  0,
+                total: 0,
+                percent: 0.0,
+            });
+        }
 
-    let totals = total - *LAST_TOTAL.read().unwrap();
-    let idles  = idle -  *LAST_IDLE.read().unwrap();
+        let last_load = &loads_map[&cpu_num];
 
-    let percent = ((totals as f64 - (idles as f64)) / totals as f64) * 100.0;
+        let i: Vec<u64> = proc_stat[(cpu_num + 1) as usize].split(' ').filter_map(|s| s.parse::<u64>().ok()).collect();
+        let idle:  u64 = i[3];
+        let total: u64 = i.iter().fold(0, |a, b| a + b);
 
-    *LAST_IDLE.write().unwrap() = idle;
-    *LAST_TOTAL.write().unwrap() = total;
+        let totals = total - last_load.total;
+        let idles  = idle - last_load.idle;
 
-    return String::from(format!("{:.2}%", percent));
+        let mut percent = ((totals as f64 - (idles as f64)) / totals as f64) * 100.0;
+        if percent.is_nan() { percent = 0.0 }
+
+        loads_map.insert(cpu_num, CpuLoad {
+            idle: idle,
+            total: total,
+            percent: percent,
+        });
+    }
+}
+
+pub fn get_cpu_usage(cpu_num: i32) -> f64 {
+    let mut loads_map = CPU_LOADS.lock().unwrap();
+    let last_load = &loads_map[&cpu_num];
+    // return String::from(format!("{:.2}%", last_load.percent));
+    return last_load.percent;
 }
 
 #[cfg(feature = "rand")]
@@ -200,7 +229,10 @@ pub fn do_func(item: &Yaml) -> String {
         "load" => get_load(sysinfo.loads as [c_ulong; 3]),
         "procs" => get_procs(proc_stat),
         "ram_usage" => get_ram_usage(),
-        "cpu_usage" => get_cpu_usage(proc_stat),
+        "cpu_usage" => {
+            do_all_cpu_usage(&proc_stat);
+            return String::from(format!("{:.2}%", get_cpu_usage(-1)));
+        },
         "cpu_temp_sys" => get_cpu_temp_sys(),
 
         #[cfg(feature = "rand")]
