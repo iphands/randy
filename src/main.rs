@@ -16,6 +16,12 @@ use std::fs;
 
 use std::collections::HashMap;
 
+fn get_css(background_color: &str) -> String {
+    let css: String = String::from(include_str!("styles/app.css"));
+    return css.replace("@define-color bg_color #000;",
+                       &format!("@define-color bg_color {};", background_color));
+}
+
 fn build_ui(application: &gtk::Application) {
     let window = gtk::ApplicationWindow::new(application);
 
@@ -23,10 +29,11 @@ fn build_ui(application: &gtk::Application) {
     let config = &get_config(s)[0];
 
     //Add custom CSS
-    const CSS: &str = include_str!("styles/app.css");
+
+    let css: &str = &get_css(config["settings"]["background_color"].as_str().unwrap());
     let screen = window.get_screen().unwrap();
     let provider = gtk::CssProvider::new();
-    provider.load_from_data(CSS.as_bytes()).expect("Failed to load CSS");
+    provider.load_from_data(css.as_bytes()).expect("Failed to load CSS");
     gtk::StyleContext::add_provider_for_screen(&screen, &provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
 
     window.set_title("Randy");
