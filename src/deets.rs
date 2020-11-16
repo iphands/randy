@@ -1,3 +1,5 @@
+use std::io::{BufRead, BufReader};
+use std::fs::File;
 use yaml_rust::{Yaml};
 use std::sync::RwLock;
 use std::{str, mem, slice, fs};
@@ -92,27 +94,25 @@ fn get_ram_usage() -> String {
 }
 
 fn get_file(path: String, line_end: usize) -> Vec<String> {
-    // TODO right now I return less, cool but I really want to read
-    // less too. Impl a reader that does not read_to_string the whole file
-
-    if line_end < 1 {
+    if line_end == 0 {
         return match fs::read_to_string(&path) {
             Ok(s)  => s.lines().map(|s| String::from(s)).collect(),
             Err(_) => panic!("Unable to open / read {}", &path),
         };
     }
 
-    return match fs::read_to_string(&path) {
-        Ok(s)  => {
-            s.lines().enumerate().filter_map(|(i, s)| {
-                if i < line_end {
-                    return Some(String::from(s));
-                }
-                return None;
-            }).collect()
-        },
-        Err(_) => panic!("Unable to open / read {}", &path),
-    };
+    let mut file = BufReader::new(File::open("/proc/meminfo").unwrap());
+    let mut lines: Vec<String> = Vec::new();
+    for _ in 0..line_end {
+        let mut line = String::new();
+        match file.read_line(&mut line) {
+            Err(_) => panic!("Unable to open / read {}", &path),
+            _ => (),
+        };
+        lines.push(String::from(line.replace('\n', "")));
+    }
+
+    return lines;
 }
 
 fn get_proc_stat() -> Vec<String> {
