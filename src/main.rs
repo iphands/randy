@@ -169,7 +169,7 @@ fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, gtk::Label>, cpus: V
 
         for (item, val) in values.iter() {
             let func: &str = item["func"].as_str().unwrap();
-            let deet = deets::do_func(item, frame_cache);
+            let deet = deets::do_func(item, &frame_cache);
             val.set_text(&deet.as_str());
 
             // TODO this is shiiiitty
@@ -197,6 +197,8 @@ fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, gtk::Label>, cpus: V
         return glib::Continue(true);
     };
 
+    // update now!!
+    update();
     glib::timeout_add_seconds_local(timeout as u32, update);
 }
 

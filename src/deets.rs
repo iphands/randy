@@ -66,7 +66,7 @@ fn get_load(loads: [c_ulong; 3]) -> String {
     return String::from(format!("{:.2} {:.2} {:.2}", load_arr[0], load_arr[1], load_arr[2]));
 }
 
-fn get_procs(proc_stat: Vec<String>) -> String {
+fn get_procs(proc_stat: &Vec<String>) -> String {
     let mut running: Option<String> = None;
 
     for line in proc_stat {
@@ -181,7 +181,6 @@ fn do_all_cpu_usage(proc_stat: &Vec<String>) {
 pub fn get_cpu_usage(cpu_num: i32) -> f64 {
     let loads_map = CPU_LOADS.lock().unwrap();
     let last_load = &loads_map[&cpu_num];
-    // return String::from(format!("{:.2}%", last_load.percent));
     return last_load.percent;
 }
 
@@ -220,37 +219,36 @@ fn get_cpu_temp_sys() -> String {
     }
 }
 
-struct FrameCache {
+pub struct FrameCache {
     sysinfo: libc::sysinfo,
     utsname: libc::utsname,
     proc_stat: Vec<String>,
 }
 
 pub fn get_frame_cache() -> FrameCache {
+    let proc_stat = get_proc_stat();
+
+    // Always warm this cache up!
+    do_all_cpu_usage(&proc_stat);
+
     return FrameCache {
         sysinfo:   get_sysinfo(),
         utsname:   get_utsname(),
-        proc_stat: get_proc_stat(),
+        proc_stat: proc_stat,
     };
 }
 
-pub fn do_func(item: &Yaml, frame_cache: FrameCache) -> String {
+pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
     let func: &str = item["func"].as_str().unwrap();
-    let sysinfo = get_sysinfo();
-    let utsname = get_utsname();
-    let proc_stat = get_proc_stat();
-    
+
     let ret: String = match func {
-        "hostname" => get_hostname_from_utsname(utsname.nodename as [c_char; 65]),
-        "kernel" => get_uname(utsname.release as [c_char; 65]),
-        "uptime" => get_uptime_string(sysinfo.uptime as c_int),
-        "load" => get_load(sysinfo.loads as [c_ulong; 3]),
-        "procs" => get_procs(proc_stat),
+        "hostname" => get_hostname_from_utsname(frame_cache.utsname.nodename as [c_char; 65]),
+        "kernel" => get_uname(frame_cache.utsname.release as [c_char; 65]),
+        "uptime" => get_uptime_string(frame_cache.sysinfo.uptime as c_int),
+        "load" => get_load(frame_cache.sysinfo.loads as [c_ulong; 3]),
+        "procs" => get_procs(&frame_cache.proc_stat),
         "ram_usage" => get_ram_usage(),
-        "cpu_usage" => {
-            do_all_cpu_usage(&proc_stat);
-            return String::from(format!("{:.2}%", get_cpu_usage(-1)));
-        },
+        "cpu_usage" => String::from(format!("{:.2}%", get_cpu_usage(-1))),
         "cpu_temp_sys" => get_cpu_temp_sys(),
 
         #[cfg(feature = "sensors")]
