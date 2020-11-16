@@ -1,13 +1,18 @@
 use std::io::{BufRead, BufReader};
 use std::fs::File;
 use yaml_rust::{Yaml};
-use std::sync::RwLock;
+use std::sync::Mutex;
 use std::{str, mem, slice, fs};
 use libc::{c_char, c_int, c_ulong};
+use std::collections::HashMap;
+
+struct CpuLoad {
+    idle:  u64,
+    total: u64,
+}
 
 lazy_static! {
-    static ref LAST_IDLE:  RwLock<u64> = RwLock::new(0);
-    static ref LAST_TOTAL: RwLock<u64> = RwLock::new(0);
+    static ref CPU_LOADS:  Mutex<HashMap<i32 ,CpuLoad>> = Mutex::new(HashMap::new());
 }
 
 fn get_hostname_from_utsname(n: [c_char; 65]) -> String {
@@ -136,18 +141,31 @@ fn get_proc_stat() -> Vec<String> {
 }
 
 fn get_cpu_usage(proc_stat: Vec<String>) -> String {
+    let mut loads_map = CPU_LOADS.lock().unwrap();
+
+    if !loads_map.contains_key(&-1) {
+        loads_map.insert(-1, CpuLoad {
+            idle:  0,
+            total: 0,
+        });
+    }
+
+    let last_load = &loads_map[&-1];
+
     let i: Vec<u64> = proc_stat[0].split(' ').filter_map(|s| s.parse::<u64>().ok()).collect();
 
     let idle:  u64 = i[3];
     let total: u64 = i.iter().fold(0, |a, b| a + b);
 
-    let totals = total - *LAST_TOTAL.read().unwrap();
-    let idles  = idle -  *LAST_IDLE.read().unwrap();
+    let totals = total - last_load.total;
+    let idles  = idle - last_load.idle;
 
     let percent = ((totals as f64 - (idles as f64)) / totals as f64) * 100.0;
 
-    *LAST_IDLE.write().unwrap() = idle;
-    *LAST_TOTAL.write().unwrap() = total;
+    loads_map.insert(-1, CpuLoad {
+        idle: idle,
+        total: total,
+    });
 
     return String::from(format!("{:.2}%", percent));
 }

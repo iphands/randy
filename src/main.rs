@@ -109,7 +109,7 @@ fn add_cpus(item: &yaml_rust::Yaml, inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
 
         let val = gtk::Label::new(None);
         val.get_style_context().add_class("val");
-        val.set_text("0000 MHz");
+        val.set_text("---- MHz");
 
         let progress = gtk::ProgressBar::new();
         progress.set_hexpand(true);
