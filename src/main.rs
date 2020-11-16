@@ -16,6 +16,8 @@ use std::fs;
 
 use std::collections::HashMap;
 
+const SPACING: i32 = 8;
+
 fn get_css(background_color: &str) -> String {
     let css: String = String::from(include_str!("styles/app.css"));
     return css.replace("@define-color bg_color #000;",
@@ -46,7 +48,7 @@ fn build_ui(application: &gtk::Application) {
     // window.move_(3840 - 375 - 20 - 375, 20);
     // window.set_default_size(375, 2100);
 
-    let vbox = gtk::Box::new(gtk::Orientation::Vertical, 10);
+    let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
     let mut values = HashMap::new();
     let mut cpus = Vec::new();
 
@@ -60,7 +62,8 @@ fn build_ui(application: &gtk::Application) {
 fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> gtk::Label {
     let deet = deets::do_func(item);
 
-    let line_box = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+    let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+    line_box.get_style_context().add_class("row");
 
     let key = gtk::Label::new(None);
     key.get_style_context().add_class("key");
@@ -93,8 +96,10 @@ struct Cpu {
 
 fn add_cpus(item: &yaml_rust::Yaml, inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
     for (i, _) in deets::get_cpu_mhz().iter().enumerate() {
-        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 10);
-        let line_box = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+        let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+        vbox.get_style_context().add_class("row");
+
+        let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
 
         let key = gtk::Label::new(None);
         key.get_style_context().add_class("key");
@@ -132,7 +137,7 @@ fn init_ui(values: &mut HashMap<yaml_rust::Yaml, gtk::Label>,
         frame.get_style_context().add_class("frame");
         vbox.add(&frame);
 
-        let inner_box = gtk::Box::new(gtk::Orientation::Vertical, 10);
+        let inner_box = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
         inner_box.get_style_context().add_class("innerbox");
         frame.add(&inner_box);
 
