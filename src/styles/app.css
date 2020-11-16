@@ -32,6 +32,7 @@ window {
 
 label.val {
     font-weight: bolder;
+    padding-right: 0.5em;
 }
 
 label.key {
@@ -40,11 +41,12 @@ label.key {
 }
 
 .cpus-progress {
-    padding-left: 0.5em;
-    padding-right: 0.5em;
+
 }
 
 progressbar {
+    padding-left: 0.5em;
+    padding-right: 0.5em;
     padding-bottom: 5px;
     padding-right: 5px;
 }

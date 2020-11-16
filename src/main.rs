@@ -45,13 +45,18 @@ fn build_ui(application: &gtk::Application) {
     window.set_resizable(config["settings"]["resizable"].as_bool().unwrap());
     window.set_default_size(375, -1);
 
-    // window.move_(3840 - 375 - 20 - 375, 20);
-    // window.set_default_size(375, 2100);
+    if !config["settings"]["xpos"].is_badvalue() &&
+        !config["settings"]["ypos"].is_badvalue() {
+            window.move_(
+                config["settings"]["xpos"].as_i64().unwrap() as i32,
+                config["settings"]["ypos"].as_i64().unwrap() as i32,
+            );
+        }
 
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
     vbox.get_style_context().add_class("container");
 
-    let mut values = HashMap::new();
+    let mut values: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)> = HashMap::new();
     let mut cpus = Vec::new();
 
     init_ui(&mut values, &mut cpus, &vbox, &config["ui"]);
@@ -61,7 +66,7 @@ fn build_ui(application: &gtk::Application) {
     window.show_all();
 }
 
-fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> gtk::Label {
+fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> (gtk::Label, Option<gtk::ProgressBar>) {
     // let deet = deets::do_func(item);
 
     let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
@@ -72,23 +77,33 @@ fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> gtk::Label {
     key.set_text(&format!("{}", item["text"].as_str().unwrap()));
 
     let val = gtk::Label::new(None);
+    val.set_justify(gtk::Justification::Right);
+    val.set_halign(gtk::Align::End);
     val.get_style_context().add_class("val");
     // val.set_text(&deet.as_str());
 
     line_box.add(&key);
-    line_box.add(&val);
-    inner_box.add(&line_box);
+    line_box.pack_start(&val, true, true, 0);
+
+    let mut p = None;
 
     match item["widget"].as_str() {
         Some("bar") => {
             let progress = gtk::ProgressBar::new();
             progress.set_hexpand(true);
-            line_box.add(&progress);
+
+            let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+            vbox.add(&line_box);
+            vbox.add(&progress);
+            inner_box.add(&vbox);
+            p = Some(progress);
         },
-        _ => (),
+        _ => {
+            inner_box.add(&line_box);
+        },
     }
 
-    return val;
+    return (val, p);
 }
 
 struct Cpu {
@@ -128,7 +143,7 @@ fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
     }
 }
 
-fn init_ui(values: &mut HashMap<yaml_rust::Yaml, gtk::Label>,
+fn init_ui(values: &mut HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
            cpus: &mut Vec<Cpu>,
            vbox: &gtk::Box,
            ui_config: &yaml_rust::Yaml) {
@@ -157,7 +172,7 @@ fn init_ui(values: &mut HashMap<yaml_rust::Yaml, gtk::Label>,
     }
 }
 
-fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, gtk::Label>, cpus: Vec<Cpu>) {
+fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>, cpus: Vec<Cpu>) {
     let update = move || {
         let frame_cache = deets::get_frame_cache();
         let cpu_mhz_vec = deets::get_cpu_mhz();
@@ -170,28 +185,20 @@ fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, gtk::Label>, cpus: V
         for (item, val) in values.iter() {
             let func: &str = item["func"].as_str().unwrap();
             let deet = deets::do_func(item, &frame_cache);
-            val.set_text(&deet.as_str());
+            val.0.set_text(&deet.as_str());
 
-            // TODO this is shiiiitty
-            // refactor so that the deets::do_func returns raw data
-            // and we dont look up the gtk siblings over and over again
+            // let data: Vec<&str> = deet.split(" / ").collect(); // .map(String::from);
+            // let used = data[0].replace("GB", "").parse::<f64>().unwrap();
+            // let total = data[1].replace("GB", "").parse::<f64>().unwrap();
+            // progress.set_fraction(used / total);
 
-            match func {
-                "ram_usage" => {
-                    let parent: gtk::Box = val.get_parent().unwrap().downcast().unwrap();
-                    let tmp: &gtk::Widget = &parent.get_children()[2]; //.downcast::<gtk::ProgressBar>().unwrap();
-                    let progress = tmp.downcast_ref::<gtk::ProgressBar>().unwrap();
-
-                    let data: Vec<&str> = deet.split(" / ").collect(); // .map(String::from);
-                    let used = data[0].replace("GB", "").parse::<f64>().unwrap();
-                    let total = data[1].replace("GB", "").parse::<f64>().unwrap();
-                    progress.set_fraction(used / total);
-                },
-                "cpu_usage" => {
-                    let parent: gtk::Box = val.get_parent().unwrap().downcast().unwrap();
-                    let tmp: &gtk::Widget = &parent.get_children()[2]; //.downcast::<gtk::ProgressBar>().unwrap();
-                    let progress = tmp.downcast_ref::<gtk::ProgressBar>().unwrap();
-                    progress.set_fraction(deets::get_cpu_usage(-1) / 100.0);
+            match &val.1 {
+                Some(bar) => {
+                    match func {
+                        "cpu_usage" => bar.set_fraction(deets::get_cpu_usage(-1) / 100.0),
+                        "ram_usage" => bar.set_fraction(frame_cache.mem_free / frame_cache.mem_total),
+                        _ => (),
+                    };
                 },
                 _ => (),
             }

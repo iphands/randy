@@ -82,7 +82,7 @@ fn get_procs(proc_stat: &Vec<String>) -> String {
 }
 
 // fn get_ram_usage(totalram: u64, freeram: u64) -> String {
-fn get_ram_usage() -> String {
+pub fn get_ram_usage() -> (f64, f64)  {
     fn reduce(i: u64) -> f64 {
         return (i as f64) / 1024.0 / 1024.0;
     }
@@ -97,7 +97,8 @@ fn get_ram_usage() -> String {
     let meminfo = get_file(String::from("/proc/meminfo"), "", 3);
     let free  = reduce(get_item(2, &meminfo));
     let total = reduce(get_item(0, &meminfo));
-    return String::from(format!("{:.2}GB / {:.2}GB", (total - free), total));
+    // return String::from(format!("{:.2}GB / {:.2}GB", (total - free), total));
+    return (free, total);
 }
 
 fn get_file(path: String, filter: &str, line_end: usize) -> Vec<String> {
@@ -223,6 +224,8 @@ pub struct FrameCache {
     sysinfo: libc::sysinfo,
     utsname: libc::utsname,
     proc_stat: Vec<String>,
+    pub mem_total: f64,
+    pub mem_free: f64
 }
 
 pub fn get_frame_cache() -> FrameCache {
@@ -231,10 +234,14 @@ pub fn get_frame_cache() -> FrameCache {
     // Always warm this cache up!
     do_all_cpu_usage(&proc_stat);
 
+    let mem = get_ram_usage();
+
     return FrameCache {
         sysinfo:   get_sysinfo(),
         utsname:   get_utsname(),
         proc_stat: proc_stat,
+        mem_free:  mem.0,
+        mem_total: mem.1,
     };
 }
 
@@ -247,7 +254,8 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
         "uptime" => get_uptime_string(frame_cache.sysinfo.uptime as c_int),
         "load" => get_load(frame_cache.sysinfo.loads as [c_ulong; 3]),
         "procs" => get_procs(&frame_cache.proc_stat),
-        "ram_usage" => get_ram_usage(),
+        "ram_usage" => String::from(format!("{:.2}GB / {:.2}GB",
+                                            (frame_cache.mem_total - frame_cache.mem_free), frame_cache.mem_total)),
         "cpu_usage" => String::from(format!("{:.2}%", get_cpu_usage(-1))),
         "cpu_temp_sys" => get_cpu_temp_sys(),
 
