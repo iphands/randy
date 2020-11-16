@@ -235,7 +235,7 @@ pub fn do_func(item: &Yaml) -> String {
         },
         "cpu_temp_sys" => get_cpu_temp_sys(),
 
-        #[cfg(feature = "rand")]
+        #[cfg(feature = "sensors")]
         "sensor_info" => get_sensor_info(
             item["sensor_name"].as_str().unwrap(),
             item["label_name"].as_str().unwrap(),
