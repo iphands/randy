@@ -48,15 +48,84 @@ fn build_ui(application: &gtk::Application) {
 
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, 10);
     let mut values = HashMap::new();
+    let mut cpus = Vec::new();
 
-    init_ui(&mut values, &vbox, &config["ui"]);
-    update_ui(config["settings"]["timeout"].as_i64().unwrap(), values);
+    init_ui(&mut values, &mut cpus, &vbox, &config["ui"]);
+    update_ui(config["settings"]["timeout"].as_i64().unwrap(), values, cpus);
 
     window.add(&vbox);
     window.show_all();
 }
 
-fn init_ui(values: &mut HashMap<yaml_rust::Yaml, gtk::Label>, vbox: &gtk::Box, ui_config: &yaml_rust::Yaml) {
+fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> gtk::Label {
+    let deet = deets::do_func(item);
+
+    let line_box = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+
+    let key = gtk::Label::new(None);
+    key.get_style_context().add_class("key");
+    key.set_text(&format!("{}", item["text"].as_str().unwrap()));
+
+    let val = gtk::Label::new(None);
+    val.get_style_context().add_class("val");
+    val.set_text(&deet.as_str());
+
+    line_box.add(&key);
+    line_box.add(&val);
+    inner_box.add(&line_box);
+
+    match item["widget"].as_str() {
+        Some("bar") => {
+            let progress = gtk::ProgressBar::new();
+            progress.set_hexpand(true);
+            line_box.add(&progress);
+        },
+        _ => (),
+    }
+
+    return val;
+}
+
+struct Cpu {
+    mhz: gtk::Label,
+    progress: gtk::ProgressBar,
+}
+
+fn add_cpus(item: &yaml_rust::Yaml, inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
+    for (i, _) in deets::get_cpu_mhz().iter().enumerate() {
+        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 10);
+        let line_box = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+
+        let key = gtk::Label::new(None);
+        key.get_style_context().add_class("key");
+        key.set_text(&format!("CPU{:02}", i));
+
+        let val = gtk::Label::new(None);
+        val.get_style_context().add_class("val");
+        val.set_text("0000 MHz");
+
+        let progress = gtk::ProgressBar::new();
+        progress.set_hexpand(true);
+        progress.get_style_context().add_class("cpus-progress");
+
+        line_box.add(&key);
+        line_box.add(&val);
+        vbox.add(&line_box);
+        vbox.add(&progress);
+        inner_box.add(&vbox);
+
+        cpus.push( Cpu {
+            mhz: val,
+            progress: progress,
+        });
+    }
+}
+
+fn init_ui(values: &mut HashMap<yaml_rust::Yaml, gtk::Label>,
+           cpus: &mut Vec<Cpu>,
+           vbox: &gtk::Box,
+           ui_config: &yaml_rust::Yaml) {
+
     for i in ui_config.as_vec().unwrap() {
         let label = Some(i["text"].as_str().unwrap());
         let frame = gtk::Frame::new(label);
@@ -68,38 +137,29 @@ fn init_ui(values: &mut HashMap<yaml_rust::Yaml, gtk::Label>, vbox: &gtk::Box, u
         frame.add(&inner_box);
 
         for item in i["items"].as_vec().unwrap() {
-            let deet = deets::do_func(item);
-
-            let line_box = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-
-            let key = gtk::Label::new(None);
-            key.get_style_context().add_class("key");
-            key.set_text(&format!("{}", item["text"].as_str().unwrap()));
-
-            let val = gtk::Label::new(None);
-            val.get_style_context().add_class("val");
-            val.set_text(&deet.as_str());
-
-            line_box.add(&key);
-            line_box.add(&val);
-            inner_box.add(&line_box);
-
-            match item["widget"].as_str() {
-                Some("bar") => {
-                    let progress = gtk::ProgressBar::new();
-                    progress.set_hexpand(true);
-                    line_box.add(&progress);
-                },
-                _ => (),
+            if item["type"].is_badvalue() {
+                let val = add_standard(item, &inner_box);
+                values.insert(item.clone(), val);
+            } else {
+                match item["type"].as_str().unwrap() {
+                    "cpus" => add_cpus(item, &inner_box, cpus),
+                    _ => (),
+                }
             }
-
-            values.insert(item.clone(), val);
         }
     }
 }
 
-fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, gtk::Label>) {
-    let foo = move || {
+fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, gtk::Label>, cpus: Vec<Cpu>) {
+    let update = move || {
+        let cpu_mhz_vec = deets::get_cpu_mhz();
+
+        for (i, cpu) in cpus.iter().enumerate() {
+            let mhz = (cpu_mhz_vec[i] as u32).to_string();
+            cpu.mhz.set_text(&format!("{} MHz", mhz));
+            // cpu.progress.set_fraction(cpu_mhz_vec[i] / 5000.0)
+        }
+
         for (item, val) in values.iter() {
             let func: &str = item["func"].as_str().unwrap();
             let deet = deets::do_func(item);
@@ -131,7 +191,7 @@ fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, gtk::Label>) {
         return glib::Continue(true);
     };
 
-    glib::timeout_add_seconds_local(timeout as u32, foo);
+    glib::timeout_add_seconds_local(timeout as u32, update);
 }
 
 fn get_file() -> String {

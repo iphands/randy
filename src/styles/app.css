@@ -35,6 +35,11 @@ label.key {
     padding-left: 0.5em;
 }
 
+.cpus-progress {
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+}
+
 progressbar {
     padding-bottom: 5px;
     padding-right: 5px;

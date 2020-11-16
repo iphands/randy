@@ -44,11 +44,18 @@ ui:
       - func: load
         text: "Load:"
 
+
       # - func: cpu_temp_sys
       #   text: "CPU Temp:"
 
       # - func: gpu_temp
       #   text: "GPU Temp:"
+
+  - text: CPUS
+    items:
+      - type: cpus
+        func: cpus
+        text: "CPU"
 
 # - text: FILESYSTEM
 #   items:

@@ -87,16 +87,23 @@ fn get_ram_usage() -> String {
             .replace("kB", "").parse().unwrap();
     }
 
-    let meminfo = get_file(String::from("/proc/meminfo"), 3);
+    let meminfo = get_file(String::from("/proc/meminfo"), "", 3);
     let free  = reduce(get_item(2, &meminfo));
     let total = reduce(get_item(0, &meminfo));
     return String::from(format!("{:.2}GB / {:.2}GB", (total - free), total));
 }
 
-fn get_file(path: String, line_end: usize) -> Vec<String> {
+fn get_file(path: String, filter: &str, line_end: usize) -> Vec<String> {
     if line_end == 0 {
         return match fs::read_to_string(&path) {
-            Ok(s)  => s.lines().map(|s| String::from(s)).collect(),
+            Ok(s)  => s.lines()
+                .filter(|s| {
+                    if filter != "" {
+                        return s.starts_with(filter);
+                    }
+                    return true;
+                })
+                .map(|s| String::from(s)).collect(),
             Err(_) => panic!("Unable to open / read {}", &path),
         };
     }
@@ -115,8 +122,17 @@ fn get_file(path: String, line_end: usize) -> Vec<String> {
     return lines;
 }
 
+pub fn get_cpu_mhz() -> Vec<f64> {
+    return get_file("/proc/cpuinfo".to_string(), "cpu MHz", 0)
+        .into_iter()
+        .map(|s| {
+            return s.replace("cpu MHz		: ", "" )
+                .parse::<f64>().unwrap();
+        }).collect();
+}
+
 fn get_proc_stat() -> Vec<String> {
-    return get_file(String::from("/proc/stat"), 0);
+    return get_file(String::from("/proc/stat"), "", 0);
 }
 
 fn get_cpu_usage(proc_stat: Vec<String>) -> String {
