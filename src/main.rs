@@ -96,7 +96,7 @@ struct Cpu {
     progress: gtk::ProgressBar,
 }
 
-fn add_cpus(item: &yaml_rust::Yaml, inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
+fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
     for (i, _) in deets::get_cpu_mhz().iter().enumerate() {
         let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
         vbox.get_style_context().add_class("row");
@@ -149,7 +149,7 @@ fn init_ui(values: &mut HashMap<yaml_rust::Yaml, gtk::Label>,
                 values.insert(item.clone(), val);
             } else {
                 match item["type"].as_str().unwrap() {
-                    "cpus" => add_cpus(item, &inner_box, cpus),
+                    "cpus" => add_cpus(&inner_box, cpus),
                     _ => (),
                 }
             }
