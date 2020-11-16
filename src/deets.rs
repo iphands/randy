@@ -143,7 +143,7 @@ fn get_proc_stat() -> Vec<String> {
 }
 
 fn do_all_cpu_usage(proc_stat: &Vec<String>) {
-    let mut loads_map = CPU_LOADS.lock().unwrap();
+    let loads_map = &mut CPU_LOADS.lock().unwrap();
 
     for cpu_num in -1..*CPU_COUNT {
         if !loads_map.contains_key(&cpu_num) {
@@ -175,7 +175,7 @@ fn do_all_cpu_usage(proc_stat: &Vec<String>) {
 }
 
 pub fn get_cpu_usage(cpu_num: i32) -> f64 {
-    let mut loads_map = CPU_LOADS.lock().unwrap();
+    let loads_map = CPU_LOADS.lock().unwrap();
     let last_load = &loads_map[&cpu_num];
     // return String::from(format!("{:.2}%", last_load.percent));
     return last_load.percent;
