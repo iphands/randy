@@ -18,10 +18,11 @@ use std::collections::HashMap;
 
 const SPACING: i32 = 8;
 
-fn get_css(background_color: &str) -> String {
+fn get_css(conf: &Yaml) -> String {
     let css: String = String::from(include_str!("styles/app.css"));
-    return css.replace("@define-color bg_color #000;",
-                       &format!("@define-color bg_color {};", background_color));
+    return css
+        .replace("{ background-color }", conf["background_color"].as_str().unwrap())
+        .replace("{ font-size }", conf["font-size"].as_str().unwrap());
 }
 
 fn build_ui(application: &gtk::Application) {
@@ -32,7 +33,7 @@ fn build_ui(application: &gtk::Application) {
 
     //Add custom CSS
 
-    let css: &str = &get_css(config["settings"]["background_color"].as_str().unwrap());
+    let css: &str = &get_css(&config["settings"]);
     let screen = window.get_screen().unwrap();
     let provider = gtk::CssProvider::new();
     provider.load_from_data(css.as_bytes()).expect("Failed to load CSS");
@@ -201,7 +202,7 @@ fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, gtk::Label>, cpus: V
 
 fn get_file() -> String {
     let input = args().collect::<Vec<String>>();
-    let mut config_path = &String::from("./config.yml");
+    let mut config_path = &String::from("./config/config.yml");
 
     if input.len() > 1 {
         config_path = &input[1];
@@ -219,7 +220,7 @@ fn get_file() -> String {
 fn get_config(yaml_str: &str) -> Vec<Yaml> {
     let yaml = match YamlLoader::load_from_str(yaml_str) {
         Ok(y)  => y,
-        Err(_) => panic!("Unable to parse YAML from ./config.yml"),
+        Err(_) => panic!("Unable to parse config YAML"),
     };
 
     return yaml;

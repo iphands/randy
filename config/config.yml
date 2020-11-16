@@ -1,0 +1,51 @@
+---
+settings:
+  debug: false
+  decoration: false
+  resizable: false
+  border: 10
+  timeout: 1
+  font-size: x-large
+  background_color: "#000"
+ui:
+  - text: SYSTEM
+    items:
+      - func: hostname
+        text: "Hostname:"
+
+      - func: kernel
+        text: "Kernel:"
+
+      - func: uptime
+        text: "Uptime:"
+
+      - func: cpu_usage
+        text: "CPU Usage:"
+        widget: bar
+
+      - func: cpu_temp_sys
+        text: "CPU Temp:"
+
+      - func: ram_usage
+        text: "RAM Usage:"
+        widget: bar
+
+      - func: procs
+        text: "Running Processes:"
+
+      - func: load
+        text: "Load:"
+
+      # - func: gpu_temp
+      #   text: "GPU Temp:"
+
+  - text: CPUS
+    items:
+      - type: cpus
+        func: cpus
+        text: "CPU"
+
+# - text: FILESYSTEM
+#   items:
+# - text: NETWORKING
+#   items:
