@@ -156,9 +156,13 @@ fn do_all_cpu_usage(proc_stat: &Vec<String>) {
 
         let last_load = &loads_map[&cpu_num];
 
-        let i: Vec<u64> = proc_stat[(cpu_num + 1) as usize].split(' ').filter_map(|s| s.parse::<u64>().ok()).collect();
-        let idle:  u64 = i[3];
-        let total: u64 = i.iter().fold(0, |a, b| a + b);
+        let proc_stat_line_items: Vec<u64> = proc_stat[(cpu_num + 1) as usize]
+            .split(' ')
+            .filter_map(|s| s.parse::<u64>().ok())
+            .collect();
+
+        let idle:  u64 = proc_stat_line_items[3];
+        let total: u64 = proc_stat_line_items.iter().fold(0, |a, b| a + b);
 
         let totals = total - last_load.total;
         let idles  = idle - last_load.idle;

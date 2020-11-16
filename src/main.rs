@@ -162,8 +162,7 @@ fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, gtk::Label>, cpus: V
         let cpu_mhz_vec = deets::get_cpu_mhz();
 
         for (i, cpu) in cpus.iter().enumerate() {
-            let mhz = (cpu_mhz_vec[i] as u32).to_string();
-            cpu.mhz.set_text(&format!("{} MHz", mhz));
+            cpu.mhz.set_text(&format!("{:04.0} MHz", cpu_mhz_vec[i]));
             cpu.progress.set_fraction(deets::get_cpu_usage(i as i32) / 100.0)
         }
 
