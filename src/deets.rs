@@ -152,6 +152,7 @@ fn get_cpu_usage(proc_stat: Vec<String>) -> String {
     return String::from(format!("{:.2}%", percent));
 }
 
+#[cfg(feature = "rand")]
 fn get_sensor_info(sensor_name: &str, label_name: &str, val: &str) -> String {
     for chip in sensors::Sensors::new() {
         let name = chip.get_name().expect("name");
@@ -201,6 +202,8 @@ pub fn do_func(item: &Yaml) -> String {
         "ram_usage" => get_ram_usage(),
         "cpu_usage" => get_cpu_usage(proc_stat),
         "cpu_temp_sys" => get_cpu_temp_sys(),
+
+        #[cfg(feature = "rand")]
         "sensor_info" => get_sensor_info(
             item["sensor_name"].as_str().unwrap(),
             item["label_name"].as_str().unwrap(),

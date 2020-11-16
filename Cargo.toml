@@ -15,6 +15,9 @@ panic = 'abort'
 lto = true
 overflow-checks = false
 
+[features]
+default = ["sensors"]
+
 [dependencies]
 glib = "0.10.3"
 gio = "0.9.1"
@@ -23,4 +26,4 @@ minimal-yaml = "0.1.2"
 yaml-rust = "0.4.4"
 libc = "0.2"
 lazy_static = "1.4.0"
-sensors = "0.2.1"
+sensors = { version = "0.2.1", optional = true }
