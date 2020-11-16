@@ -80,7 +80,6 @@ fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> (gtk::Label, Op
     val.set_justify(gtk::Justification::Right);
     val.set_halign(gtk::Align::End);
     val.get_style_context().add_class("val");
-    // val.set_text(&deet.as_str());
 
     line_box.add(&key);
     line_box.pack_start(&val, true, true, 0);
@@ -109,6 +108,7 @@ fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> (gtk::Label, Op
 struct Cpu {
     mhz: gtk::Label,
     progress: gtk::ProgressBar,
+    pct_label: gtk::Label,
 }
 
 fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
@@ -124,7 +124,13 @@ fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
 
         let val = gtk::Label::new(None);
         val.get_style_context().add_class("val");
-        val.set_text("---- MHz");
+
+        let pct = gtk::Label::new(None);
+        pct.get_style_context().add_class("val");
+        pct.get_style_context().add_class("pct");
+        pct.set_justify(gtk::Justification::Right);
+        pct.set_halign(gtk::Align::End);
+        pct.set_text("00%");
 
         let progress = gtk::ProgressBar::new();
         progress.set_hexpand(true);
@@ -132,13 +138,16 @@ fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
 
         line_box.add(&key);
         line_box.add(&val);
+        line_box.pack_start(&pct, true, true, 0);
+
         vbox.add(&line_box);
         vbox.add(&progress);
         inner_box.add(&vbox);
 
-        cpus.push( Cpu {
+        cpus.push(Cpu {
             mhz: val,
             progress: progress,
+            pct_label: pct,
         });
     }
 }
@@ -178,19 +187,16 @@ fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, (gtk::Label, Option<
         let cpu_mhz_vec = deets::get_cpu_mhz();
 
         for (i, cpu) in cpus.iter().enumerate() {
+            let usage = deets::get_cpu_usage(i as i32);
             cpu.mhz.set_text(&format!("{:04.0} MHz", cpu_mhz_vec[i]));
-            cpu.progress.set_fraction(deets::get_cpu_usage(i as i32) / 100.0)
+            cpu.progress.set_fraction(usage / 100.0);
+            cpu.pct_label.set_text(&format!("{:.0}%", usage));
         }
 
         for (item, val) in values.iter() {
             let func: &str = item["func"].as_str().unwrap();
             let deet = deets::do_func(item, &frame_cache);
             val.0.set_text(&deet.as_str());
-
-            // let data: Vec<&str> = deet.split(" / ").collect(); // .map(String::from);
-            // let used = data[0].replace("GB", "").parse::<f64>().unwrap();
-            // let total = data[1].replace("GB", "").parse::<f64>().unwrap();
-            // progress.set_fraction(used / total);
 
             match &val.1 {
                 Some(bar) => {
