@@ -62,7 +62,7 @@ fn build_ui(application: &gtk::Application) {
 }
 
 fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> gtk::Label {
-    let deet = deets::do_func(item);
+    // let deet = deets::do_func(item);
 
     let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
     line_box.get_style_context().add_class("row");
@@ -73,7 +73,7 @@ fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> gtk::Label {
 
     let val = gtk::Label::new(None);
     val.get_style_context().add_class("val");
-    val.set_text(&deet.as_str());
+    // val.set_text(&deet.as_str());
 
     line_box.add(&key);
     line_box.add(&val);
@@ -159,6 +159,7 @@ fn init_ui(values: &mut HashMap<yaml_rust::Yaml, gtk::Label>,
 
 fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, gtk::Label>, cpus: Vec<Cpu>) {
     let update = move || {
+        let frame_cache = deets::get_frame_cache();
         let cpu_mhz_vec = deets::get_cpu_mhz();
 
         for (i, cpu) in cpus.iter().enumerate() {
@@ -168,7 +169,7 @@ fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, gtk::Label>, cpus: V
 
         for (item, val) in values.iter() {
             let func: &str = item["func"].as_str().unwrap();
-            let deet = deets::do_func(item);
+            let deet = deets::do_func(item, frame_cache);
             val.set_text(&deet.as_str());
 
             // TODO this is shiiiitty

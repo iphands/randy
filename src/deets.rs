@@ -220,12 +220,26 @@ fn get_cpu_temp_sys() -> String {
     }
 }
 
-pub fn do_func(item: &Yaml) -> String {
+struct FrameCache {
+    sysinfo: libc::sysinfo,
+    utsname: libc::utsname,
+    proc_stat: Vec<String>,
+}
+
+pub fn get_frame_cache() -> FrameCache {
+    return FrameCache {
+        sysinfo:   get_sysinfo(),
+        utsname:   get_utsname(),
+        proc_stat: get_proc_stat(),
+    };
+}
+
+pub fn do_func(item: &Yaml, frame_cache: FrameCache) -> String {
     let func: &str = item["func"].as_str().unwrap();
     let sysinfo = get_sysinfo();
     let utsname = get_utsname();
     let proc_stat = get_proc_stat();
-
+    
     let ret: String = match func {
         "hostname" => get_hostname_from_utsname(utsname.nodename as [c_char; 65]),
         "kernel" => get_uname(utsname.release as [c_char; 65]),
