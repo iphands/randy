@@ -1,11 +1,12 @@
 ---
 settings:
+  background_color: "#656565"
   debug: false
   decoration: false
+  font-size: medium
   resizable: false
-  border: 10
   timeout: 1
-  background_color: "#656565"
+
 ui:
   - text: SYSTEM
     items:

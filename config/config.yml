@@ -1,12 +1,12 @@
 ---
 settings:
+  background_color: "#000"
   debug: false
   decoration: false
-  resizable: false
-  border: 10
-  timeout: 1
   font-size: x-large
-  background_color: "#000"
+  resizable: false
+  timeout: 1
+
 ui:
   - text: SYSTEM
     items:

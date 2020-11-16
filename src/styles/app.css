@@ -15,6 +15,10 @@ window {
     font-size: { font-size };
 }
 
+.container {
+    padding: 10px;
+}
+
 .frame {
     border: none;
     padding-bottom: 0.25em;

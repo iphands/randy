@@ -40,7 +40,6 @@ fn build_ui(application: &gtk::Application) {
     gtk::StyleContext::add_provider_for_screen(&screen, &provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
 
     window.set_title("Randy");
-    window.set_border_width(config["settings"]["border"].as_i64().unwrap() as u32);
     window.set_decorated(config["settings"]["decoration"].as_bool().unwrap());
     window.set_position(gtk::WindowPosition::Center);
     window.set_resizable(config["settings"]["resizable"].as_bool().unwrap());
@@ -50,6 +49,8 @@ fn build_ui(application: &gtk::Application) {
     // window.set_default_size(375, 2100);
 
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+    vbox.get_style_context().add_class("container");
+
     let mut values = HashMap::new();
     let mut cpus = Vec::new();
 
