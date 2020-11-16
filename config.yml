@@ -39,7 +39,7 @@ ui:
         widget: bar
 
       - func: procs
-        text: "Processes:"
+        text: "Running Processes:"
 
       - func: load
         text: "Load:"

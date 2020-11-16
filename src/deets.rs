@@ -57,7 +57,7 @@ fn get_load(loads: [c_ulong; 3]) -> String {
     return String::from(format!("{:.2} {:.2} {:.2}", load_arr[0], load_arr[1], load_arr[2]));
 }
 
-fn get_procs(procs: u16, proc_stat: Vec<String>) -> String {
+fn get_procs(proc_stat: Vec<String>) -> String {
     let mut running: Option<String> = None;
 
     for line in proc_stat {
@@ -67,8 +67,8 @@ fn get_procs(procs: u16, proc_stat: Vec<String>) -> String {
     }
 
     match running {
-        Some(r) => return String::from(format!("{} Running: {}", procs, r)),
-        _ => return String::from(format!("{}", procs)),
+        Some(r) => return String::from(format!("{}", r)),
+        _ => panic!("Couldn't find running procs in /proc/stat"),
     }
 }
 
@@ -94,6 +94,14 @@ fn get_ram_usage() -> String {
 fn get_file(path: String, line_end: usize) -> Vec<String> {
     // TODO right now I return less, cool but I really want to read
     // less too. Impl a reader that does not read_to_string the whole file
+
+    if line_end < 1 {
+        return match fs::read_to_string(&path) {
+            Ok(s)  => s.lines().map(|s| String::from(s)).collect(),
+            Err(_) => panic!("Unable to open / read {}", &path),
+        };
+    }
+
     return match fs::read_to_string(&path) {
         Ok(s)  => {
             s.lines().enumerate().filter_map(|(i, s)| {
@@ -108,7 +116,7 @@ fn get_file(path: String, line_end: usize) -> Vec<String> {
 }
 
 fn get_proc_stat() -> Vec<String> {
-    return get_file(String::from("/proc/stat"), 1);
+    return get_file(String::from("/proc/stat"), 0);
 }
 
 fn get_cpu_usage(proc_stat: Vec<String>) -> String {
@@ -173,7 +181,7 @@ pub fn do_func(item: &Yaml) -> String {
         "kernel" => get_uname(utsname.release as [c_char; 65]),
         "uptime" => get_uptime_string(sysinfo.uptime as c_int),
         "load" => get_load(sysinfo.loads as [c_ulong; 3]),
-        "procs" => get_procs(sysinfo.procs, proc_stat),
+        "procs" => get_procs(proc_stat),
         "ram_usage" => get_ram_usage(),
         "cpu_usage" => get_cpu_usage(proc_stat),
         "cpu_temp_sys" => get_cpu_temp_sys(),
