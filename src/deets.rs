@@ -80,7 +80,7 @@ fn get_procs(proc_stat: &Vec<String>) -> String {
     }
 
     match running {
-        Some(r) => return String::from(format!("{}", r)),
+        Some(r) => return r,
         _ => panic!("Couldn't find running procs in /proc/stat"),
     }
 }
@@ -134,12 +134,12 @@ fn get_file(path: String, filter: &str, line_end: usize) -> Vec<String> {
     return lines;
 }
 
-pub fn get_cpu_mhz() -> Vec<f64> {
+pub fn get_cpu_mhz() -> Vec<u16> {
     return get_file("/proc/cpuinfo".to_string(), "cpu MHz", 0)
         .into_iter()
         .map(|s| {
-            return s.replace("cpu MHz		: ", "" )
-                .parse::<f64>().unwrap();
+            return s.split(": ").collect::<Vec<&str>>()[1]
+                .parse::<f32>().unwrap() as u16;
         }).collect();
 }
 
