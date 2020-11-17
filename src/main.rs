@@ -202,7 +202,7 @@ fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, (gtk::Label, Option<
                 Some(bar) => {
                     match func {
                         "cpu_usage" => bar.set_fraction(deets::get_cpu_usage(-1) / 100.0),
-                        "ram_usage" => bar.set_fraction(frame_cache.mem_free / frame_cache.mem_total),
+                        "ram_usage" => bar.set_fraction((frame_cache.mem_total - frame_cache.mem_free) / frame_cache.mem_total),
                         _ => (),
                     };
                 },
