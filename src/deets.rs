@@ -13,9 +13,14 @@ struct CpuLoad {
     percent: f64,
 }
 
+const LOAD_SHIFT_F32: f32 = (1 << libc::SI_LOAD_SHIFT) as f32;
+
 lazy_static! {
+    // this one should be separate from frame cache
+    // it has to persist beyond a single frame
     static ref CPU_LOADS: Mutex<HashMap<i32 ,CpuLoad>> = Mutex::new(HashMap::new());
     pub static ref CPU_COUNT: i32 = get_file("/proc/cpuinfo".to_string(), "processor", 0).len() as i32;
+    pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
 }
 
 fn get_hostname_from_utsname(n: [c_char; 65]) -> String {
@@ -58,10 +63,8 @@ fn str_from_bytes(mut buffer: Vec<u8>) -> String {
 fn get_load(loads: [c_ulong; 3]) -> String {
     let mut load_arr: [f32; 3] = [0.0, 0.0, 0.0];
 
-    for (i, t) in loads.iter().enumerate() {
-        let load: f32 = *t as f32;
-        let info: f32 = load / 8.0 / 8000.0;
-        load_arr[i] = info;
+    for i in 0..3 {
+        load_arr[i] = (loads[i] as f32) / LOAD_SHIFT_F32;
     }
 
     return String::from(format!("{:.2} {:.2} {:.2}", load_arr[0], load_arr[1], load_arr[2]));
@@ -247,20 +250,20 @@ pub fn get_frame_cache() -> FrameCache {
 }
 
 fn get_cpu_voltage_rpi() -> String {
-    let output = Command::new("vcgencmd")
-        .arg("measure_volts")
-        .arg("core")
-        .output().unwrap();
+    let output = match Command::new("vcgencmd").arg("measure_volts").arg("core").output() {
+        Ok(o) => o,
+        Err(e) => panic!("Error running vcgencmd to get volts: {}", e)
+    };
 
     let out_str = String::from_utf8_lossy(&output.stdout);
     return String::from(out_str.trim().split('=').collect::<Vec<&str>>()[1]);
 }
 
 fn get_cpu_speed_rpi() -> String {
-    let output = Command::new("vcgencmd")
-        .arg("measure_clock")
-        .arg("arm")
-        .output().unwrap();
+    let output = match Command::new("vcgencmd").arg("measure_clock").arg("arm").output() {
+        Ok(o) => o,
+        Err(e) => panic!("Error running vcgencmd to get clock: {}", e)
+    };
 
     let out_str = String::from_utf8_lossy(&output.stdout);
     let mhz_str = out_str.trim().split('=').collect::<Vec<&str>>()[1];
@@ -279,7 +282,8 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
         "load" => get_load(frame_cache.sysinfo.loads as [c_ulong; 3]),
         "procs" => get_procs(&frame_cache.proc_stat),
         "ram_usage" => String::from(format!("{:.2}GB / {:.2}GB",
-                                            (frame_cache.mem_total - frame_cache.mem_free), frame_cache.mem_total)),
+                                            (frame_cache.mem_total - frame_cache.mem_free),
+                                            frame_cache.mem_total)),
         "cpu_usage" => String::from(format!("{:.2}%", get_cpu_usage(-1))),
         "cpu_temp_sys" => get_cpu_temp_sys(),
         "cpu_speed_rpi" => get_cpu_speed_rpi(),
