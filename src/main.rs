@@ -185,12 +185,15 @@ fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, (gtk::Label, Option<
     let update = move || {
         let frame_cache = deets::get_frame_cache();
         let cpu_mhz_vec = deets::get_cpu_mhz();
+        let cpu_mhz_vec_len = cpu_mhz_vec.len();
 
         for (i, cpu) in cpus.iter().enumerate() {
             let usage = deets::get_cpu_usage(i as i32);
-            if cpu_mhz_vec.len() > 0 {
+
+            if cpu_mhz_vec_len != 0 {
                 cpu.mhz.set_text(&format!("{:04.0} MHz", cpu_mhz_vec[i]));
             }
+
             cpu.progress.set_fraction(usage / 100.0);
             cpu.pct_label.set_text(&format!("{:.0}%", usage));
         }
