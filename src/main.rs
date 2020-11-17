@@ -112,7 +112,7 @@ struct Cpu {
 }
 
 fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
-    for (i, _) in deets::get_cpu_mhz().iter().enumerate() {
+    for i in 0..*deets::CPU_COUNT {
         let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
         vbox.get_style_context().add_class("row");
 
@@ -188,7 +188,9 @@ fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, (gtk::Label, Option<
 
         for (i, cpu) in cpus.iter().enumerate() {
             let usage = deets::get_cpu_usage(i as i32);
-            cpu.mhz.set_text(&format!("{:04.0} MHz", cpu_mhz_vec[i]));
+            if cpu_mhz_vec.len() > 0 {
+                cpu.mhz.set_text(&format!("{:04.0} MHz", cpu_mhz_vec[i]));
+            }
             cpu.progress.set_fraction(usage / 100.0);
             cpu.pct_label.set_text(&format!("{:.0}%", usage));
         }
