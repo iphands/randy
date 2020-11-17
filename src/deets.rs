@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use std::{str, mem, slice, fs};
 use libc::{c_char, c_int, c_ulong};
 use std::collections::HashMap;
+use std::process::Command;
 
 struct CpuLoad {
     idle:  u64,
@@ -245,6 +246,19 @@ pub fn get_frame_cache() -> FrameCache {
     };
 }
 
+fn get_cpu_speed_rpi() -> String {
+    let output = Command::new("vcgencmd")
+        .arg("measure_clock")
+        .arg("arm")
+        .output().unwrap();
+
+    let out_str = String::from_utf8_lossy(&output.stdout);
+    let mhz_str = out_str.trim().split('=').collect::<Vec<&str>>()[1];
+    let mhz = mhz_str.parse::<u32>().unwrap() / 1000 / 1000;
+
+    return String::from(format!("{} MHz", mhz));
+}
+
 pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
     let func: &str = item["func"].as_str().unwrap();
 
@@ -258,6 +272,7 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
                                             (frame_cache.mem_total - frame_cache.mem_free), frame_cache.mem_total)),
         "cpu_usage" => String::from(format!("{:.2}%", get_cpu_usage(-1))),
         "cpu_temp_sys" => get_cpu_temp_sys(),
+        "cpu_speed_rpi" => get_cpu_speed_rpi(),
 
         #[cfg(feature = "sensors")]
         "sensor_info" => get_sensor_info(
