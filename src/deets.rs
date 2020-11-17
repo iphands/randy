@@ -120,7 +120,7 @@ fn get_file(path: String, filter: &str, line_end: usize) -> Vec<String> {
         };
     }
 
-    let mut file = BufReader::new(File::open("/proc/meminfo").unwrap());
+    let mut file = BufReader::new(File::open(path).unwrap());
     let mut lines: Vec<String> = Vec::new();
     for _ in 0..line_end {
         let mut line = String::new();
