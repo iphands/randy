@@ -190,7 +190,7 @@ pub fn get_cpu_usage(cpu_num: i32) -> f64 {
 }
 
 #[cfg(feature = "sensors")]
-fn get_sensor_info(sensor_name: &str, label_name: &str, val: &str) -> String {
+fn get_sensor_info(sensor_name: &str, label_name: &str, val: &str, whole: bool) -> String {
     for chip in sensors::Sensors::new() {
         let name = chip.get_name().expect("name");
         if sensor_name == name {
@@ -202,6 +202,11 @@ fn get_sensor_info(sensor_name: &str, label_name: &str, val: &str) -> String {
                         // TODO this beeegs for a proper templating solution
                         // I think I want to start returning the raw info and
                         // applying the tempates in main ui_update
+
+                        if whole {
+                            return String::from(val).replace("{}", format!("{:.0}", value).as_str());
+                        }
+
                         return String::from(val).replace("{}", format!("{:.2}", value).as_str());
                     }
                 }
@@ -272,6 +277,23 @@ fn get_cpu_speed_rpi() -> String {
     return String::from(format!("{} MHz", mhz));
 }
 
+
+fn get_nvidia_gpu_temp() -> String {
+    let output = match Command::new("nvidia-smi").arg("-q").arg("-d").arg("TEMPERATURE").output() {
+        Ok(o) => o,
+        Err(e) => panic!("Error running nvidia-smi -q -d TEMPERATURE: {}", e)
+    };
+
+    let out_str = String::from_utf8_lossy(&output.stdout);
+    for line in out_str.lines() {
+        if line.contains("GPU Current Temp") {
+            return format!("{}C", line.split(": ").collect::<Vec<&str>>()[1].replace(" C", ""));
+        }
+    }
+
+    return format!("unknown");
+}
+
 pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
     let func: &str = item["func"].as_str().unwrap();
 
@@ -288,12 +310,14 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
         "cpu_temp_sys" => get_cpu_temp_sys(),
         "cpu_speed_rpi" => get_cpu_speed_rpi(),
         "cpu_voltage_rpi" => get_cpu_voltage_rpi(),
+        "nvidia_gpu_temp" => get_nvidia_gpu_temp(),
 
         #[cfg(feature = "sensors")]
         "sensor_info" => get_sensor_info(
             item["sensor_name"].as_str().unwrap(),
             item["label_name"].as_str().unwrap(),
             item["val"].as_str().unwrap(),
+            item["whole"].as_bool().unwrap(),
         ),
         _ => {
             println!("Unkown func: {}", func);

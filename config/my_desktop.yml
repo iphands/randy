@@ -29,13 +29,18 @@ ui:
         sensor_name: k10temp-pci-00c3
         label_name: Tdie
         val: "{}C"
-        text: "CPU vemp:"
+        text: "CPU temp:"
+        whole: true
 
       - func: sensor_info
         sensor_name: k10temp-pci-00c3
         label_name: Vcore
         val: "{}mV"
         text: "CPU vcore:"
+        whole: false
+
+      - func: nvidia_gpu_temp
+        text: "GPU Temp:"
 
       - func: ram_usage
         text: "RAM usage:"
@@ -47,12 +52,8 @@ ui:
       - func: load
         text: "Load:"
 
-
       # - func: cpu_temp_sys
       #   text: "CPU Temp:"
-
-      # - func: gpu_temp
-      #   text: "GPU Temp:"
 
   - text: CPUS
     items:
