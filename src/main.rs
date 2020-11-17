@@ -130,7 +130,6 @@ fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
         pct.get_style_context().add_class("pct");
         pct.set_justify(gtk::Justification::Right);
         pct.set_halign(gtk::Align::End);
-        pct.set_text("00%");
 
         let progress = gtk::ProgressBar::new();
         progress.set_hexpand(true);
@@ -152,6 +151,42 @@ fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
     }
 }
 
+fn add_mem_consumers(container: &gtk::Box) {
+    let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+    for (i, name) in [ "Name", "PID", "MEM" ].iter().enumerate() {
+        let label = gtk::Label::new(None);
+        label.set_text(name);
+
+        match i {
+            0 => label.set_halign(gtk::Align::Start),
+            1 => label.set_halign(gtk::Align::Fill),
+            2 => label.set_halign(gtk::Align::End),
+            _ => (),
+        }
+
+        line_box.pack_start(&label, true, true, 0);
+    }
+    container.add(&line_box);
+
+    for _ in 0..5 {
+        let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+        for (i, name) in [ "gnome-shell", "1235", "10%" ].iter().enumerate() {
+            let label = gtk::Label::new(None);
+            label.set_text(name);
+
+            match i {
+                0 => label.set_halign(gtk::Align::Start),
+                1 => label.set_halign(gtk::Align::Fill),
+                2 => label.set_halign(gtk::Align::End),
+                _ => (),
+            }
+
+            line_box.pack_start(&label, true, true, 0);
+        }
+        container.add(&line_box);
+    }
+}
+
 fn init_ui(values: &mut HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
            cpus: &mut Vec<Cpu>,
            vbox: &gtk::Box,
@@ -167,15 +202,16 @@ fn init_ui(values: &mut HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::Progre
         inner_box.get_style_context().add_class("innerbox");
         frame.add(&inner_box);
 
-        for item in i["items"].as_vec().unwrap() {
-            if item["type"].is_badvalue() {
-                let val = add_standard(item, &inner_box);
-                values.insert(item.clone(), val);
-            } else {
-                match item["type"].as_str().unwrap() {
-                    "cpus" => add_cpus(&inner_box, cpus),
-                    _ => (),
-                }
+        for item in i["items"].as_vec().unwrap_or(&Vec::new()) {
+            let val = add_standard(item, &inner_box);
+            values.insert(item.clone(), val);
+        }
+
+        if !i["type"].is_badvalue() {
+            match i["type"].as_str().unwrap() {
+                "cpus" => add_cpus(&inner_box, cpus),
+                "mem_consumers" => add_mem_consumers(&inner_box),
+                _ => (),
             }
         }
     }
