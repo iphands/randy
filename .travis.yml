@@ -1,5 +1,9 @@
 language: rust
+script:
+  - cargo build --no-default-features --verbose --workspace
+  - cargo test  --no-default-features --verbose --workspace
 rust:
   - stable
 jobs:
   fast_finish: true
+cache: cargo
