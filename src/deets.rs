@@ -246,6 +246,16 @@ pub fn get_frame_cache() -> FrameCache {
     };
 }
 
+fn get_cpu_voltage_rpi() -> String {
+    let output = Command::new("vcgencmd")
+        .arg("measure_volts")
+        .arg("core")
+        .output().unwrap();
+
+    let out_str = String::from_utf8_lossy(&output.stdout);
+    return String::from(out_str.trim().split('=').collect::<Vec<&str>>()[1]);
+}
+
 fn get_cpu_speed_rpi() -> String {
     let output = Command::new("vcgencmd")
         .arg("measure_clock")
@@ -273,6 +283,7 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
         "cpu_usage" => String::from(format!("{:.2}%", get_cpu_usage(-1))),
         "cpu_temp_sys" => get_cpu_temp_sys(),
         "cpu_speed_rpi" => get_cpu_speed_rpi(),
+        "cpu_voltage_rpi" => get_cpu_voltage_rpi(),
 
         #[cfg(feature = "sensors")]
         "sensor_info" => get_sensor_info(
