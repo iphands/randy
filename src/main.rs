@@ -13,7 +13,6 @@ use gtk::prelude::*;
 
 use std::env::args;
 use std::fs;
-
 use std::collections::HashMap;
 
 const SPACING: i32 = 8;
@@ -220,6 +219,22 @@ fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, (gtk::Label, Option<
 
     // update now!!
     update();
+
+    #[cfg(feature = "benchmark")]
+    {
+        use std::time::{Instant};
+        let bench_update = move || {
+            let now = Instant::now();
+            for _ in 0..1024 {
+                update();
+            }
+            println!("millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
+            return glib::Continue(true);
+        };
+        glib::timeout_add_seconds_local(timeout as u32, bench_update);
+    }
+
+    #[cfg(not(feature = "benchmark"))]
     glib::timeout_add_seconds_local(timeout as u32, update);
 }
 

@@ -17,6 +17,7 @@ overflow-checks = false
 
 [features]
 default = ["sensors"]
+benchmark = []
 
 [dependencies]
 glib = "0.10.3"
