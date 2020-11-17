@@ -67,7 +67,7 @@ fn get_load(loads: [c_ulong; 3]) -> String {
         load_arr[i] = (loads[i] as f32) / LOAD_SHIFT_F32;
     }
 
-    return String::from(format!("{:.2} {:.2} {:.2}", load_arr[0], load_arr[1], load_arr[2]));
+    return format!("{:.2} {:.2} {:.2}", load_arr[0], load_arr[1], load_arr[2]);
 }
 
 fn get_procs(proc_stat: &Vec<String>) -> String {
@@ -101,7 +101,7 @@ pub fn get_ram_usage() -> (f64, f64)  {
     let meminfo = get_file(String::from("/proc/meminfo"), "", 3);
     let free  = reduce(get_item(2, &meminfo));
     let total = reduce(get_item(0, &meminfo));
-    // return String::from(format!("{:.2}GB / {:.2}GB", (total - free), total));
+    // return format!("{:.2}GB / {:.2}GB", (total - free), total);
     return (free, total);
 }
 
@@ -221,7 +221,7 @@ fn get_cpu_temp_sys() -> String {
     match fs::read_to_string("/sys/class/thermal/thermal_zone0/temp") {
         Ok(s) => {
             match s.trim().parse::<u32>() {
-                Ok(i) => String::from(format!("{}C", (i / 1000))),
+                Ok(i) => format!("{}C", (i / 1000)),
                 Err(e) => e.to_string(),
             }
         },
@@ -274,7 +274,7 @@ fn get_cpu_speed_rpi() -> String {
     let mhz_str = out_str.trim().split('=').collect::<Vec<&str>>()[1];
     let mhz = mhz_str.parse::<u32>().unwrap() / 1000 / 1000;
 
-    return String::from(format!("{} MHz", mhz));
+    return format!("{} MHz", mhz);
 }
 
 
@@ -303,10 +303,10 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
         "uptime" => get_uptime_string(frame_cache.sysinfo.uptime as c_int),
         "load" => get_load(frame_cache.sysinfo.loads as [c_ulong; 3]),
         "procs" => get_procs(&frame_cache.proc_stat),
-        "ram_usage" => String::from(format!("{:.2}GB / {:.2}GB",
-                                            (frame_cache.mem_total - frame_cache.mem_free),
-                                            frame_cache.mem_total)),
-        "cpu_usage" => String::from(format!("{:.2}%", get_cpu_usage(-1))),
+        "ram_usage" => format!("{:.2}GB / {:.2}GB",
+                               (frame_cache.mem_total - frame_cache.mem_free),
+                               frame_cache.mem_total),
+        "cpu_usage" => format!("{:.2}%", get_cpu_usage(-1)),
         "cpu_temp_sys" => get_cpu_temp_sys(),
         "cpu_speed_rpi" => get_cpu_speed_rpi(),
         "cpu_voltage_rpi" => get_cpu_voltage_rpi(),

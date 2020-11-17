@@ -6,8 +6,8 @@ settings:
   font-size: x-large
   resizable: false
   timeout: 1
-  xpos: 1370
-  ypos: 40
+  xpos: 1540
+  ypos: 30
 
 ui:
   - text: SYSTEM
