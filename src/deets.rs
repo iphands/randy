@@ -14,7 +14,7 @@ struct CpuLoad {
 
 lazy_static! {
     static ref CPU_LOADS: Mutex<HashMap<i32 ,CpuLoad>> = Mutex::new(HashMap::new());
-    pub static ref CPU_COUNT: i32 = get_file("/tmp/cpuinfo".to_string(), "processor", 0).len() as i32;
+    pub static ref CPU_COUNT: i32 = get_file("/proc/cpuinfo".to_string(), "processor", 0).len() as i32;
 }
 
 fn get_hostname_from_utsname(n: [c_char; 65]) -> String {
@@ -131,7 +131,7 @@ fn get_file(path: String, filter: &str, line_end: usize) -> Vec<String> {
 }
 
 pub fn get_cpu_mhz() -> Vec<f64> {
-    return get_file("/tmp/cpuinfo".to_string(), "cpu MHz", 0)
+    return get_file("/proc/cpuinfo".to_string(), "cpu MHz", 0)
         .into_iter()
         .map(|s| {
             return s.replace("cpu MHz		: ", "" )
