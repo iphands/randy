@@ -20,8 +20,8 @@ const SPACING: i32 = 8;
 fn get_css(conf: &Yaml) -> String {
     let css: String = String::from(include_str!("styles/app.css"));
     return css
-        .replace("{ background-color }", conf["background_color"].as_str().unwrap())
-        .replace("{ font-size }", conf["font-size"].as_str().unwrap());
+        .replace("{ background-color }", conf["background_color"].as_str().unwrap_or("#000"))
+        .replace("{ font-size }", conf["font-size"].as_str().unwrap_or("large"));
 }
 
 fn build_ui(application: &gtk::Application) {
@@ -39,10 +39,11 @@ fn build_ui(application: &gtk::Application) {
     gtk::StyleContext::add_provider_for_screen(&screen, &provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
 
     window.set_title("Randy");
-    window.set_decorated(config["settings"]["decoration"].as_bool().unwrap());
+    window.set_decorated(config["settings"]["decoration"].as_bool().unwrap_or(false));
+    window.set_resizable(config["settings"]["resizable"].as_bool().unwrap_or(false));
     window.set_position(gtk::WindowPosition::Center);
-    window.set_resizable(config["settings"]["resizable"].as_bool().unwrap());
     window.set_default_size(375, -1);
+    window.set_skip_taskbar_hint(config["settings"]["skip_taskbar"].as_bool().unwrap_or(true));
 
     if !config["settings"]["xpos"].is_badvalue() &&
         !config["settings"]["ypos"].is_badvalue() {

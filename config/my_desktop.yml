@@ -5,9 +5,10 @@ settings:
   decoration: false
   font-size: medium
   resizable: false
-  timeout: 1
-  xpos: 3050
-  ypos: 10
+  skip_taskbar: true
+  timeout: 2
+  xpos: 3450
+  ypos: 5
 
 ui:
   - text: SYSTEM
