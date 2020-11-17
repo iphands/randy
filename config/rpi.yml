@@ -29,15 +29,15 @@ ui:
         text: "CPU voltage:"
 
       - func: cpu_usage
-        text: "CPU Usage:"
+        text: "CPU usage:"
         widget: bar
 
       - func: ram_usage
-        text: "RAM Usage:"
+        text: "RAM usage:"
         widget: bar
 
       - func: procs
-        text: "Running Processes:"
+        text: "Running processes:"
 
       - func: load
         text: "Load:"
