@@ -57,10 +57,6 @@ progressbar > trough > progress {
     min-height: 10px;
 }
 
-.top-frame {
-    font-size: large;
-}
-
 .top-frame label {
     padding-right: 0.5em;
     padding-left:  0.5em;

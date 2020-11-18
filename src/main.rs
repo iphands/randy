@@ -169,7 +169,9 @@ fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) 
         gtk::Box::new(gtk::Orientation::Vertical, SPACING),
     ];
 
-    // let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+    // move column[2] right!
+    // fill first col probably
+
     for (i, name) in [ "NAME", "PID", uniq_item ].iter().enumerate() {
         let label = gtk::Label::new(None);
         label.set_text(&name);
@@ -182,13 +184,9 @@ fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) 
         }
 
         columns[i].add(&label);
-        // line_box.pack_start(&label, true, true, 0);
     }
-    // container.add(&line_box);
 
     for _ in 0..5 {
-        // let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
-
         let mut tmp: Vec<gtk::Label> = Vec::new();
         for i in 0..3 {
             let label = gtk::Label::new(None);
@@ -211,7 +209,6 @@ fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) 
             pct:  tmp[2].clone(),
         });
 
-        // container.add(&line_box);
         container.add(&columns[0]);
         container.add(&columns[1]);
         container.add(&columns[2]);
