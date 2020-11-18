@@ -17,6 +17,18 @@ use std::collections::HashMap;
 
 const SPACING: i32 = 8;
 
+struct Cpu {
+    mhz: gtk::Label,
+    progress: gtk::ProgressBar,
+    pct_label: gtk::Label,
+}
+
+struct TopRow {
+    name: gtk::Label,
+    pid: gtk::Label,
+    pct: gtk::Label,
+}
+
 fn get_css(conf: &Yaml) -> String {
     let css: String = String::from(include_str!("styles/app.css"));
     return css
@@ -57,10 +69,12 @@ fn build_ui(application: &gtk::Application) {
     vbox.get_style_context().add_class("container");
 
     let mut values: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)> = HashMap::new();
-    let mut cpus = Vec::new();
+    let mut cpus: Vec<Cpu>    = Vec::new();
+    let mut top_mems: Vec<TopRow> = Vec::new();
+    let mut top_cpus: Vec<TopRow> = Vec::new();
 
-    init_ui(&mut values, &mut cpus, &vbox, &config["ui"]);
-    update_ui(config["settings"]["timeout"].as_i64().unwrap(), values, cpus);
+    init_ui(&mut values, &mut cpus, &mut top_mems, &mut top_cpus, &vbox, &config["ui"]);
+    update_ui(config["settings"]["timeout"].as_i64().unwrap(), values, cpus, top_mems, top_cpus);
 
     window.add(&vbox);
     window.show_all();
@@ -105,12 +119,6 @@ fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> (gtk::Label, Op
     return (val, p);
 }
 
-struct Cpu {
-    mhz: gtk::Label,
-    progress: gtk::ProgressBar,
-    pct_label: gtk::Label,
-}
-
 fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
     for i in 0..*deets::CPU_COUNT {
         let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
@@ -130,7 +138,6 @@ fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
         pct.get_style_context().add_class("pct");
         pct.set_justify(gtk::Justification::Right);
         pct.set_halign(gtk::Align::End);
-        pct.set_text("00%");
 
         let progress = gtk::ProgressBar::new();
         progress.set_hexpand(true);
@@ -152,8 +159,64 @@ fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
     }
 }
 
+fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) {
+    container.get_style_context().add_class("top-frame");
+    container.set_orientation(gtk::Orientation::Horizontal);
+
+    let columns = [
+        gtk::Box::new(gtk::Orientation::Vertical, SPACING),
+        gtk::Box::new(gtk::Orientation::Vertical, SPACING),
+        gtk::Box::new(gtk::Orientation::Vertical, SPACING),
+    ];
+
+    fn add_to_column(i: usize, label: &gtk::Label, columns: &[gtk::Box; 3]) {
+        match i {
+            0 => {
+                label.set_halign(gtk::Align::Start);
+                columns[0].pack_start(label, true, true, 0)
+            },
+            1 => {
+                columns[i].add(label);
+                label.set_halign(gtk::Align::End)
+            },
+            2 => {
+                columns[i].add(label);
+                label.set_halign(gtk::Align::End)
+            },
+            _ => (),
+        }
+    }
+
+    for (i, name) in [ "NAME", "PID", uniq_item ].iter().enumerate() {
+        let label = gtk::Label::new(None);
+        label.set_text(&name);
+        add_to_column(i, &label, &columns);
+    }
+
+    for _ in 0..5 {
+        let mut tmp: Vec<gtk::Label> = Vec::new();
+        for i in 0..3 {
+            let label = gtk::Label::new(None);
+            add_to_column(i, &label, &columns);
+            tmp.push(label);
+        }
+
+        mems.push(TopRow {
+            name: tmp[0].clone(),
+            pid:  tmp[1].clone(),
+            pct:  tmp[2].clone(),
+        });
+    }
+
+    container.pack_start(&columns[0], true, true, 0);
+    container.add(&columns[1]);
+    container.add(&columns[2]);
+}
+
 fn init_ui(values: &mut HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
            cpus: &mut Vec<Cpu>,
+           top_mems: &mut Vec<TopRow>,
+           top_cpus: &mut Vec<TopRow>,
            vbox: &gtk::Box,
            ui_config: &yaml_rust::Yaml) {
 
@@ -167,25 +230,58 @@ fn init_ui(values: &mut HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::Progre
         inner_box.get_style_context().add_class("innerbox");
         frame.add(&inner_box);
 
-        for item in i["items"].as_vec().unwrap() {
-            if item["type"].is_badvalue() {
-                let val = add_standard(item, &inner_box);
-                values.insert(item.clone(), val);
-            } else {
-                match item["type"].as_str().unwrap() {
-                    "cpus" => add_cpus(&inner_box, cpus),
-                    _ => (),
-                }
+        for item in i["items"].as_vec().unwrap_or(&Vec::new()) {
+            let val = add_standard(item, &inner_box);
+            values.insert(item.clone(), val);
+        }
+
+        if !i["type"].is_badvalue() {
+            match i["type"].as_str().unwrap() {
+                "cpus" => add_cpus(&inner_box, cpus),
+                "mem_consumers" => add_consumers("MEM", &inner_box, top_mems),
+                "cpu_consumers" => add_consumers("CPU", &inner_box, top_cpus),
+                _ => (),
             }
         }
     }
 }
 
-fn update_ui(timeout: i64, values: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>, cpus: Vec<Cpu>) {
+fn update_ui(timeout: i64,
+             values: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
+             cpus: Vec<Cpu>,
+             top_mems: Vec<TopRow>,
+             top_cpus: Vec<TopRow>) {
+
     let update = move || {
-        let frame_cache = deets::get_frame_cache();
+        let mut frame_cache = deets::get_frame_cache();
         let cpu_mhz_vec = deets::get_cpu_mhz();
         let cpu_mhz_vec_len = cpu_mhz_vec.len();
+
+        frame_cache.ps_info.sort_by(|a, b| b.mem.partial_cmp(&a.mem).unwrap());
+        for (i, mem) in top_mems.iter().enumerate() {
+            mem.pct.set_text(&format!("{:.1}", frame_cache.ps_info[i].mem));
+            mem.pid.set_text(&format!("{}", frame_cache.ps_info[i].pid));
+
+            let comm = &frame_cache.ps_info[i].comm;
+            if comm.len() > 10 {
+                mem.name.set_text(&comm[0..10]);
+            } else {
+                mem.name.set_text(comm);
+            }
+        }
+
+        frame_cache.ps_info.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap());
+        for (i, cpu) in top_cpus.iter().enumerate() {
+            cpu.pct.set_text(&format!("{:.1}", frame_cache.ps_info[i].cpu));
+            cpu.pid.set_text(&format!("{}", frame_cache.ps_info[i].pid));
+
+            let comm = &frame_cache.ps_info[i].comm;
+            if comm.len() > 10 {
+                cpu.name.set_text(&comm[0..10]);
+            } else {
+                cpu.name.set_text(comm);
+            }
+        }
 
         for (i, cpu) in cpus.iter().enumerate() {
             let usage = deets::get_cpu_usage(i as i32);
