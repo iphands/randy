@@ -263,8 +263,9 @@ fn update_ui(timeout: i64,
             lbl.pid.set_text(&format!("{}",    ps_info[i].pid));
 
             let comm = &ps_info[i].comm;
-            if comm.len() > 10 {
-                lbl.name.set_text(&comm[0..10]);
+
+            if comm.len() > 20 {
+                lbl.name.set_text(&comm[0..20]);
             } else {
                 lbl.name.set_text(comm);
             }
@@ -276,11 +277,12 @@ fn update_ui(timeout: i64,
         let cpu_mhz_vec = deets::get_cpu_mhz();
         let cpu_mhz_vec_len = cpu_mhz_vec.len();
 
+        // note: we already have the list sorted here
+        // frame_cache.ps_info.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap());
+        do_top(&frame_cache.ps_info, &top_cpus, "cpu");
+
         frame_cache.ps_info.sort_by(|a, b| b.mem.partial_cmp(&a.mem).unwrap());
         do_top(&frame_cache.ps_info, &top_mems, "mem");
-
-        frame_cache.ps_info.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap());
-        do_top(&frame_cache.ps_info, &top_cpus, "cpu");
 
         for (i, cpu) in cpus.iter().enumerate() {
             let usage = deets::get_cpu_usage(i as i32);

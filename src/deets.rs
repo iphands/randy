@@ -247,9 +247,11 @@ fn get_cpu_temp_sys() -> String {
 
 fn get_ps() -> Vec<PsInfo> {
     let output = match Command::new("ps")
-        .arg("a")
         .arg("--no-headers")
-        .arg("-o")
+        .arg("--sort")
+        .arg("-pcpu")
+        .arg("ax")
+        .arg("-eo")
         .arg("pid,pcpu,pmem,comm")
         .output() {
             Ok(o) => o,
