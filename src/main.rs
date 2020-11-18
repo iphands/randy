@@ -15,7 +15,7 @@ use std::env::args;
 use std::fs;
 use std::collections::HashMap;
 
-const SPACING: i32 = 8;
+const SPACING: i32 = 5;
 
 struct Cpu {
     mhz: gtk::Label,
