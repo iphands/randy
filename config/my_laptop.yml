@@ -3,11 +3,11 @@ settings:
   background_color: "#000"
   debug: false
   decoration: false
-  font-size: x-large
+  font-size: large
   resizable: false
   timeout: 1
   xpos: 1540
-  ypos: 30
+  ypos: 20
 
 ui:
   - text: SYSTEM
@@ -41,10 +41,10 @@ ui:
       # - func: gpu_temp
       #   text: "GPU Temp:"
 
-  # - text: CPUS
-  #   type: cpus
-  #   func: cpus
-  #   text: "CPU"
+  - text: CPUS
+    type: cpus
+    func: cpus
+    text: "CPU"
 
   - text: TOP CPU
     type: cpu_consumers
