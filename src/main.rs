@@ -169,37 +169,35 @@ fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) 
         gtk::Box::new(gtk::Orientation::Vertical, SPACING),
     ];
 
-    // move column[2] right!
-    // fill first col probably
+    fn add_to_column(i: usize, label: &gtk::Label, columns: &[gtk::Box; 3]) {
+        match i {
+            0 => {
+                label.set_halign(gtk::Align::Start);
+                columns[0].pack_start(label, true, true, 0)
+            },
+            1 => {
+                columns[i].add(label);
+                label.set_halign(gtk::Align::End)
+            },
+            2 => {
+                columns[i].add(label);
+                label.set_halign(gtk::Align::End)
+            },
+            _ => (),
+        }
+    }
 
     for (i, name) in [ "NAME", "PID", uniq_item ].iter().enumerate() {
         let label = gtk::Label::new(None);
         label.set_text(&name);
-
-        match i {
-            0 => label.set_halign(gtk::Align::Start),
-            1 => label.set_halign(gtk::Align::End),
-            2 => label.set_halign(gtk::Align::End),
-            _ => (),
-        }
-
-        columns[i].add(&label);
+        add_to_column(i, &label, &columns);
     }
 
     for _ in 0..5 {
         let mut tmp: Vec<gtk::Label> = Vec::new();
         for i in 0..3 {
             let label = gtk::Label::new(None);
-
-            match i {
-                0 => label.set_halign(gtk::Align::Start),
-                1 => label.set_halign(gtk::Align::End),
-                2 => label.set_halign(gtk::Align::End),
-                _ => (),
-            }
-
-            columns[i].add(&label);
-            // line_box.pack_start(&label, true, true, 0);
+            add_to_column(i, &label, &columns);
             tmp.push(label);
         }
 
@@ -208,11 +206,11 @@ fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) 
             pid:  tmp[1].clone(),
             pct:  tmp[2].clone(),
         });
-
-        container.add(&columns[0]);
-        container.add(&columns[1]);
-        container.add(&columns[2]);
     }
+
+    container.pack_start(&columns[0], true, true, 0);
+    container.add(&columns[1]);
+    container.add(&columns[2]);
 }
 
 fn init_ui(values: &mut HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
