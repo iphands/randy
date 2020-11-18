@@ -160,24 +160,34 @@ fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
 }
 
 fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) {
-    let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+    container.get_style_context().add_class("top-frame");
+    container.set_orientation(gtk::Orientation::Horizontal);
+
+    let columns = [
+        gtk::Box::new(gtk::Orientation::Vertical, SPACING),
+        gtk::Box::new(gtk::Orientation::Vertical, SPACING),
+        gtk::Box::new(gtk::Orientation::Vertical, SPACING),
+    ];
+
+    // let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
     for (i, name) in [ "NAME", "PID", uniq_item ].iter().enumerate() {
         let label = gtk::Label::new(None);
         label.set_text(&name);
 
         match i {
             0 => label.set_halign(gtk::Align::Start),
-            1 => label.set_halign(gtk::Align::Fill),
+            1 => label.set_halign(gtk::Align::End),
             2 => label.set_halign(gtk::Align::End),
             _ => (),
         }
 
-        line_box.pack_start(&label, true, true, 0);
+        columns[i].add(&label);
+        // line_box.pack_start(&label, true, true, 0);
     }
-    container.add(&line_box);
+    // container.add(&line_box);
 
     for _ in 0..5 {
-        let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+        // let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
 
         let mut tmp: Vec<gtk::Label> = Vec::new();
         for i in 0..3 {
@@ -185,12 +195,13 @@ fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) 
 
             match i {
                 0 => label.set_halign(gtk::Align::Start),
-                1 => label.set_halign(gtk::Align::Fill),
+                1 => label.set_halign(gtk::Align::End),
                 2 => label.set_halign(gtk::Align::End),
                 _ => (),
             }
 
-            line_box.pack_start(&label, true, true, 0);
+            columns[i].add(&label);
+            // line_box.pack_start(&label, true, true, 0);
             tmp.push(label);
         }
 
@@ -200,7 +211,10 @@ fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) 
             pct:  tmp[2].clone(),
         });
 
-        container.add(&line_box);
+        // container.add(&line_box);
+        container.add(&columns[0]);
+        container.add(&columns[1]);
+        container.add(&columns[2]);
     }
 }
 
