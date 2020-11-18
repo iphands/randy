@@ -13,6 +13,22 @@ struct CpuLoad {
     percent: f64,
 }
 
+pub struct PsInfo {
+    pub pid: String,
+    pub cpu: f32,
+    pub mem: f32,
+    pub comm: String,
+}
+
+pub struct FrameCache {
+    sysinfo: libc::sysinfo,
+    utsname: libc::utsname,
+    pub ps_info: Vec<PsInfo>,
+    proc_stat: Vec<String>,
+    pub mem_total: f64,
+    pub mem_free: f64
+}
+
 const LOAD_SHIFT_F32: f32 = (1 << libc::SI_LOAD_SHIFT) as f32;
 
 lazy_static! {
@@ -229,12 +245,35 @@ fn get_cpu_temp_sys() -> String {
     }
 }
 
-pub struct FrameCache {
-    sysinfo: libc::sysinfo,
-    utsname: libc::utsname,
-    proc_stat: Vec<String>,
-    pub mem_total: f64,
-    pub mem_free: f64
+fn get_ps() -> Vec<PsInfo> {
+    let output = match Command::new("ps")
+        .arg("a")
+        .arg("--no-headers")
+        .arg("-o")
+        .arg("pid,pcpu,pmem,comm")
+        .output() {
+            Ok(o) => o,
+            Err(e) => panic!("Error running vcgencmd to get volts: {}", e)
+        };
+
+    let mut ps_info_vec = Vec::new();
+    let out_str = String::from_utf8_lossy(&output.stdout);
+    for line in out_str.lines() {
+        let tmp = line.split(" ")
+            .collect::<Vec<&str>>()
+            .into_iter()
+            .filter(|s| s != &"")
+            .collect::<Vec<&str>>();
+
+        ps_info_vec.push(PsInfo {
+            pid:  tmp[0].to_string(),
+            cpu:  tmp[1].parse::<f32>().unwrap(),
+            mem:  tmp[2].parse::<f32>().unwrap(),
+            comm: tmp[3].to_string(),
+        });
+    }
+
+    return ps_info_vec;
 }
 
 pub fn get_frame_cache() -> FrameCache {
@@ -248,6 +287,7 @@ pub fn get_frame_cache() -> FrameCache {
     return FrameCache {
         sysinfo:   get_sysinfo(),
         utsname:   get_utsname(),
+        ps_info:   get_ps(),
         proc_stat: proc_stat,
         mem_free:  mem.0,
         mem_total: mem.1,
