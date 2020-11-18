@@ -252,36 +252,35 @@ fn update_ui(timeout: i64,
              top_mems: Vec<TopRow>,
              top_cpus: Vec<TopRow>) {
 
+    fn do_top(ps_info: &Vec<deets::PsInfo>, top_ui_items: &Vec<TopRow>, member: &str) {
+        for (i, lbl) in top_ui_items.iter().enumerate() {
+            match member {
+                "mem" => lbl.pct.set_text(&format!("{:.1}", ps_info[i].mem)),
+                "cpu" => lbl.pct.set_text(&format!("{:.1}", ps_info[i].cpu)),
+                _ => (),
+            };
+
+            lbl.pid.set_text(&format!("{}",    ps_info[i].pid));
+
+            let comm = &ps_info[i].comm;
+            if comm.len() > 10 {
+                lbl.name.set_text(&comm[0..10]);
+            } else {
+                lbl.name.set_text(comm);
+            }
+        }
+    }
+
     let update = move || {
         let mut frame_cache = deets::get_frame_cache();
         let cpu_mhz_vec = deets::get_cpu_mhz();
         let cpu_mhz_vec_len = cpu_mhz_vec.len();
 
         frame_cache.ps_info.sort_by(|a, b| b.mem.partial_cmp(&a.mem).unwrap());
-        for (i, mem) in top_mems.iter().enumerate() {
-            mem.pct.set_text(&format!("{:.1}", frame_cache.ps_info[i].mem));
-            mem.pid.set_text(&format!("{}", frame_cache.ps_info[i].pid));
-
-            let comm = &frame_cache.ps_info[i].comm;
-            if comm.len() > 10 {
-                mem.name.set_text(&comm[0..10]);
-            } else {
-                mem.name.set_text(comm);
-            }
-        }
+        do_top(&frame_cache.ps_info, &top_mems, "mem");
 
         frame_cache.ps_info.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap());
-        for (i, cpu) in top_cpus.iter().enumerate() {
-            cpu.pct.set_text(&format!("{:.1}", frame_cache.ps_info[i].cpu));
-            cpu.pid.set_text(&format!("{}", frame_cache.ps_info[i].pid));
-
-            let comm = &frame_cache.ps_info[i].comm;
-            if comm.len() > 10 {
-                cpu.name.set_text(&comm[0..10]);
-            } else {
-                cpu.name.set_text(comm);
-            }
-        }
+        do_top(&frame_cache.ps_info, &top_cpus, "cpu");
 
         for (i, cpu) in cpus.iter().enumerate() {
             let usage = deets::get_cpu_usage(i as i32);
