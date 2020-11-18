@@ -253,7 +253,7 @@ fn get_ps() -> Vec<PsInfo> {
         .arg("pid,pcpu,pmem,comm")
         .output() {
             Ok(o) => o,
-            Err(e) => panic!("Error running vcgencmd to get volts: {}", e)
+            Err(e) => panic!("Error running ps!: {}", e)
         };
 
     let mut ps_info_vec = Vec::new();
