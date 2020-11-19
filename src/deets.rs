@@ -39,7 +39,7 @@ lazy_static! {
     static ref CPU_LOADS:      Mutex<HashMap<i32, CpuLoad>> = Mutex::new(HashMap::new());
     static ref PROC_LOAD_HIST: Mutex<HashMap<u32, (f64, f64)>> = Mutex::new(HashMap::new());
     static ref PROC_PID_FILES: Mutex<HashMap<String, File>> = Mutex::new(HashMap::new());
-    pub static ref CPU_COUNT: i32 = get_match_strings_from_path("/proc/cpuinfo", Some(vec!["processor"])).len() as i32;
+    pub static ref CPU_COUNT: i32 = get_match_strings_from_path("/proc/cpuinfo", &vec!["processor"]).len() as i32;
     pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
 }
 
@@ -132,38 +132,33 @@ fn get_strings_from_path(path: &str, line_end: usize) -> Vec<String> {
     }
 }
 
-fn get_match_strings_from_path(path: &str, filters: Option<Vec<&str>>) -> Vec<String> {
-    match try_match_strings_from_path(path, filters) {
+fn get_match_strings_from_path(path: &str, filters: &Vec<&str>) -> Vec<String> {
+    match try_match_strings_from_path(path, &filters) {
         Ok(v)  => v,
         Err(e) => panic!("Unable to open / read {}: {}", &path, e),
     }
 }
 
-fn try_match_strings_from_file(file: &mut File, filters: Option<Vec<&str>>) -> Result<Vec<String>, std::io::Error> {
+fn try_match_strings_from_file(file: &mut File, filters: &Vec<&str>) -> Result<Vec<String>, std::io::Error> {
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
 
     return Ok(contents.lines().filter(|s| {
-        match &filters {
-            Some(fils) => {
-                let mut ret = false;
-                for fil in fils {
-                    ret = s.starts_with(fil);
-                    if ret { break; }
-                }
-                return ret;
-            },
-            None => return true,
+        let mut ret = false;
+        for filter in filters {
+            ret = s.starts_with(filter);
+            if ret { break; }
         }
+        return ret;
     }).map(|s| String::from(s)).collect());
 }
 
-fn try_match_strings_from_path(path: &str, filters: Vec<&str>) -> Result<Vec<String>, std::io::Error> {
+fn try_match_strings_from_path(path: &str, filters: &Vec<&str>) -> Result<Vec<String>, std::io::Error> {
     return match fs::read_to_string(&path) {
         Ok(s) => Ok(s.lines().filter(|s| {
             let mut ret = false;
-            for fil in fils {
-                ret = s.starts_with(fil);
+            for filter in filters {
+                ret = s.starts_with(filter);
                 if ret { break; }
             }
             return ret;
@@ -194,7 +189,7 @@ fn try_strings_from_path(path: &str, line_end: usize) -> Result<Vec<String>, std
 }
 
 pub fn get_cpu_mhz() -> Vec<u16> {
-    return get_match_strings_from_path("/proc/cpuinfo", Some(vec!["cpu MHz"]))
+    return get_match_strings_from_path("/proc/cpuinfo", &vec!["cpu MHz"])
         .into_iter()
         .map(|s| {
             return s.split(": ").collect::<Vec<&str>>()[1]
@@ -203,7 +198,7 @@ pub fn get_cpu_mhz() -> Vec<u16> {
 }
 
 fn get_proc_stat() -> Vec<String> {
-    return get_match_strings_from_path("/proc/stat", Some(vec!["cpu", "proc"]));
+    return get_match_strings_from_path("/proc/stat", &vec!["cpu", "proc"]);
 }
 
 fn do_all_cpu_usage(proc_stat: &Vec<String>) {
@@ -307,7 +302,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
 
             let status_lines = match proc_files_map.contains_key(pid) {
                 true => {
-                    match try_match_strings_from_path(&format!("{}/status", &path), Some(vec!["Name", "VmRSS"])) {
+                    match try_match_strings_from_path(&format!("{}/status", &path), &vec!["Name", "VmRSS"]) {
                         Ok(s) => s,
                         Err(_) => {
                             proc_files_map.remove(pid);
@@ -321,7 +316,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
                         Err(_) => continue,
                     };
 
-                    match try_match_strings_from_file(&mut file, Some(vec!["Name", "VmRSS"])) {
+                    match try_match_strings_from_file(&mut file, &vec!["Name", "VmRSS"]) {
                         Ok(vec) => {
                             proc_files_map.insert(pid.to_string(), file);
                             vec
