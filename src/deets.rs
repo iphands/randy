@@ -139,48 +139,6 @@ fn get_proc_stat() -> Vec<String> {
     return get_match_strings_from_path("/proc/stat", &vec!["cpu", "proc"]);
 }
 
-fn do_all_cpu_usage(proc_stat: &Vec<String>) {
-    let loads_map = &mut CPU_LOADS.lock().unwrap();
-
-    for cpu_num in -1..*CPU_COUNT {
-        if !loads_map.contains_key(&cpu_num) {
-            loads_map.insert(cpu_num, CpuLoad {
-                idle:  0,
-                total: 0,
-                percent: 0.0,
-            });
-        }
-
-        let last_load = &loads_map[&cpu_num];
-
-        let proc_stat_line_items: Vec<u64> = proc_stat[(cpu_num + 1) as usize]
-            .split(' ')
-            .filter_map(|s| s.parse::<u64>().ok())
-            .collect();
-
-        let idle:  u64 = proc_stat_line_items[3];
-        let total: u64 = proc_stat_line_items.iter().fold(0, |a, b| a + b);
-
-        let totals = total - last_load.total;
-        let idles  = idle - last_load.idle;
-
-        let mut percent = ((totals as f64 - (idles as f64)) / totals as f64) * 100.0;
-        if percent.is_nan() { percent = 0.0 }
-
-        loads_map.insert(cpu_num, CpuLoad {
-            idle: idle,
-            total: total,
-            percent: percent,
-        });
-    }
-}
-
-pub fn get_cpu_usage(cpu_num: i32) -> f64 {
-    let loads_map = CPU_LOADS.lock().unwrap();
-    let last_load = &loads_map[&cpu_num];
-    return last_load.percent;
-}
-
 #[cfg(feature = "sensors")]
 fn get_sensor_info(sensor_name: &str, label_name: &str, val: &str, whole: bool) -> String {
     for chip in sensors::Sensors::new() {
@@ -344,68 +302,6 @@ fn get_ps() -> Vec<PsInfo> {
     return ps_info_vec;
 }
 
-#[cfg(feature = "timings")]
-pub fn get_frame_cache() -> FrameCache {
-    use std::time::{Instant};
-
-    let mut now = Instant::now();
-    let proc_stat = get_proc_stat();
-    println!("proc_stat:     millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
-
-    // Always warm this cache up!
-    now = Instant::now();
-    do_all_cpu_usage(&proc_stat);
-    println!("all_cpu_usage: millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
-
-    now = Instant::now();
-    let mem = get_ram_usage();
-    println!("ram_usage:     millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
-
-    now = Instant::now();
-    let ps_info = get_ps_from_proc(mem.1 * 10000.0);
-    println!("ps_info:       millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
-
-    now = Instant::now();
-    let sysinfo = get_sysinfo();
-    println!("sysinfo:       millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
-
-    now = Instant::now();
-    let utsname = get_utsname();
-    println!("utsname:       millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
-
-    println!("Size of PROC_PID_FILES: {}", PROC_PID_FILES.lock().unwrap().len());
-    println!("");
-    return FrameCache {
-        sysinfo:   sysinfo,
-        utsname:   utsname,
-        ps_info:   ps_info,
-        proc_stat: proc_stat,
-        mem_free:  mem.0,
-        mem_total: mem.1,
-    };
-}
-
-#[cfg(not(feature = "timings"))]
-pub fn get_frame_cache() -> FrameCache {
-    let proc_stat = get_proc_stat();
-    // Always warm this cache up!
-    do_all_cpu_usage(&proc_stat);
-
-    let mem = get_ram_usage();
-    let ps_info = get_ps_from_proc(mem.1 * 10000.0);
-    let sysinfo = get_sysinfo();
-    let utsname = get_utsname();
-
-    return FrameCache {
-        sysinfo:   sysinfo,
-        utsname:   utsname,
-        ps_info:   ps_info,
-        proc_stat: proc_stat,
-        mem_free:  mem.0,
-        mem_total: mem.1,
-    };
-}
-
 fn get_cpu_voltage_rpi() -> String {
     let output = match Command::new("vcgencmd").arg("measure_volts").arg("core").output() {
         Ok(o) => o,
@@ -478,4 +374,108 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
     };
 
     return ret;
+}
+
+#[cfg(feature = "timings")]
+pub fn get_frame_cache() -> FrameCache {
+    use std::time::{Instant};
+
+    let mut now = Instant::now();
+    let proc_stat = get_proc_stat();
+    println!("proc_stat:     millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
+
+    // Always warm this cache up!
+    now = Instant::now();
+    do_all_cpu_usage(&proc_stat);
+    println!("all_cpu_usage: millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
+
+    now = Instant::now();
+    let mem = get_ram_usage();
+    println!("ram_usage:     millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
+
+    now = Instant::now();
+    let ps_info = get_ps_from_proc(mem.1 * 10000.0);
+    println!("ps_info:       millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
+
+    now = Instant::now();
+    let sysinfo = get_sysinfo();
+    println!("sysinfo:       millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
+
+    now = Instant::now();
+    let utsname = get_utsname();
+    println!("utsname:       millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
+
+    println!("Size of PROC_PID_FILES: {}", PROC_PID_FILES.lock().unwrap().len());
+    println!("");
+    return FrameCache {
+        sysinfo:   sysinfo,
+        utsname:   utsname,
+        ps_info:   ps_info,
+        proc_stat: proc_stat,
+        mem_free:  mem.0,
+        mem_total: mem.1,
+    };
+}
+
+#[cfg(not(feature = "timings"))]
+pub fn get_frame_cache() -> FrameCache {
+    let proc_stat = get_proc_stat();
+    // Always warm this cache up!
+    do_all_cpu_usage(&proc_stat);
+
+    let mem = get_ram_usage();
+    let ps_info = get_ps_from_proc(mem.1 * 10000.0);
+    let sysinfo = get_sysinfo();
+    let utsname = get_utsname();
+
+    return FrameCache {
+        sysinfo:   sysinfo,
+        utsname:   utsname,
+        ps_info:   ps_info,
+        proc_stat: proc_stat,
+        mem_free:  mem.0,
+        mem_total: mem.1,
+    };
+}
+
+fn do_all_cpu_usage(proc_stat: &Vec<String>) {
+    let loads_map = &mut CPU_LOADS.lock().unwrap();
+
+    for cpu_num in -1..*CPU_COUNT {
+        if !loads_map.contains_key(&cpu_num) {
+            loads_map.insert(cpu_num, CpuLoad {
+                idle:  0,
+                total: 0,
+                percent: 0.0,
+            });
+        }
+
+        let last_load = &loads_map[&cpu_num];
+
+        let proc_stat_line_items: Vec<u64> = proc_stat[(cpu_num + 1) as usize]
+            .split(' ')
+            .filter_map(|s| s.parse::<u64>().ok())
+            .collect();
+
+        let idle:  u64 = proc_stat_line_items[3];
+        let total: u64 = proc_stat_line_items.iter().fold(0, |a, b| a + b);
+
+        let totals = total - last_load.total;
+        let idles  = idle - last_load.idle;
+
+        let mut percent = ((totals as f64 - (idles as f64)) / totals as f64) * 100.0;
+        if percent.is_nan() { percent = 0.0 }
+
+        loads_map.insert(cpu_num, CpuLoad {
+            idle: idle,
+            total: total,
+            percent: percent,
+        });
+    }
+}
+
+pub fn get_cpu_usage(cpu_num: i32) -> f64 {
+    let loads_map = CPU_LOADS.lock().unwrap();
+    let last_load = &loads_map[&cpu_num];
+    return last_load.percent;
 }
