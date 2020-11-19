@@ -36,7 +36,7 @@ const LOAD_SHIFT_F32: f32 = (1 << libc::SI_LOAD_SHIFT) as f32;
 lazy_static! {
     // this one should be separate from frame cache
     // it has to persist beyond a single frame
-    static ref CPU_LOADS:  Mutex<HashMap<i32, CpuLoad>> = Mutex::new(HashMap::new());
+    static ref CPU_LOADS:      Mutex<HashMap<i32, CpuLoad>> = Mutex::new(HashMap::new());
     static ref PROC_LOAD_HIST: Mutex<HashMap<u32, (f64, f64)>> = Mutex::new(HashMap::new());
     static ref PROC_PID_FILES: Mutex<HashMap<String, File>> = Mutex::new(HashMap::new());
     pub static ref CPU_COUNT: i32 = get_file("/proc/cpuinfo", Some(vec!["processor"]), 0).len() as i32;
@@ -303,7 +303,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
             let pid = path.split('/').collect::<Vec<&str>>()[2];
             pids.insert(pid.to_string());
 
-            let mut status_lines = match proc_files_map.contains_key(pid) {
+            let status_lines = match proc_files_map.contains_key(pid) {
                 true => {
                     match try_get_file(&format!("{}/status", &path), Some(vec!["Name", "VmRSS"]), 0) {
                         Ok(s) => s,
@@ -348,21 +348,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
          }
     }
 
-    // let mut remove = Vec::new();
-    // {
-    //     let keys = proc_files_map.keys();
-    //     for key in keys {
-    //         if !pids.contains(key) {
-    //             println!("Removing {}", key);
-    //             remove.push(key);
-    //                proc_files_map.remove(key);
-    //         }
-    //     }
-    // }
-    // for k in remove {
-    //     proc_files_map.remove(k);
-    // }
-
+    proc_files_map.retain(|i, _| { pids.contains(i) });
     return procs;
 }
 
