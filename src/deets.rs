@@ -211,7 +211,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
 
         let path = entry.path().display().to_string();
         if path.chars().nth(6).unwrap().is_ascii_digit() {
-            let pid = path.split('/').collect::<Vec<&str>>()[2];
+            let pid = &path[6..];
             pids.insert(pid.to_string());
 
             let status_lines = match proc_files_map.contains_key(pid) {
