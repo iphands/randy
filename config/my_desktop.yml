@@ -7,7 +7,7 @@ settings:
   resizable: false
   skip_taskbar: true
   timeout: 2
-  xpos: 3450
+  xpos: 3430
   ypos: 5
 
 ui:
@@ -47,7 +47,7 @@ ui:
         text: "RAM usage:"
         widget: bar
 
-      - func: procs
+      - func: procs_count
         text: "Running processes:"
 
       - func: load
@@ -57,10 +57,17 @@ ui:
       #   text: "CPU Temp:"
 
   - text: CPUS
-    items:
-      - type: cpus
-        func: cpus
-        text: "CPU"
+    type: cpus
+    func: cpus
+    text: "CPU"
+
+  - text: TOP CPU
+    type: cpu_consumers
+    limit: 5
+
+  - text: TOP MEMORY
+    type: mem_consumers
+    limit: 5
 
 # - text: FILESYSTEM
 #   items:

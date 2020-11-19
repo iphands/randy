@@ -32,7 +32,7 @@ ui:
         text: "RAM usage:"
         widget: bar
 
-      - func: procs
+      - func: procs_count
         text: "Running processes:"
 
       - func: load

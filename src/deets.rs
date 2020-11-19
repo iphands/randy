@@ -34,8 +34,9 @@ const LOAD_SHIFT_F32: f32 = (1 << libc::SI_LOAD_SHIFT) as f32;
 lazy_static! {
     // this one should be separate from frame cache
     // it has to persist beyond a single frame
-    static ref CPU_LOADS: Mutex<HashMap<i32 ,CpuLoad>> = Mutex::new(HashMap::new());
-    pub static ref CPU_COUNT: i32 = get_file("/proc/cpuinfo".to_string(), "processor", 0).len() as i32;
+    static ref CPU_LOADS:  Mutex<HashMap<i32, CpuLoad>> = Mutex::new(HashMap::new());
+    static ref PROC_LOAD_HIST: Mutex<HashMap<u32, (f64, f64)>> = Mutex::new(HashMap::new());
+    pub static ref CPU_COUNT: i32 = get_file("/proc/cpuinfo", "processor", 0).len() as i32;
     pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
 }
 
@@ -86,7 +87,7 @@ fn get_load(loads: [c_ulong; 3]) -> String {
     return format!("{:.2} {:.2} {:.2}", load_arr[0], load_arr[1], load_arr[2]);
 }
 
-fn get_procs(proc_stat: &Vec<String>) -> String {
+fn get_procs_count(proc_stat: &Vec<String>) -> String {
     let mut running: Option<String> = None;
 
     for line in proc_stat {
@@ -114,14 +115,14 @@ pub fn get_ram_usage() -> (f64, f64)  {
             .replace("kB", "").parse().unwrap();
     }
 
-    let meminfo = get_file(String::from("/proc/meminfo"), "", 3);
+    let meminfo = get_file("/proc/meminfo", "", 3);
     let free  = reduce(get_item(2, &meminfo));
     let total = reduce(get_item(0, &meminfo));
     // return format!("{:.2}GB / {:.2}GB", (total - free), total);
     return (free, total);
 }
 
-fn get_file(path: String, filter: &str, line_end: usize) -> Vec<String> {
+fn get_file(path: &str, filter: &str, line_end: usize) -> Vec<String> {
     if line_end == 0 {
         return match fs::read_to_string(&path) {
             Ok(s)  => s.lines()
@@ -151,7 +152,7 @@ fn get_file(path: String, filter: &str, line_end: usize) -> Vec<String> {
 }
 
 pub fn get_cpu_mhz() -> Vec<u16> {
-    return get_file("/proc/cpuinfo".to_string(), "cpu MHz", 0)
+    return get_file("/proc/cpuinfo", "cpu MHz", 0)
         .into_iter()
         .map(|s| {
             return s.split(": ").collect::<Vec<&str>>()[1]
@@ -160,7 +161,7 @@ pub fn get_cpu_mhz() -> Vec<u16> {
 }
 
 fn get_proc_stat() -> Vec<String> {
-    return get_file(String::from("/proc/stat"), "", 0);
+    return get_file("/proc/stat", "", 0);
 }
 
 fn do_all_cpu_usage(proc_stat: &Vec<String>) {
@@ -245,6 +246,69 @@ fn get_cpu_temp_sys() -> String {
     }
 }
 
+fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
+    let mut procs = Vec::new();
+    let cpu_loads_map  = &mut CPU_LOADS.lock().unwrap();
+
+    for dir_entry in fs::read_dir("/proc").unwrap() {
+        let entry: fs::DirEntry = match dir_entry {
+            Ok(r)  => r,
+            Err(_) => continue,
+        };
+
+        let path = entry.path().display().to_string();
+        let pid = path.split('/').collect::<Vec<&str>>()[2];
+
+        if pid.chars().nth(0).unwrap().is_ascii_digit() {
+            let status_lines = get_file(&format!("{}/status", &path), "", 22);
+            let proc_used = status_lines.iter().find_map(|i| {
+                if i.starts_with("VmRSS:") {
+                    return Some(i[7..(i.len() - 3)].trim().parse::<u32>().unwrap() as f64);
+                }
+                return None;
+            });
+
+            match proc_used {
+                Some(used) => {
+                    let cpu = _do_cpu(&path, &pid, cpu_loads_map[&0].total as f64);
+                    procs.push(PsInfo {
+                        comm: String::from(&status_lines[0][6..]),
+                        pid: String::from(pid),
+                        cpu: cpu,
+                        mem: (used / mem_used) as f32,
+                    });
+                },
+                _ => (),
+            };
+         }
+    }
+
+    return procs;
+}
+
+fn _do_cpu(path: &str, pid: &str, total_time: f64) -> f32 {
+    let proc_loads_map = &mut PROC_LOAD_HIST.lock().unwrap();
+    let foo = &get_file(&format!("{}/stat", &path), "", 1)[0];
+    let stat_vec = foo.split(" ").collect::<Vec<&str>>();
+    let pid_u32 = pid.parse::<u32>().unwrap();
+
+    let proc_time: f64 = stat_vec[13..15]
+        .iter()
+        .map(|i| i.parse::<f64>().unwrap())
+        .sum();
+
+    if !proc_loads_map.contains_key(&pid_u32) {
+        proc_loads_map.insert(pid_u32, (0.0, 0.0));
+    }
+
+    let last = proc_loads_map.get(&pid_u32).unwrap();
+    let util = 100.0 * (proc_time - last.0) / (total_time - last.1);
+
+    proc_loads_map.insert(pid_u32, (proc_time, total_time));
+    return util as f32;
+}
+
+#[allow(dead_code)]
 fn get_ps() -> Vec<PsInfo> {
     let output = match Command::new("ps")
         .arg("--no-headers")
@@ -280,7 +344,6 @@ fn get_ps() -> Vec<PsInfo> {
 
 pub fn get_frame_cache() -> FrameCache {
     let proc_stat = get_proc_stat();
-
     // Always warm this cache up!
     do_all_cpu_usage(&proc_stat);
 
@@ -289,7 +352,7 @@ pub fn get_frame_cache() -> FrameCache {
     return FrameCache {
         sysinfo:   get_sysinfo(),
         utsname:   get_utsname(),
-        ps_info:   get_ps(),
+        ps_info:   get_ps_from_proc(mem.1 * 10000.0),
         proc_stat: proc_stat,
         mem_free:  mem.0,
         mem_total: mem.1,
@@ -344,7 +407,7 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
         "kernel" => get_uname(frame_cache.utsname.release as [c_char; 65]),
         "uptime" => get_uptime_string(frame_cache.sysinfo.uptime as c_int),
         "load" => get_load(frame_cache.sysinfo.loads as [c_ulong; 3]),
-        "procs" => get_procs(&frame_cache.proc_stat),
+        "procs_count" => get_procs_count(&frame_cache.proc_stat),
         "ram_usage" => format!("{:.2}GB / {:.2}GB",
                                (frame_cache.mem_total - frame_cache.mem_free),
                                frame_cache.mem_total),
