@@ -158,20 +158,15 @@ fn try_match_strings_from_file(file: &mut File, filters: Option<Vec<&str>>) -> R
     }).map(|s| String::from(s)).collect());
 }
 
-fn try_match_strings_from_path(path: &str, filters: Option<Vec<&str>>) -> Result<Vec<String>, std::io::Error> {
+fn try_match_strings_from_path(path: &str, filters: Vec<&str>) -> Result<Vec<String>, std::io::Error> {
     return match fs::read_to_string(&path) {
         Ok(s) => Ok(s.lines().filter(|s| {
-            match &filters {
-                Some(fils) => {
-                    let mut ret = false;
-                    for fil in fils {
-                        ret = s.starts_with(fil);
-                        if ret { break; }
-                    }
-                    return ret;
-                },
-                None => return true,
+            let mut ret = false;
+            for fil in fils {
+                ret = s.starts_with(fil);
+                if ret { break; }
             }
+            return ret;
         }).map(|s| String::from(s)).collect()),
         Err(e) => Err(e),
     };
