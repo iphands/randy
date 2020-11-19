@@ -36,22 +36,13 @@ ui:
         text: "RAM usage:"
         widget: bar
 
-      - func: procs
+      - func: procs_count
         text: "Running processes:"
 
       - func: load
         text: "Load:"
 
-      # - func: gpu_temp
-      #   text: "GPU Temp:"
-
   - text: CPUS
-    items:
-      - type: cpus
-        func: cpus
-        text: "CPU"
-
-# - text: FILESYSTEM
-#   items:
-# - text: NETWORKING
-#   items:
+    type: cpus
+    func: cpus
+    text: "CPU"

@@ -28,6 +28,9 @@ ui:
       - func: cpu_temp_sys
         text: "CPU temp:"
 
+      # - func: nvidia_gpu_temp
+      #   text: "GPU Temp:"
+
       - func: ram_usage
         text: "RAM usage:"
         widget: bar
@@ -37,9 +40,6 @@ ui:
 
       - func: load
         text: "Load:"
-
-      # - func: gpu_temp
-      #   text: "GPU Temp:"
 
   - text: CPUS
     type: cpus
@@ -53,8 +53,3 @@ ui:
   - text: TOP MEMORY
     type: mem_consumers
     limit: 5
-
-# - text: FILESYSTEM
-#   items:
-# - text: NETWORKING
-#   items:

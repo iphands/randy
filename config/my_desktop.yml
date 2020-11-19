@@ -53,9 +53,6 @@ ui:
       - func: load
         text: "Load:"
 
-      # - func: cpu_temp_sys
-      #   text: "CPU Temp:"
-
   - text: CPUS
     type: cpus
     func: cpus
@@ -68,8 +65,3 @@ ui:
   - text: TOP MEMORY
     type: mem_consumers
     limit: 5
-
-# - text: FILESYSTEM
-#   items:
-# - text: NETWORKING
-#   items:
