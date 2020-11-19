@@ -5,6 +5,8 @@ use libc::{c_char, c_int, c_ulong};
 use std::{str, mem, slice, fs};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
+use std::io::Seek;
+use std::io::SeekFrom;
 use std::process::Command;
 use std::sync::Mutex;
 
@@ -216,9 +218,12 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
 
             let status_lines = match proc_files_map.contains_key(pid) {
                 true => {
-                    match try_match_strings_from_path(&format!("{}/status", &path), &vec!["Name", "VmRSS"]) {
-                        Ok(s) => s,
-                        Err(_) => {
+                    let file = proc_files_map.get_mut(pid).unwrap();
+                    file.seek(SeekFrom::Start(0));
+
+                    match try_match_strings_from_file(file, &vec!["Name", "VmRSS"]) {
+                        Ok(s)  => s,
+                        Err(e) => {
                             proc_files_map.remove(pid);
                             continue
                         },
@@ -240,7 +245,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
                 },
             };
 
-            if status_lines.len() == 1 { continue; }
+            if status_lines.len() != 2 { continue; }
 
             let proc_used = status_lines[1][7..(status_lines[1].len() - 3)].trim().parse::<f64>();
 
