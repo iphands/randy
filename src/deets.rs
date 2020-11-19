@@ -75,12 +75,6 @@ fn get_sysinfo() -> libc::sysinfo {
     return sysinfo;
 }
 
-fn str_from_bytes(mut buffer: Vec<u8>) -> String {
-    let end = buffer.iter().position(|&b| b == 0).unwrap_or_else(|| buffer.len());
-    buffer.resize(end, 0);
-    return String::from_utf8(buffer).unwrap();
-}
-
 fn get_load(loads: [c_ulong; 3]) -> String {
     let mut load_arr: [f32; 3] = [0.0, 0.0, 0.0];
 
@@ -184,6 +178,30 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
     let cpu_loads_map  = &mut CPU_LOADS.lock().unwrap();
     let proc_files_map = &mut PROC_PID_FILES.lock().unwrap();
 
+    fn _do_cpu(path: &str, pid: &str, total_time: f64) -> f32 {
+        let proc_loads_map = &mut PROC_LOAD_HIST.lock().unwrap();
+        let stat_line = match try_strings_from_path(&format!("{}/stat", &path), 1) {
+            Ok(v)  => v,
+            Err(_) => return 0.0,
+        };
+
+        let stat_vec  = stat_line[0].split(" ").collect::<Vec<&str>>();
+        let pid_u32   = pid.parse::<u32>().unwrap();
+
+        let proc_time: f64 = stat_vec[13].parse::<f64>().unwrap() + stat_vec[14].parse::<f64>().unwrap();
+
+        if !proc_loads_map.contains_key(&pid_u32) {
+            proc_loads_map.insert(pid_u32, (0.0, 0.0));
+        }
+
+        let last = proc_loads_map.get(&pid_u32).unwrap();
+        let util = 100.0 * (proc_time - last.0) / (total_time - last.1);
+
+        proc_loads_map.insert(pid_u32, (proc_time, total_time));
+        return util as f32;
+    }
+
+
     let mut pids = HashSet::new();
     for dir_entry in fs::read_dir("/proc").unwrap() {
         let entry: fs::DirEntry = match dir_entry {
@@ -243,29 +261,6 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
 
     proc_files_map.retain(|i, _| { pids.contains(i) });
     return procs;
-}
-
-fn _do_cpu(path: &str, pid: &str, total_time: f64) -> f32 {
-    let proc_loads_map = &mut PROC_LOAD_HIST.lock().unwrap();
-    let stat_line = match try_strings_from_path(&format!("{}/stat", &path), 1) {
-        Ok(v)  => v,
-        Err(_) => return 0.0,
-    };
-
-    let stat_vec  = stat_line[0].split(" ").collect::<Vec<&str>>();
-    let pid_u32   = pid.parse::<u32>().unwrap();
-
-    let proc_time: f64 = stat_vec[13].parse::<f64>().unwrap() + stat_vec[14].parse::<f64>().unwrap();
-
-    if !proc_loads_map.contains_key(&pid_u32) {
-        proc_loads_map.insert(pid_u32, (0.0, 0.0));
-    }
-
-    let last = proc_loads_map.get(&pid_u32).unwrap();
-    let util = 100.0 * (proc_time - last.0) / (total_time - last.1);
-
-    proc_loads_map.insert(pid_u32, (proc_time, total_time));
-    return util as f32;
 }
 
 #[allow(dead_code)]
@@ -478,4 +473,10 @@ pub fn get_cpu_usage(cpu_num: i32) -> f64 {
     let loads_map = CPU_LOADS.lock().unwrap();
     let last_load = &loads_map[&cpu_num];
     return last_load.percent;
+}
+
+fn str_from_bytes(mut buffer: Vec<u8>) -> String {
+    let end = buffer.iter().position(|&b| b == 0).unwrap_or_else(|| buffer.len());
+    buffer.resize(end, 0);
+    return String::from_utf8(buffer).unwrap();
 }
