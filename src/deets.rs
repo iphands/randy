@@ -39,7 +39,7 @@ lazy_static! {
     static ref CPU_LOADS:      Mutex<HashMap<i32, CpuLoad>> = Mutex::new(HashMap::new());
     static ref PROC_LOAD_HIST: Mutex<HashMap<u32, (f64, f64)>> = Mutex::new(HashMap::new());
     static ref PROC_PID_FILES: Mutex<HashMap<String, File>> = Mutex::new(HashMap::new());
-    pub static ref CPU_COUNT: i32 = get_file("/proc/cpuinfo", Some(vec!["processor"]), 0).len() as i32;
+    pub static ref CPU_COUNT: i32 = get_match_strings_from_path("/proc/cpuinfo", Some(vec!["processor"])).len() as i32;
     pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
 }
 
@@ -118,21 +118,28 @@ pub fn get_ram_usage() -> (f64, f64)  {
             .replace("kB", "").parse().unwrap();
     }
 
-    let meminfo = get_file("/proc/meminfo", None, 3);
+    let meminfo = get_strings_from_path("/proc/meminfo", 3);
     let free  = reduce(get_item(2, &meminfo));
     let total = reduce(get_item(0, &meminfo));
     // return format!("{:.2}GB / {:.2}GB", (total - free), total);
     return (free, total);
 }
 
-fn get_file(path: &str, filters: Option<Vec<&str>>, line_end: usize) -> Vec<String> {
-    match try_get_file(path, filters, line_end) {
+fn get_strings_from_path(path: &str, line_end: usize) -> Vec<String> {
+    match try_strings_from_path(path, line_end) {
         Ok(v)  => v,
         Err(e) => panic!("Unable to open / read {}: {}", &path, e),
     }
 }
 
-fn test_get_file(file: &mut File, filters: Option<Vec<&str>>) -> Result<Vec<String>, std::io::Error> {
+fn get_match_strings_from_path(path: &str, filters: Option<Vec<&str>>) -> Vec<String> {
+    match try_match_strings_from_path(path, filters) {
+        Ok(v)  => v,
+        Err(e) => panic!("Unable to open / read {}: {}", &path, e),
+    }
+}
+
+fn try_match_strings_from_file(file: &mut File, filters: Option<Vec<&str>>) -> Result<Vec<String>, std::io::Error> {
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
 
@@ -151,26 +158,26 @@ fn test_get_file(file: &mut File, filters: Option<Vec<&str>>) -> Result<Vec<Stri
     }).map(|s| String::from(s)).collect());
 }
 
-fn try_get_file(path: &str, filters: Option<Vec<&str>>, line_end: usize) -> Result<Vec<String>, std::io::Error> {
-    if line_end == 0 {
-        return match fs::read_to_string(&path) {
-            Ok(s) => Ok(s.lines().filter(|s| {
-                match &filters {
-                    Some(fils) => {
-                        let mut ret = false;
-                        for fil in fils {
-                            ret = s.starts_with(fil);
-                            if ret { break; }
-                        }
-                        return ret;
-                    },
-                    None => return true,
-                }
-            }).map(|s| String::from(s)).collect()),
-            Err(e) => Err(e),
-        };
-    }
+fn try_match_strings_from_path(path: &str, filters: Option<Vec<&str>>) -> Result<Vec<String>, std::io::Error> {
+    return match fs::read_to_string(&path) {
+        Ok(s) => Ok(s.lines().filter(|s| {
+            match &filters {
+                Some(fils) => {
+                    let mut ret = false;
+                    for fil in fils {
+                        ret = s.starts_with(fil);
+                        if ret { break; }
+                    }
+                    return ret;
+                },
+                None => return true,
+            }
+        }).map(|s| String::from(s)).collect()),
+        Err(e) => Err(e),
+    };
+}
 
+fn try_strings_from_path(path: &str, line_end: usize) -> Result<Vec<String>, std::io::Error> {
     let mut file = BufReader::new(match File::open(&path) {
         Ok(f)  => f,
         Err(e) => return Err(e),
@@ -192,7 +199,7 @@ fn try_get_file(path: &str, filters: Option<Vec<&str>>, line_end: usize) -> Resu
 }
 
 pub fn get_cpu_mhz() -> Vec<u16> {
-    return get_file("/proc/cpuinfo", Some(vec!["cpu MHz"]), 0)
+    return get_match_strings_from_path("/proc/cpuinfo", Some(vec!["cpu MHz"]))
         .into_iter()
         .map(|s| {
             return s.split(": ").collect::<Vec<&str>>()[1]
@@ -201,7 +208,7 @@ pub fn get_cpu_mhz() -> Vec<u16> {
 }
 
 fn get_proc_stat() -> Vec<String> {
-    return get_file("/proc/stat", Some(vec!["cpu", "proc"]), 0);
+    return get_match_strings_from_path("/proc/stat", Some(vec!["cpu", "proc"]));
 }
 
 fn do_all_cpu_usage(proc_stat: &Vec<String>) {
@@ -305,7 +312,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
 
             let status_lines = match proc_files_map.contains_key(pid) {
                 true => {
-                    match try_get_file(&format!("{}/status", &path), Some(vec!["Name", "VmRSS"]), 0) {
+                    match try_match_strings_from_path(&format!("{}/status", &path), Some(vec!["Name", "VmRSS"])) {
                         Ok(s) => s,
                         Err(_) => {
                             proc_files_map.remove(pid);
@@ -319,7 +326,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
                         Err(_) => continue,
                     };
 
-                    match test_get_file(&mut file, Some(vec!["Name", "VmRSS"])) {
+                    match try_match_strings_from_file(&mut file, Some(vec!["Name", "VmRSS"])) {
                         Ok(vec) => {
                             proc_files_map.insert(pid.to_string(), file);
                             vec
@@ -354,7 +361,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
 
 fn _do_cpu(path: &str, pid: &str, total_time: f64) -> f32 {
     let proc_loads_map = &mut PROC_LOAD_HIST.lock().unwrap();
-    let stat_line = match try_get_file(&format!("{}/stat", &path), None, 1) {
+    let stat_line = match try_strings_from_path(&format!("{}/stat", &path), 1) {
         Ok(v)  => v,
         Err(_) => return 0.0,
     };
