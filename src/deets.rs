@@ -1,10 +1,12 @@
 use std::io::{BufRead, BufReader};
+use std::io::prelude::*;
 use std::fs::File;
 use yaml_rust::{Yaml};
 use std::sync::Mutex;
 use std::{str, mem, slice, fs};
 use libc::{c_char, c_int, c_ulong};
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::process::Command;
 
 struct CpuLoad {
@@ -34,9 +36,10 @@ const LOAD_SHIFT_F32: f32 = (1 << libc::SI_LOAD_SHIFT) as f32;
 lazy_static! {
     // this one should be separate from frame cache
     // it has to persist beyond a single frame
-    static ref CPU_LOADS:  Mutex<HashMap<i32, CpuLoad>> = Mutex::new(HashMap::new());
+    static ref CPU_LOADS:      Mutex<HashMap<i32, CpuLoad>> = Mutex::new(HashMap::new());
     static ref PROC_LOAD_HIST: Mutex<HashMap<u32, (f64, f64)>> = Mutex::new(HashMap::new());
-    pub static ref CPU_COUNT: i32 = get_file("/proc/cpuinfo", Some(vec!["processor"]), 0).len() as i32;
+    static ref PROC_PID_FILES: Mutex<HashMap<String, File>> = Mutex::new(HashMap::new());
+    pub static ref CPU_COUNT: i32 = get_match_strings_from_path("/proc/cpuinfo", &vec!["processor"]).len() as i32;
     pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
 }
 
@@ -115,40 +118,56 @@ pub fn get_ram_usage() -> (f64, f64)  {
             .replace("kB", "").parse().unwrap();
     }
 
-    let meminfo = get_file("/proc/meminfo", None, 3);
+    let meminfo = get_strings_from_path("/proc/meminfo", 3);
     let free  = reduce(get_item(2, &meminfo));
     let total = reduce(get_item(0, &meminfo));
     // return format!("{:.2}GB / {:.2}GB", (total - free), total);
     return (free, total);
 }
 
-fn get_file(path: &str, filters: Option<Vec<&str>>, line_end: usize) -> Vec<String> {
-    match try_get_file(path, filters, line_end) {
+fn get_strings_from_path(path: &str, line_end: usize) -> Vec<String> {
+    match try_strings_from_path(path, line_end) {
         Ok(v)  => v,
         Err(e) => panic!("Unable to open / read {}: {}", &path, e),
     }
 }
 
-fn try_get_file(path: &str, filters: Option<Vec<&str>>, line_end: usize) -> Result<Vec<String>, std::io::Error> {
-    if line_end == 0 {
-        return match fs::read_to_string(&path) {
-            Ok(s) => Ok(s.lines().filter(|s| {
-                match &filters {
-                    Some(fils) => {
-                        let mut ret = false;
-                        for fil in fils {
-                            ret = s.starts_with(fil);
-                            if ret { break; }
-                        }
-                        return ret;
-                    },
-                    None => return true,
-                }
-            }).map(|s| String::from(s)).collect()),
-            Err(e) => Err(e),
-        };
+fn get_match_strings_from_path(path: &str, filters: &Vec<&str>) -> Vec<String> {
+    match try_match_strings_from_path(path, &filters) {
+        Ok(v)  => v,
+        Err(e) => panic!("Unable to open / read {}: {}", &path, e),
     }
+}
 
+fn try_match_strings_from_file(file: &mut File, filters: &Vec<&str>) -> Result<Vec<String>, std::io::Error> {
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+
+    return Ok(contents.lines().filter(|s| {
+        let mut ret = false;
+        for filter in filters {
+            ret = s.starts_with(filter);
+            if ret { break; }
+        }
+        return ret;
+    }).map(|s| String::from(s)).collect());
+}
+
+fn try_match_strings_from_path(path: &str, filters: &Vec<&str>) -> Result<Vec<String>, std::io::Error> {
+    return match fs::read_to_string(&path) {
+        Ok(s) => Ok(s.lines().filter(|s| {
+            let mut ret = false;
+            for filter in filters {
+                ret = s.starts_with(filter);
+                if ret { break; }
+            }
+            return ret;
+        }).map(|s| String::from(s)).collect()),
+        Err(e) => Err(e),
+    };
+}
+
+fn try_strings_from_path(path: &str, line_end: usize) -> Result<Vec<String>, std::io::Error> {
     let mut file = BufReader::new(match File::open(&path) {
         Ok(f)  => f,
         Err(e) => return Err(e),
@@ -163,14 +182,14 @@ fn try_get_file(path: &str, filters: Option<Vec<&str>>, line_end: usize) -> Resu
         };
 
         if e.is_some() { return Err(e.unwrap()); }
-        lines.push(String::from(line.replace('\n', "")));
+        lines.push(String::from(line.trim()));
     }
 
     return Ok(lines);
 }
 
 pub fn get_cpu_mhz() -> Vec<u16> {
-    return get_file("/proc/cpuinfo", Some(vec!["cpu MHz"]), 0)
+    return get_match_strings_from_path("/proc/cpuinfo", &vec!["cpu MHz"])
         .into_iter()
         .map(|s| {
             return s.split(": ").collect::<Vec<&str>>()[1]
@@ -179,7 +198,7 @@ pub fn get_cpu_mhz() -> Vec<u16> {
 }
 
 fn get_proc_stat() -> Vec<String> {
-    return get_file("/proc/stat", None, 0);
+    return get_match_strings_from_path("/proc/stat", &vec!["cpu", "proc"]);
 }
 
 fn do_all_cpu_usage(proc_stat: &Vec<String>) {
@@ -267,7 +286,9 @@ fn get_cpu_temp_sys() -> String {
 fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
     let mut procs = Vec::new();
     let cpu_loads_map  = &mut CPU_LOADS.lock().unwrap();
+    let proc_files_map = &mut PROC_PID_FILES.lock().unwrap();
 
+    let mut pids = HashSet::new();
     for dir_entry in fs::read_dir("/proc").unwrap() {
         let entry: fs::DirEntry = match dir_entry {
             Ok(r)  => r,
@@ -275,13 +296,36 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
         };
 
         let path = entry.path().display().to_string();
-
         if path.chars().nth(6).unwrap().is_ascii_digit() {
             let pid = path.split('/').collect::<Vec<&str>>()[2];
-            let status_lines = match try_get_file(&format!("{}/status", &path), Some(vec!["Name", "VmRSS"]), 0) {
-                Ok(s) => s,
-                Err(_) => continue,
+            pids.insert(pid.to_string());
+
+            let status_lines = match proc_files_map.contains_key(pid) {
+                true => {
+                    match try_match_strings_from_path(&format!("{}/status", &path), &vec!["Name", "VmRSS"]) {
+                        Ok(s) => s,
+                        Err(_) => {
+                            proc_files_map.remove(pid);
+                            continue
+                        },
+                    }
+                },
+                false => {
+                    let mut file = match File::open(&format!("{}/status", &path)) {
+                        Ok(f)  => f,
+                        Err(_) => continue,
+                    };
+
+                    match try_match_strings_from_file(&mut file, &vec!["Name", "VmRSS"]) {
+                        Ok(vec) => {
+                            proc_files_map.insert(pid.to_string(), file);
+                            vec
+                        },
+                        Err(_) => continue,
+                    }
+                },
             };
+
             if status_lines.len() == 1 { continue; }
 
             let proc_used = status_lines[1][7..(status_lines[1].len() - 3)].trim().parse::<f64>();
@@ -301,12 +345,13 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
          }
     }
 
+    proc_files_map.retain(|i, _| { pids.contains(i) });
     return procs;
 }
 
 fn _do_cpu(path: &str, pid: &str, total_time: f64) -> f32 {
     let proc_loads_map = &mut PROC_LOAD_HIST.lock().unwrap();
-    let stat_line = match try_get_file(&format!("{}/stat", &path), None, 1) {
+    let stat_line = match try_strings_from_path(&format!("{}/stat", &path), 1) {
         Ok(v)  => v,
         Err(_) => return 0.0,
     };
@@ -361,25 +406,62 @@ fn get_ps() -> Vec<PsInfo> {
     return ps_info_vec;
 }
 
+#[cfg(feature = "timings")]
+pub fn get_frame_cache() -> FrameCache {
+    use std::time::{Instant};
+
+    let mut now = Instant::now();
+    let proc_stat = get_proc_stat();
+    println!("proc_stat:     millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
+
+    // Always warm this cache up!
+    now = Instant::now();
+    do_all_cpu_usage(&proc_stat);
+    println!("all_cpu_usage: millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
+
+    now = Instant::now();
+    let mem = get_ram_usage();
+    println!("ram_usage:     millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
+
+    now = Instant::now();
+    let ps_info = get_ps_from_proc(mem.1 * 10000.0);
+    println!("ps_info:       millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
+
+    now = Instant::now();
+    let sysinfo = get_sysinfo();
+    println!("sysinfo:       millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
+
+    now = Instant::now();
+    let utsname = get_utsname();
+    println!("utsname:       millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
+
+    println!("Size of PROC_PID_FILES: {}", PROC_PID_FILES.lock().unwrap().len());
+    println!("");
+    return FrameCache {
+        sysinfo:   sysinfo,
+        utsname:   utsname,
+        ps_info:   ps_info,
+        proc_stat: proc_stat,
+        mem_free:  mem.0,
+        mem_total: mem.1,
+    };
+}
+
+#[cfg(not(feature = "timings"))]
 pub fn get_frame_cache() -> FrameCache {
     let proc_stat = get_proc_stat();
     // Always warm this cache up!
     do_all_cpu_usage(&proc_stat);
 
     let mem = get_ram_usage();
-
-    // use std::time::{Instant};
-    // let mut now = Instant::now();
-    // for _ in 0..100 { get_ps(); }
-    // println!("millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
-    // now = Instant::now();
-    // for _ in 0..100 { get_ps_from_proc(mem.1 * 10000.0); }
-    // println!("millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
+    let ps_info = get_ps_from_proc(mem.1 * 10000.0);
+    let sysinfo = get_sysinfo();
+    let utsname = get_utsname();
 
     return FrameCache {
-        sysinfo:   get_sysinfo(),
-        utsname:   get_utsname(),
-        ps_info:   get_ps_from_proc(mem.1 * 10000.0),
+        sysinfo:   sysinfo,
+        utsname:   utsname,
+        ps_info:   ps_info,
         proc_stat: proc_stat,
         mem_free:  mem.0,
         mem_total: mem.1,

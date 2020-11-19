@@ -18,6 +18,7 @@ overflow-checks = false
 [features]
 default = ["sensors"]
 benchmark = []
+timings = []
 
 [dependencies]
 glib = "0.10.3"
