@@ -1,13 +1,14 @@
-use std::io::{BufRead, BufReader};
-use std::io::prelude::*;
-use std::fs::File;
-use yaml_rust::{Yaml};
-use std::sync::Mutex;
-use std::{str, mem, slice, fs};
+use crate::file_utils::*;
+
 use libc::{c_char, c_int, c_ulong};
-use std::collections::HashMap;
-use std::collections::HashSet;
+
+use std::{str, mem, slice, fs};
+use std::collections::{HashMap, HashSet};
+use std::fs::File;
 use std::process::Command;
+use std::sync::Mutex;
+
+use yaml_rust::{Yaml};
 
 struct CpuLoad {
     idle:  u64,
@@ -123,69 +124,6 @@ pub fn get_ram_usage() -> (f64, f64)  {
     let total = reduce(get_item(0, &meminfo));
     // return format!("{:.2}GB / {:.2}GB", (total - free), total);
     return (free, total);
-}
-
-fn get_strings_from_path(path: &str, line_end: usize) -> Vec<String> {
-    match try_strings_from_path(path, line_end) {
-        Ok(v)  => v,
-        Err(e) => panic!("Unable to open / read {}: {}", &path, e),
-    }
-}
-
-fn get_match_strings_from_path(path: &str, filters: &Vec<&str>) -> Vec<String> {
-    match try_match_strings_from_path(path, &filters) {
-        Ok(v)  => v,
-        Err(e) => panic!("Unable to open / read {}: {}", &path, e),
-    }
-}
-
-fn try_match_strings_from_file(file: &mut File, filters: &Vec<&str>) -> Result<Vec<String>, std::io::Error> {
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-
-    return Ok(contents.lines().filter(|s| {
-        let mut ret = false;
-        for filter in filters {
-            ret = s.starts_with(filter);
-            if ret { break; }
-        }
-        return ret;
-    }).map(|s| String::from(s)).collect());
-}
-
-fn try_match_strings_from_path(path: &str, filters: &Vec<&str>) -> Result<Vec<String>, std::io::Error> {
-    return match fs::read_to_string(&path) {
-        Ok(s) => Ok(s.lines().filter(|s| {
-            let mut ret = false;
-            for filter in filters {
-                ret = s.starts_with(filter);
-                if ret { break; }
-            }
-            return ret;
-        }).map(|s| String::from(s)).collect()),
-        Err(e) => Err(e),
-    };
-}
-
-fn try_strings_from_path(path: &str, line_end: usize) -> Result<Vec<String>, std::io::Error> {
-    let mut file = BufReader::new(match File::open(&path) {
-        Ok(f)  => f,
-        Err(e) => return Err(e),
-    });
-
-    let mut lines: Vec<String> = Vec::new();
-    for _ in 0..line_end {
-        let mut line = String::new();
-        let e = match file.read_line(&mut line) {
-            Err(e) => Some(e),
-            _ => None,
-        };
-
-        if e.is_some() { return Err(e.unwrap()); }
-        lines.push(String::from(line.trim()));
-    }
-
-    return Ok(lines);
 }
 
 pub fn get_cpu_mhz() -> Vec<u16> {

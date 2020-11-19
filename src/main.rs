@@ -5,15 +5,15 @@ extern crate gtk;
 extern crate yaml_rust;
 
 mod deets;
-
-use yaml_rust::{YamlLoader, Yaml};
+mod file_utils;
 
 use gio::prelude::*;
 use gtk::prelude::*;
 
-use std::env::args;
 use std::fs;
 use std::collections::HashMap;
+use std::env::args;
+use yaml_rust::{YamlLoader, Yaml};
 
 const SPACING: i32 = 5;
 
