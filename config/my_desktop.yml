@@ -6,9 +6,9 @@ settings:
   font-size: medium
   resizable: false
   skip_taskbar: true
-  timeout: 2
-  xpos: 3430
-  ypos: 5
+  timeout: 1
+  xpos: 3330
+  ypos: 0
 
 ui:
   - text: SYSTEM

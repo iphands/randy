@@ -187,7 +187,8 @@ fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) 
         }
     }
 
-    for (i, name) in [ "NAME", "PID", uniq_item ].iter().enumerate() {
+    // for (i, name) in [ "NAME-------------", "------PID", &format!("-----{}", uniq_item) ].iter().enumerate() {
+    for (i, name) in [ "NAME             ", "      PID", &format!("     {}", uniq_item) ].iter().enumerate() {
         let label = gtk::Label::new(None);
         label.set_text(&name);
         add_to_column(i, &label, &columns);
@@ -195,6 +196,7 @@ fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) 
 
     for _ in 0..5 {
         let mut tmp: Vec<gtk::Label> = Vec::new();
+
         for i in 0..3 {
             let label = gtk::Label::new(None);
             add_to_column(i, &label, &columns);
@@ -255,15 +257,14 @@ fn update_ui(timeout: i64,
     fn do_top(ps_info: &Vec<deets::PsInfo>, top_ui_items: &Vec<TopRow>, member: &str) {
         for (i, lbl) in top_ui_items.iter().enumerate() {
             match member {
-                "mem" => lbl.pct.set_text(&format!("{:.1}", ps_info[i].mem)),
-                "cpu" => lbl.pct.set_text(&format!("{:.1}", ps_info[i].cpu)),
+                "mem" => lbl.pct.set_text(&format!("{:.1}%", ps_info[i].mem)),
+                "cpu" => lbl.pct.set_text(&format!("{:.1}%", ps_info[i].cpu)),
                 _ => (),
             };
 
-            lbl.pid.set_text(&format!("{}",    ps_info[i].pid));
+            lbl.pid.set_text(&format!("{}", ps_info[i].pid));
 
             let comm = &ps_info[i].comm;
-
             if comm.len() > 20 {
                 lbl.name.set_text(&comm[0..20]);
             } else {

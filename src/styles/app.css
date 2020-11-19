@@ -62,3 +62,10 @@ progressbar > trough > progress {
     padding-left:  0.5em;
 }
 
+.top-frame label:first-child {
+    color: #eee;
+}
+
+.top-frame label:not(:first-child) {
+    font-weight: bold;
+}
