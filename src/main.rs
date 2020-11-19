@@ -13,6 +13,8 @@ use gtk::prelude::*;
 use std::fs;
 use std::collections::HashMap;
 use std::env::args;
+use std::sync::Mutex;
+
 use yaml_rust::{YamlLoader, Yaml};
 
 const SPACING: i32 = 5;
@@ -27,6 +29,10 @@ struct TopRow {
     name: gtk::Label,
     pid: gtk::Label,
     pct: gtk::Label,
+}
+
+lazy_static! {
+    static ref DO_TOP: Mutex<bool> = Mutex::new(true);
 }
 
 fn get_css(conf: &Yaml) -> String {
@@ -274,15 +280,20 @@ fn update_ui(timeout: i64,
     }
 
     let update = move || {
-        let mut frame_cache = deets::get_frame_cache();
+        let mut do_top_bool = DO_TOP.lock().unwrap();
+        let mut frame_cache = deets::get_frame_cache(*do_top_bool);
         let cpu_mhz_vec = deets::get_cpu_mhz();
         let cpu_mhz_vec_len = cpu_mhz_vec.len();
 
-        frame_cache.ps_info.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap());
-        do_top(&frame_cache.ps_info, &top_cpus, "cpu");
+        if *do_top_bool {
+            frame_cache.ps_info.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap());
+            do_top(&frame_cache.ps_info, &top_cpus, "cpu");
 
-        frame_cache.ps_info.sort_by(|a, b| b.mem.partial_cmp(&a.mem).unwrap());
-        do_top(&frame_cache.ps_info, &top_mems, "mem");
+            frame_cache.ps_info.sort_by(|a, b| b.mem.partial_cmp(&a.mem).unwrap());
+            do_top(&frame_cache.ps_info, &top_mems, "mem");
+        }
+
+        *do_top_bool = !*do_top_bool;
 
         for (i, cpu) in cpus.iter().enumerate() {
             let usage = deets::get_cpu_usage(i as i32);

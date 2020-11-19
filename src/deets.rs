@@ -372,7 +372,7 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
 }
 
 #[cfg(feature = "timings")]
-pub fn get_frame_cache() -> FrameCache {
+pub fn get_frame_cache(do_top_bool: bool) -> FrameCache {
     use std::time::{Instant};
 
     let mut now = Instant::now();
@@ -389,7 +389,7 @@ pub fn get_frame_cache() -> FrameCache {
     println!("ram_usage:     millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
 
     now = Instant::now();
-    let ps_info = get_ps_from_proc(mem.1 * 10000.0);
+    let ps_info = match do_top_bool { true => get_ps_from_proc(mem.1 * 10000.0), false => Vec::new() };
     println!("ps_info:       millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
 
     now = Instant::now();
@@ -413,13 +413,13 @@ pub fn get_frame_cache() -> FrameCache {
 }
 
 #[cfg(not(feature = "timings"))]
-pub fn get_frame_cache() -> FrameCache {
+pub fn get_frame_cache(do_top_bool: bool) -> FrameCache {
     let proc_stat = get_proc_stat();
     // Always warm this cache up!
     do_all_cpu_usage(&proc_stat);
 
     let mem = get_ram_usage();
-    let ps_info = get_ps_from_proc(mem.1 * 10000.0);
+    let ps_info = match do_top_bool { true => get_ps_from_proc(mem.1 * 10000.0), false => Vec::new() };
     let sysinfo = get_sysinfo();
     let utsname = get_utsname();
 
