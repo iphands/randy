@@ -123,9 +123,16 @@ pub fn get_ram_usage() -> (f64, f64)  {
 }
 
 fn get_file(path: &str, filters: Option<Vec<&str>>, line_end: usize) -> Vec<String> {
+    match try_get_file(path, filters, line_end) {
+        Ok(v)  => v,
+        Err(e) => panic!("Unable to open / read {}: {}", &path, e),
+    }
+}
+
+fn try_get_file(path: &str, filters: Option<Vec<&str>>, line_end: usize) -> Result<Vec<String>, std::io::Error> {
     if line_end == 0 {
         return match fs::read_to_string(&path) {
-            Ok(s) => s.lines().filter(|s| {
+            Ok(s) => Ok(s.lines().filter(|s| {
                 match &filters {
                     Some(fils) => {
                         let mut ret = false;
@@ -137,23 +144,29 @@ fn get_file(path: &str, filters: Option<Vec<&str>>, line_end: usize) -> Vec<Stri
                     },
                     None => return true,
                 }
-            }).map(|s| String::from(s)).collect(),
-            Err(_) => panic!("Unable to open / read {}", &path),
+            }).map(|s| String::from(s)).collect()),
+            Err(e) => Err(e),
         };
     }
 
-    let mut file = BufReader::new(File::open(&path).unwrap());
+    let mut file = BufReader::new(match File::open(&path) {
+        Ok(f)  => f,
+        Err(e) => return Err(e),
+    });
+
     let mut lines: Vec<String> = Vec::new();
     for _ in 0..line_end {
         let mut line = String::new();
-        match file.read_line(&mut line) {
-            Err(_) => panic!("Unable to open / read {}", &path),
-            _ => (),
+        let e = match file.read_line(&mut line) {
+            Err(e) => Some(e),
+            _ => None,
         };
+
+        if e.is_some() { return Err(e.unwrap()); }
         lines.push(String::from(line.replace('\n', "")));
     }
 
-    return lines;
+    return Ok(lines);
 }
 
 pub fn get_cpu_mhz() -> Vec<u16> {
@@ -265,7 +278,10 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
 
         if path.chars().nth(6).unwrap().is_ascii_digit() {
             let pid = path.split('/').collect::<Vec<&str>>()[2];
-            let status_lines = get_file(&format!("{}/status", &path), Some(vec!["Name", "VmRSS"]), 0);
+            let status_lines = match try_get_file(&format!("{}/status", &path), Some(vec!["Name", "VmRSS"]), 0) {
+                Ok(s) => s,
+                Err(_) => continue,
+            };
             if status_lines.len() == 1 { continue; }
 
             let proc_used = status_lines[1][7..(status_lines[1].len() - 3)].trim().parse::<f64>();
@@ -290,8 +306,12 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
 
 fn _do_cpu(path: &str, pid: &str, total_time: f64) -> f32 {
     let proc_loads_map = &mut PROC_LOAD_HIST.lock().unwrap();
-    let stat_line = &get_file(&format!("{}/stat", &path), None, 1)[0];
-    let stat_vec  = stat_line.split(" ").collect::<Vec<&str>>();
+    let stat_line = match try_get_file(&format!("{}/stat", &path), None, 1) {
+        Ok(v)  => v,
+        Err(_) => return 0.0,
+    };
+
+    let stat_vec  = stat_line[0].split(" ").collect::<Vec<&str>>();
     let pid_u32   = pid.parse::<u32>().unwrap();
 
     let proc_time: f64 = stat_vec[13].parse::<f64>().unwrap() + stat_vec[14].parse::<f64>().unwrap();
