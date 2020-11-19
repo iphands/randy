@@ -35,7 +35,7 @@ lazy_static! {
     // this one should be separate from frame cache
     // it has to persist beyond a single frame
     static ref CPU_LOADS:  Mutex<HashMap<i32, CpuLoad>> = Mutex::new(HashMap::new());
-    static ref PROC_LOAD_HIST: Mutex<HashMap<u32, f64>> = Mutex::new(HashMap::new());
+    static ref PROC_LOAD_HIST: Mutex<HashMap<u32, (f64, f64)>> = Mutex::new(HashMap::new());
     pub static ref CPU_COUNT: i32 = get_file("/proc/cpuinfo", "processor", 0).len() as i32;
     pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
 }
@@ -248,9 +248,7 @@ fn get_cpu_temp_sys() -> String {
 
 fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
     let mut procs = Vec::new();
-
     let cpu_loads_map  = &mut CPU_LOADS.lock().unwrap();
-    let proc_loads_map = &mut PROC_LOAD_HIST.lock().unwrap();
 
     for dir_entry in fs::read_dir("/proc").unwrap() {
         let entry: fs::DirEntry = match dir_entry {
@@ -262,20 +260,6 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
         let pid = path.split('/').collect::<Vec<&str>>()[2];
 
         if pid.chars().nth(0).unwrap().is_ascii_digit() {
-            let foo = &get_file(&format!("{}/stat", &path), "", 1)[0];
-            let stat_vec = foo.split(" ").collect::<Vec<&str>>();
-
-            let total_proc_time: u64 = stat_vec[13..15]
-                .iter()
-                .map(|i| i.parse::<u64>().unwrap())
-                .sum();
-
-            let total_time = &cpu_loads_map[&0].total;
-
-            // println!("{:?}", &cpu_loads_map[&0].total);
-            // println!("{:?}", &stat_vec[13..15]);
-            // println!("{:?}", total_proc_time);
-
             let status_lines = get_file(&format!("{}/status", &path), "", 22);
             let proc_used = status_lines.iter().find_map(|i| {
                 if i.starts_with("VmRSS:") {
@@ -284,35 +268,47 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
                 return None;
             });
 
-            let pid_u32 = pid.parse::<u32>().unwrap();
-            let amount: f64 = ((*CPU_COUNT_FLOAT * 100.0) * total_proc_time as f64) / (*total_time as f64);
-            if !proc_loads_map.contains_key(&pid_u32) {
-                proc_loads_map.insert(pid_u32, 0.0);
-            }
-
-            let last_amount: &f64 = proc_loads_map.get(&pid_u32).unwrap();
-            println!("{} {}", last_amount, amount);
-
             match proc_used {
                 Some(used) => {
+                    let cpu = _do_cpu(&path, &pid, cpu_loads_map[&0].total as f64);
                     procs.push(PsInfo {
                         comm: String::from(&status_lines[0][6..]),
                         pid: String::from(pid),
-                        cpu: (amount - last_amount) as f32,
+                        cpu: cpu,
                         mem: (used / mem_used) as f32,
                     });
                 },
                 _ => (),
             };
-
-            proc_loads_map.insert(pid.parse::<u32>().unwrap(), amount);
-        }
+         }
     }
 
     return procs;
 }
 
-#[warn(dead_code)]
+fn _do_cpu(path: &str, pid: &str, total_time: f64) -> f32 {
+    let proc_loads_map = &mut PROC_LOAD_HIST.lock().unwrap();
+    let foo = &get_file(&format!("{}/stat", &path), "", 1)[0];
+    let stat_vec = foo.split(" ").collect::<Vec<&str>>();
+    let pid_u32 = pid.parse::<u32>().unwrap();
+
+    let proc_time: f64 = stat_vec[13..15]
+        .iter()
+        .map(|i| i.parse::<f64>().unwrap())
+        .sum();
+
+    if !proc_loads_map.contains_key(&pid_u32) {
+        proc_loads_map.insert(pid_u32, (0.0, 0.0));
+    }
+
+    let last = proc_loads_map.get(&pid_u32).unwrap();
+    let util = 100.0 * (proc_time - last.0) / (total_time - last.1);
+
+    proc_loads_map.insert(pid_u32, (proc_time, total_time));
+    return util as f32;
+}
+
+#[allow(dead_code)]
 fn get_ps() -> Vec<PsInfo> {
     let output = match Command::new("ps")
         .arg("--no-headers")
