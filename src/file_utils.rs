@@ -31,13 +31,13 @@ pub fn try_exact_match_strings_from_file(file: &mut File, filters: &Vec<&str>) -
             _ => {
                 for filter in filters {
                     if line.starts_with(filter) {
-                        let l = line.clone();
+                        let l = line.clone().trim().to_string();
                         count += 1;
                         if count == filter_count {
-                            lines_vec.push(l.to_string());
+                            lines_vec.push(l);
                             return Ok(lines_vec);
                         }
-                        lines_vec.push(l.to_string())
+                        lines_vec.push(l)
                     }
                 }
             },
