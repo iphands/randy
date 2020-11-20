@@ -17,6 +17,34 @@ pub fn get_match_strings_from_path(path: &str, filters: &Vec<&str>) -> Vec<Strin
     }
 }
 
+pub fn try_exact_match_strings_from_file(file: &mut File, filters: &Vec<&str>) -> Result<Vec<String>, std::io::Error> {
+    let mut count = 0;
+    let filter_count = filters.len();
+    let mut reader = BufReader::new(file);
+    let mut lines_vec = Vec::new();
+
+    loop {
+        let mut line = String::new();
+        match reader.read_line(&mut line) {
+            Ok(0)  => return Ok(lines_vec),
+            Err(e) => return Err(e),
+            _ => {
+                for filter in filters {
+                    if line.starts_with(filter) {
+                        let l = line.clone();
+                        count += 1;
+                        if count == filter_count {
+                            lines_vec.push(l.to_string());
+                            return Ok(lines_vec);
+                        }
+                        lines_vec.push(l.to_string())
+                    }
+                }
+            },
+        }
+    }
+}
+
 pub fn try_match_strings_from_file(file: &mut File, filters: &Vec<&str>) -> Result<Vec<String>, std::io::Error> {
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;

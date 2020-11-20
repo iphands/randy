@@ -219,11 +219,14 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
             let status_lines = match proc_files_map.contains_key(pid) {
                 true => {
                     let file = proc_files_map.get_mut(pid).unwrap();
-                    file.seek(SeekFrom::Start(0));
+                    match file.seek(SeekFrom::Start(0)) {
+                        Ok(_)  => (),
+                        Err(_) => continue,
+                    }
 
-                    match try_match_strings_from_file(file, &vec!["Name", "VmRSS"]) {
-                        Ok(s)  => s,
-                        Err(e) => {
+                    match try_exact_match_strings_from_file(file, &vec!["Name", "VmRSS"]) {
+                        Ok(s)  => { s },
+                        Err(_) => {
                             proc_files_map.remove(pid);
                             continue
                         },
