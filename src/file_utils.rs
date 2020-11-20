@@ -18,10 +18,11 @@ pub fn get_match_strings_from_path(path: &str, filters: &Vec<&str>) -> Vec<Strin
 }
 
 pub fn try_exact_match_strings_from_file(file: &mut File, filters: &Vec<&str>) -> Result<Vec<String>, std::io::Error> {
+    let filter_count = filters.len() - 1;
     let mut count = 0;
-    let filter_count = filters.len();
     let mut reader = BufReader::new(file);
     let mut lines_vec = Vec::new();
+    let mut first = true;
 
     loop {
         let mut line = String::new();
@@ -29,14 +30,21 @@ pub fn try_exact_match_strings_from_file(file: &mut File, filters: &Vec<&str>) -
             Ok(0)  => return Ok(lines_vec),
             Err(e) => return Err(e),
             _ => {
+                if first {
+                    if line.starts_with("Name:\tkwork") {
+                        continue;
+                    }
+                    first = false;
+                }
+
                 for filter in filters {
                     if line.starts_with(filter) {
                         let l = line.clone().trim().to_string();
-                        count += 1;
                         if count == filter_count {
                             lines_vec.push(l);
                             return Ok(lines_vec);
                         }
+                        count += 1;
                         lines_vec.push(l)
                     }
                 }
