@@ -16,6 +16,14 @@ use std::sync::Mutex;
 
 use yaml_rust::{Yaml};
 
+pub struct FileSystemUsage {
+    pub used:  f64,
+    pub total: f64,
+    pub used_str: String,
+    pub total_str: String,
+    pub use_pct: String,
+}
+
 struct CpuLoad {
     idle:  u64,
     total: u64,
@@ -397,6 +405,34 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
     };
 
     return ret;
+}
+
+pub fn get_fs(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
+    let output = match Command::new("df").arg("-h").output() {
+        Ok(o) => o,
+        Err(e) => panic!("Error running df -h!: {}", e)
+    };
+
+    let out_str = String::from_utf8_lossy(&output.stdout);
+    let mut map: HashMap<String, FileSystemUsage> = HashMap::new();
+
+    for row in out_str.lines().into_iter().map(|line| {
+        line.split_whitespace().map(String::from).collect::<Vec<String>>()
+    }).collect::<Vec<Vec<String>>>() {
+        for key in keys.iter() {
+            if key == &row[5] {
+                map.insert(String::from(*key), FileSystemUsage {
+                    used: row[2][0..row[2].len()-1].parse().unwrap(),
+                    total: row[1][0..row[1].len()-1].parse().unwrap(),
+                    used_str: String::from(&row[2]),
+                    total_str: String::from(&row[1]),
+                    use_pct: String::from(&row[4]),
+                });
+            }
+        }
+    }
+
+    return map;
 }
 
 #[cfg(feature = "timings")]

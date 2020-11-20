@@ -81,9 +81,10 @@ fn build_ui(application: &gtk::Application) {
     let mut cpus: Vec<Cpu>    = Vec::new();
     let mut top_mems: Vec<TopRow> = Vec::new();
     let mut top_cpus: Vec<TopRow> = Vec::new();
+    let mut stash_fs: HashMap<String, (gtk::Label, gtk::ProgressBar)> = HashMap::new();
 
-    init_ui(&mut values, &mut cpus, &mut top_mems, &mut top_cpus, &vbox, &config["ui"]);
-    update_ui(config["settings"]["timeout"].as_i64().unwrap(), values, cpus, top_mems, top_cpus);
+    init_ui(&mut values, &mut cpus, &mut top_mems, &mut top_cpus, &mut stash_fs, &vbox, &config["ui"]);
+    update_ui(config["settings"]["timeout"].as_i64().unwrap(), values, cpus, top_mems, top_cpus, stash_fs);
 
     window.add(&vbox);
     window.show_all();
@@ -231,6 +232,7 @@ fn init_ui(values: &mut HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::Progre
            cpus: &mut Vec<Cpu>,
            top_mems: &mut Vec<TopRow>,
            top_cpus: &mut Vec<TopRow>,
+           stash_fs: &mut HashMap<String, (gtk::Label, gtk::ProgressBar)>,
            vbox: &gtk::Box,
            ui_config: &yaml_rust::Yaml) {
 
@@ -244,19 +246,60 @@ fn init_ui(values: &mut HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::Progre
         inner_box.get_style_context().add_class("innerbox");
         frame.add(&inner_box);
 
-        for item in i["items"].as_vec().unwrap_or(&Vec::new()) {
-            let val = add_standard(item, &inner_box);
-            values.insert(item.clone(), val);
-        }
-
         if !i["type"].is_badvalue() {
             match i["type"].as_str().unwrap() {
                 "cpus" => add_cpus(&inner_box, cpus),
-                "mem_consumers" => add_consumers("MEM", &inner_box, top_mems),
-                "cpu_consumers" => add_consumers("CPU", &inner_box, top_cpus),
+                "mem_consumers" => add_consumers("MEM", &inner_box,  top_mems),
+                "cpu_consumers" => add_consumers("CPU", &inner_box,  top_cpus),
+                "filesystem" =>    add_filesystem(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), stash_fs),
+                "system" => {
+                    for item in i["items"].as_vec().unwrap_or(&Vec::new()) {
+                        let val = add_standard(item, &inner_box);
+                        values.insert(item.clone(), val);
+                    }
+                }
                 _ => (),
             }
         }
+    }
+}
+
+fn add_filesystem(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, (gtk::Label, gtk::ProgressBar)>) {
+    container.set_orientation(gtk::Orientation::Vertical);
+
+    fn _add_item(container: &gtk::Box, item: &Yaml, stash: Option<&mut HashMap<String, (gtk::Label, gtk::ProgressBar)>>) {
+        let columns = [
+            gtk::Box::new(gtk::Orientation::Vertical, SPACING),
+            gtk::Box::new(gtk::Orientation::Vertical, SPACING),
+        ];
+
+        let wrapper = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+        let text = gtk::Label::new(None);
+        text.set_text(item["text"].as_str().unwrap());
+        columns[0].add(&text);
+
+        let space = gtk::Label::new(None);
+        space.set_halign(gtk::Align::End);
+        columns[1].add(&space);
+
+        wrapper.add(&columns[0]);
+        wrapper.pack_start(&columns[1], true, true, 0);
+        container.add(&wrapper);
+
+        match stash {
+            Some(s) => {
+                let progress = gtk::ProgressBar::new();
+                progress.set_hexpand(true);
+                container.add(&progress);
+                s.insert(String::from(item["mount_point"].as_str().unwrap()), (space, progress));
+            },
+            None => (),
+        }
+    }
+
+    // _add_item(container, None, None);
+    for item in items {
+        _add_item(container, item, Some(stash));
     }
 }
 
@@ -264,7 +307,8 @@ fn update_ui(timeout: i64,
              values: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
              cpus: Vec<Cpu>,
              top_mems: Vec<TopRow>,
-             top_cpus: Vec<TopRow>) {
+             top_cpus: Vec<TopRow>,
+             stash_fs: HashMap<String, (gtk::Label, gtk::ProgressBar)>) {
 
     fn do_top(ps_info: &Vec<deets::PsInfo>, top_ui_items: &Vec<TopRow>, member: &str) {
         for (i, lbl) in top_ui_items.iter().enumerate() {
@@ -300,6 +344,23 @@ fn update_ui(timeout: i64,
                 do_top(&frame_cache.ps_info, &top_mems, "mem");
             }
             *do_top_bool = !*do_top_bool;
+        }
+
+        if stash_fs.len() != 0 {
+            #[cfg(feature = "timings")]
+            use std::time::{Instant};
+            let mut now = Instant::now();
+
+            let fs_usage = deets::get_fs(stash_fs.keys().map(|s| s.as_str()).collect::<Vec<&str>>());
+
+            #[cfg(feature = "timings")]
+            println!("fs_usage:      millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
+
+            for (k, v) in fs_usage.iter() {
+                let stash = stash_fs.get(k).unwrap();
+                stash.0.set_text(&format!("{} / {} {}", v.used_str, v.total_str, v.use_pct));
+                stash.1.set_fraction(v.used / v.total);
+            }
         }
 
         for (i, cpu) in cpus.iter().enumerate() {

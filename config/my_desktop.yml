@@ -14,6 +14,7 @@ settings:
 
 ui:
   - text: SYSTEM
+    type: system
     items:
       - func: hostname
         text: "Hostname:"
@@ -68,12 +69,14 @@ ui:
     type: mem_consumers
     limit: 5
 
-  # - text: FILESYSTEM
-  #   type: filesystem
-  #   items:
-  #     - text: home
-  #       mount_point: /home
-  #     - test: boot
-  #       mount_point: /boot
-  #     - text: root
-  #       mount_point: /
+  - text: FILESYSTEM
+    type: filesystem
+    items:
+      - text: "boot:"
+        mount_point: /boot
+      - text: "home:"
+        mount_point: /home
+      - text: "root:"
+        mount_point: /
+      - text: "noir:"
+        mount_point: /mnt/noir/scratch
