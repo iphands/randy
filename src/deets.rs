@@ -2,7 +2,11 @@ use crate::file_utils::*;
 
 use libc::{c_char, c_int, c_ulong};
 
-use std::{str, mem, slice, fs, thread, time};
+use std::{str, mem, slice, fs};
+#[cfg(not(feature = "timings"))]
+use std::thread;
+#[cfg(not(feature = "timings"))]
+use std::time;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Seek;
@@ -35,7 +39,9 @@ pub struct FrameCache {
 }
 
 const LOAD_SHIFT_F32: f32 = (1 << libc::SI_LOAD_SHIFT) as f32;
+
 // 1000000
+#[cfg(not(feature = "timings"))]
 const YEILD_TIME: time::Duration = time::Duration::from_nanos(1024);
 
 lazy_static! {
@@ -217,6 +223,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
 
     let mut pids = HashSet::new();
     for dir_entry in fs::read_dir("/proc").unwrap() {
+        #[cfg(not(feature = "timings"))]
         thread::sleep(YEILD_TIME);
 
         let entry: fs::DirEntry = match dir_entry {

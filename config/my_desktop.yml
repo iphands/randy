@@ -9,7 +9,7 @@ settings:
   color_background: "#656565"
   font_size: medium
   timeout: 1
-  xpos: 3330
+  xpos: 3380
   ypos: 0
 
 ui:
@@ -67,3 +67,13 @@ ui:
   - text: TOP MEMORY
     type: mem_consumers
     limit: 5
+
+  # - text: FILESYSTEM
+  #   type: filesystem
+  #   items:
+  #     - text: home
+  #       mount_point: /home
+  #     - test: boot
+  #       mount_point: /boot
+  #     - text: root
+  #       mount_point: /
