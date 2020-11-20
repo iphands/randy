@@ -32,7 +32,7 @@ struct TopRow {
 }
 
 lazy_static! {
-    static ref DO_TOP: Mutex<bool> = Mutex::new(true);
+    static ref DO_TOP: Mutex<bool> = Mutex::new(false);
 }
 
 fn get_css(conf: &Yaml) -> String {
@@ -169,6 +169,9 @@ fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
 }
 
 fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) {
+    let mut do_top_bool = DO_TOP.lock().unwrap();
+    *do_top_bool = true;
+
     container.get_style_context().add_class("top-frame");
     container.set_orientation(gtk::Orientation::Horizontal);
 
@@ -288,15 +291,16 @@ fn update_ui(timeout: i64,
         let cpu_mhz_vec = deets::get_cpu_mhz();
         let cpu_mhz_vec_len = cpu_mhz_vec.len();
 
-        if *do_top_bool {
-            frame_cache.ps_info.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap());
-            do_top(&frame_cache.ps_info, &top_cpus, "cpu");
+        if &top_cpus.len() > &0 || &top_mems.len() > &0 {
+            if *do_top_bool {
+                frame_cache.ps_info.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap());
+                do_top(&frame_cache.ps_info, &top_cpus, "cpu");
 
-            frame_cache.ps_info.sort_by(|a, b| b.mem.partial_cmp(&a.mem).unwrap());
-            do_top(&frame_cache.ps_info, &top_mems, "mem");
+                frame_cache.ps_info.sort_by(|a, b| b.mem.partial_cmp(&a.mem).unwrap());
+                do_top(&frame_cache.ps_info, &top_mems, "mem");
+            }
+            *do_top_bool = !*do_top_bool;
         }
-
-        *do_top_bool = !*do_top_bool;
 
         for (i, cpu) in cpus.iter().enumerate() {
             let usage = deets::get_cpu_usage(i as i32);
