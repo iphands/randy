@@ -38,8 +38,11 @@ lazy_static! {
 fn get_css(conf: &Yaml) -> String {
     let css: String = String::from(include_str!("styles/app.css"));
     return css
-        .replace("{ background-color }", conf["background_color"].as_str().unwrap_or("#000"))
-        .replace("{ font-size }", conf["font-size"].as_str().unwrap_or("large"));
+        .replace("{ background-color }", conf["color_background"].as_str().unwrap_or("#000"))
+        .replace("{ color }", conf["color_text"].as_str().unwrap_or("#fff"))
+        .replace("{ label_color }", conf["color_label"].as_str().unwrap_or("#eee"))
+        .replace("{ bar_color }", conf["color_bar"].as_str().unwrap_or("#fff"))
+        .replace("{ font-size }", conf["font_size"].as_str().unwrap_or("large"));
 }
 
 fn build_ui(application: &gtk::Application) {

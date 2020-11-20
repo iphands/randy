@@ -1,11 +1,13 @@
 ---
 settings:
-  background_color: "#656565"
-  debug: false
-  decoration: false
-  font-size: medium
-  resizable: false
-  skip_taskbar: true
+  # color_bar:   "#fff"
+  # color_label: "#eee"
+  # color_text:  "#fff"
+  # decoration: false
+  # resizable: false
+  # skip_taskbar: true
+  color_background: "#656565"
+  font_size: medium
   timeout: 1
   xpos: 3330
   ypos: 0

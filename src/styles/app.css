@@ -9,8 +9,8 @@ GtkViewport {
 }
 
 window {
-    color: white;
     background-color: @bg_color;
+    color: { color };
     font-family: monospace;
     font-size: { font-size };
 }
@@ -36,7 +36,7 @@ label.val {
 }
 
 label.key {
-    color: #eee;
+    color: { label_color };
     padding-left: 0.5em;
 }
 
@@ -53,7 +53,7 @@ trough {
 }
 
 progressbar > trough > progress {
-    background-color: #fff;
+    background-color: { bar_color } ;
     min-height: 10px;
 }
 
@@ -63,7 +63,7 @@ progressbar > trough > progress {
 }
 
 .top-frame label:first-child {
-    color: #eee;
+    color: { label_color };
 }
 
 .top-frame label:not(:first-child) {
