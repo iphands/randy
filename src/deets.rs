@@ -180,6 +180,15 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
     let cpu_loads_map  = &mut CPU_LOADS.lock().unwrap();
     let proc_files_map = &mut PROC_PID_FILES.lock().unwrap();
 
+    fn _hack(line_num: &i32, line: &str) -> u8 {
+        if line_num == &1 {
+            if line.starts_with("Name:\tkworker") {
+                return 1;
+            }
+        }
+        return 0;
+    }
+
     fn _do_cpu(path: &str, pid: &str, total_time: f64) -> f32 {
         let proc_loads_map = &mut PROC_LOAD_HIST.lock().unwrap();
         let stat_line = match try_strings_from_path(&format!("{}/stat", &path), 1) {
@@ -224,7 +233,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
                         Err(_) => continue,
                     }
 
-                    match try_exact_match_strings_from_file(file, &vec!["Name", "VmRSS"]) {
+                    match try_exact_match_strings_from_file(file, &vec!["Name", "VmRSS"], Some(_hack)) {
                         Ok(s)  => { s },
                         Err(_) => {
                             proc_files_map.remove(pid);

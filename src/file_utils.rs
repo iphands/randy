@@ -17,12 +17,12 @@ pub fn get_match_strings_from_path(path: &str, filters: &Vec<&str>) -> Vec<Strin
     }
 }
 
-pub fn try_exact_match_strings_from_file(file: &mut File, filters: &Vec<&str>) -> Result<Vec<String>, std::io::Error> {
+pub fn try_exact_match_strings_from_file(file: &mut File, filters: &Vec<&str>, hack: Option<fn(&i32, &str) -> u8>) -> Result<Vec<String>, std::io::Error> {
     let filter_count = filters.len() - 1;
     let mut count = 0;
     let mut reader = BufReader::new(file);
     let mut lines_vec = Vec::new();
-    let mut first = true;
+    let mut line_num = -1;
 
     loop {
         let mut line = String::new();
@@ -30,12 +30,15 @@ pub fn try_exact_match_strings_from_file(file: &mut File, filters: &Vec<&str>) -
             Ok(0)  => return Ok(lines_vec),
             Err(e) => return Err(e),
             _ => {
-                if first {
-                    if line.starts_with("Name:\tkwork") {
-                        continue;
-                    }
-                    first = false;
-                }
+                line_num += 1;
+
+                match hack {
+                    Some(f) => match f(&line_num, &line) {
+                        1 => continue,
+                        _ => (),
+                    },
+                    None => (),
+                };
 
                 for filter in filters {
                     if line.starts_with(filter) {
