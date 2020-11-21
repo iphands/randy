@@ -17,7 +17,7 @@ use std::sync::Mutex;
 
 use yaml_rust::{YamlLoader, Yaml};
 
-const SPACING: i32 = 5;
+const SPACING: i32 = 3;
 
 struct Cpu {
     mhz: gtk::Label,
@@ -42,6 +42,7 @@ fn get_css(conf: &Yaml) -> String {
         .replace("{ color }", conf["color_text"].as_str().unwrap_or("#fff"))
         .replace("{ label_color }", conf["color_label"].as_str().unwrap_or("#eee"))
         .replace("{ bar_color }", conf["color_bar"].as_str().unwrap_or("#fff"))
+        .replace("{ font_size_top }", conf["font_size_top"].as_str().unwrap_or("medium"))
         .replace("{ font_size }", conf["font_size"].as_str().unwrap_or("large"));
 }
 

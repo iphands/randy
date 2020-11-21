@@ -8,6 +8,7 @@ settings:
   # skip_taskbar: true
   color_background: "#000"
   font_size: large
+  font_size_top: large
   timeout: 1
   xpos: 3380
   ypos: 0

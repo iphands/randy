@@ -63,7 +63,7 @@ progressbar > trough > progress {
 }
 
 .top-frame label {
-    font-size: small;
+    font-size: { font_size_top };
 }
 
 .top-frame label:first-child {
