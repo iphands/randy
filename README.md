@@ -19,18 +19,18 @@ Conky inspired system info viewer written in Rust / GTK3
   * Can order the modules how you wish
   * Can enable/disable modules and sub items
 * UI settings
- * color_bar - color of the usage **bars**
- * color_label - color of the "labels"
- * color_text - color of all other text
- * decoration - hide/show window decorations
- * font_size
- * mod_top - modulo used to skip frames for getting top data
- * mod_fs - modulo used to skip frames for getting filesystem data
- * resizable
- * skip_taskbar - incase you want to see a Randy item in the taskbar
- * timeout - time in seconds to wait between frame updates
- * xpos - starting position x
- * ypos - starting position y
+  * color_bar - color of the usage **bars**
+  * color_label - color of the "labels"
+  * color_text - color of all other text
+  * decoration - hide/show window decorations
+  * font_size
+  * mod_top - modulo used to skip frames for getting top data
+  * mod_fs - modulo used to skip frames for getting filesystem data
+  * resizable
+  * skip_taskbar - incase you want to see a Randy item in the taskbar
+  * timeout - time in seconds to wait between frame updates
+  * xpos - starting position x
+  * ypos - starting position y
 
 ## Screenshot
 ![screenshot](https://raw.githubusercontent.com/iphands/ronky/main/assets/screenshot.png)
