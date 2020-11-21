@@ -74,7 +74,7 @@ fn build_ui(application: &gtk::Application) {
                 config["settings"]["ypos"].as_i64().unwrap() as i32,
             );
         }
-    
+
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
     vbox.get_style_context().add_class("container");
 
