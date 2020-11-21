@@ -32,7 +32,7 @@ struct TopRow {
 }
 
 lazy_static! {
-    static ref DO_TOP: Mutex<bool> = Mutex::new(false);
+    static ref FRAME_COUNT: Mutex<u64> = Mutex::new(0);
 }
 
 fn get_css(conf: &Yaml) -> String {
@@ -74,7 +74,7 @@ fn build_ui(application: &gtk::Application) {
                 config["settings"]["ypos"].as_i64().unwrap() as i32,
             );
         }
-
+    
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
     vbox.get_style_context().add_class("container");
 
@@ -85,7 +85,7 @@ fn build_ui(application: &gtk::Application) {
     let mut stash_fs: HashMap<String, (gtk::Label, gtk::ProgressBar)> = HashMap::new();
 
     init_ui(&mut values, &mut cpus, &mut top_mems, &mut top_cpus, &mut stash_fs, &vbox, &config["ui"]);
-    update_ui(config["settings"]["timeout"].as_i64().unwrap(), values, cpus, top_mems, top_cpus, stash_fs);
+    update_ui(&config["settings"], values, cpus, top_mems, top_cpus, stash_fs);
 
     window.add(&vbox);
     window.show_all();
@@ -171,9 +171,6 @@ fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
 }
 
 fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) {
-    let mut do_top_bool = DO_TOP.lock().unwrap();
-    *do_top_bool = true;
-
     container.get_style_context().add_class("top-frame");
     container.set_orientation(gtk::Orientation::Horizontal);
 
@@ -304,7 +301,7 @@ fn add_filesystem(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<S
     }
 }
 
-fn update_ui(timeout: i64,
+fn update_ui(config: &Yaml,
              values: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
              cpus: Vec<Cpu>,
              top_mems: Vec<TopRow>,
@@ -330,24 +327,27 @@ fn update_ui(timeout: i64,
         }
     }
 
+    let timeout = config["timeout"].as_i64().unwrap_or(1);
+    let mod_top = config["skip_top"].as_i64().unwrap_or(2) as u64;
+    let mod_fs  = config["skip_fs"].as_i64().unwrap_or(5)  as u64;
+
     let update = move || {
-        let mut do_top_bool = DO_TOP.lock().unwrap();
-        let mut frame_cache = deets::get_frame_cache(*do_top_bool);
+        let mut frame_counter = FRAME_COUNT.lock().unwrap();
+        let mut frame_cache = deets::get_frame_cache(*frame_counter % 2 == 0);
         let cpu_mhz_vec = deets::get_cpu_mhz();
         let cpu_mhz_vec_len = cpu_mhz_vec.len();
 
         if &top_cpus.len() > &0 || &top_mems.len() > &0 {
-            if *do_top_bool {
+            if *frame_counter % mod_top == 0 {
                 frame_cache.ps_info.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap());
                 do_top(&frame_cache.ps_info, &top_cpus, "cpu");
 
                 frame_cache.ps_info.sort_by(|a, b| b.mem.partial_cmp(&a.mem).unwrap());
                 do_top(&frame_cache.ps_info, &top_mems, "mem");
             }
-            *do_top_bool = !*do_top_bool;
         }
 
-        if stash_fs.len() != 0 {
+        if stash_fs.len() != 0 && (*frame_counter % mod_fs == 0) {
             #[cfg(feature = "timings")]
             use std::time::{Instant};
             let now = Instant::now();
@@ -392,6 +392,7 @@ fn update_ui(timeout: i64,
             }
         }
 
+        *frame_counter += 1;
         return glib::Continue(true);
     };
 

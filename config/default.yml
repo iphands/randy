@@ -5,6 +5,8 @@ settings:
   # color_text:  "#fff"
   # decoration: false
   # font_size: large
+  # mod_top: 2
+  # mod_fs: 5
   # resizable: false
   # skip_taskbar: true
   timeout: 1
