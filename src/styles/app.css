@@ -1,4 +1,4 @@
-@define-color bg_color { background-color };
+@define-color bg_color { background_color };
 
 GtkLayout {
   background-color: transparent;
@@ -12,7 +12,7 @@ window {
     background-color: @bg_color;
     color: { color };
     font-family: monospace;
-    font-size: { font-size };
+    font-size: { font_size };
 }
 
 .container {

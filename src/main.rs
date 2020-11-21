@@ -38,11 +38,11 @@ lazy_static! {
 fn get_css(conf: &Yaml) -> String {
     let css: String = String::from(include_str!("styles/app.css"));
     return css
-        .replace("{ background-color }", conf["color_background"].as_str().unwrap_or("#000"))
+        .replace("{ background_color }", conf["color_background"].as_str().unwrap_or("#000"))
         .replace("{ color }", conf["color_text"].as_str().unwrap_or("#fff"))
         .replace("{ label_color }", conf["color_label"].as_str().unwrap_or("#eee"))
         .replace("{ bar_color }", conf["color_bar"].as_str().unwrap_or("#fff"))
-        .replace("{ font-size }", conf["font_size"].as_str().unwrap_or("large"));
+        .replace("{ font_size }", conf["font_size"].as_str().unwrap_or("large"));
 }
 
 fn build_ui(application: &gtk::Application) {
@@ -54,6 +54,7 @@ fn build_ui(application: &gtk::Application) {
     //Add custom CSS
 
     let css: &str = &get_css(&config["settings"]);
+
     let screen = window.get_screen().unwrap();
     let provider = gtk::CssProvider::new();
     provider.load_from_data(css.as_bytes()).expect("Failed to load CSS");
@@ -417,7 +418,7 @@ fn update_ui(timeout: i64,
 
 fn get_file() -> String {
     let input = args().collect::<Vec<String>>();
-    let mut config_path = &String::from("./config/config.yml");
+    let mut config_path = &String::from("./config/default.yml");
 
     if input.len() > 1 {
         config_path = &input[1];
