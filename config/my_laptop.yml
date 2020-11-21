@@ -11,8 +11,8 @@ settings:
   font_size: large
   font_size_top: large
   timeout: 2
-  # xpos: 3380
-  # ypos: 0
+  xpos: 3380
+  ypos: 0
 
 ui:
   - text: SYSTEM
