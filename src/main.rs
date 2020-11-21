@@ -330,7 +330,7 @@ fn update_ui(config: &Yaml,
 
     let timeout = config["timeout"].as_i64().unwrap_or(1);
     let mod_top = config["skip_top"].as_i64().unwrap_or(2) as u64;
-    let mod_fs  = config["skip_fs"].as_i64().unwrap_or(5)  as u64;
+    let mod_fs  = config["skip_fs"].as_i64().unwrap_or(2)  as u64;
 
     let update = move || {
         let mut frame_counter = FRAME_COUNT.lock().unwrap();

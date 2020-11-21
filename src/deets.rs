@@ -8,6 +8,7 @@ use std::thread;
 #[cfg(not(feature = "timings"))]
 use std::time;
 use std::collections::{HashMap, HashSet};
+use std::ffi::CString;
 use std::fs::File;
 use std::io::Seek;
 use std::io::SeekFrom;
@@ -299,7 +300,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
     return procs;
 }
 
-#[allow(dead_code)]
+#[cfg(feature = "include_dead")]
 fn get_ps() -> Vec<PsInfo> {
     let output = match Command::new("ps")
         .arg("--no-headers")
@@ -407,7 +408,46 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
     return ret;
 }
 
+
 pub fn get_fs(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
+    let mut map: HashMap<String, FileSystemUsage> = HashMap::new();
+
+    let lines = try_strings_from_path("/proc/mounts", 1024).unwrap();
+
+    for line in lines {
+        let tokens: Vec<&str> =  line.split(' ').collect();
+        for path in keys.iter() {
+            if tokens[1] == *path {
+                let test = CString::new(*path).unwrap();
+                let mut statvfs: libc::statvfs = unsafe { mem::zeroed() };
+                unsafe { libc::statvfs(test.as_ptr(), &mut statvfs) };
+
+                let free  = ((statvfs.f_bsize  * statvfs.f_bfree)  / 1024 / 1024) as f64 / 1024.0;
+                let mut total = ((statvfs.f_frsize * statvfs.f_blocks) / 1024 / 1024) as f64 / 1024.0;
+                let mut used  = total - free;
+                let mut size_char = 'G';
+
+                if total < 100.0 {
+                    used = used * 1000.0;
+                    total = total * 1000.0;
+                    size_char = 'M';
+                }
+
+                map.insert(String::from(*path), FileSystemUsage {
+                    used: used,
+                    total: total,
+                    used_str: format!("{:.0}{}", used, size_char),
+                    total_str: format!("{:.0}{}", total, size_char),
+                    use_pct: format!("{:.0}%", (used / total) * 100.0),
+                });
+            }
+        }
+    }
+    return map;
+}
+
+#[cfg(feature = "include_dead")]
+pub fn get_fs_from_df(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
     let output = match Command::new("df").arg("-h").output() {
         Ok(o) => o,
         Err(e) => panic!("Error running df -h!: {}", e)

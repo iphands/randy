@@ -30,6 +30,7 @@ pub fn try_exact_match_strings_from_file(file: &mut File, filters: &Vec<&str>, h
             Ok(0)  => return Ok(lines_vec),
             Err(e) => return Err(e),
             _ => {
+                if line == "" { return Ok(lines_vec); }
                 line_num += 1;
 
                 match hack {
@@ -99,6 +100,7 @@ pub fn try_strings_from_path(path: &str, line_end: usize) -> Result<Vec<String>,
         };
 
         if e.is_some() { return Err(e.unwrap()); }
+        if line == "" { break; }
         lines.push(String::from(line.trim()));
     }
 

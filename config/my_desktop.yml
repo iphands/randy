@@ -9,7 +9,7 @@ settings:
   color_background: "#656565"
   font_size: medium
   timeout: 1
-  xpos: 3380
+  xpos: 3335
   ypos: 0
 
 ui:
