@@ -1,17 +1,18 @@
 ---
 settings:
-  # color_bar:   "#fff"
-  # color_label: "#eee"
-  # color_text:  "#fff"
+  color_bar:   "#e1eeeb"
+  # color_label: "#d7d787"
+  color_label:  "#87d7ff"
+  color_text:  "#e1eeeb"
   # decoration: false
   # resizable: false
   # skip_taskbar: true
-  color_background: "#000"
+  color_background: "#262626"
   font_size: large
   font_size_top: large
-  timeout: 1
-  xpos: 3380
-  ypos: 0
+  timeout: 2
+  # xpos: 3380
+  # ypos: 0
 
 ui:
   - text: SYSTEM
@@ -32,9 +33,6 @@ ui:
 
       - func: cpu_temp_sys
         text: "CPU temp:"
-
-      # - func: nvidia_gpu_temp
-      #   text: "GPU Temp:"
 
       - func: ram_usage
         text: "RAM usage:"
