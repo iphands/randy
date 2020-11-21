@@ -1,16 +1,20 @@
 ---
 settings:
-  background_color: "#000"
-  debug: false
-  decoration: false
-  font-size: large
-  resizable: false
+  # color_bar:   "#fff"
+  # color_label: "#eee"
+  # color_text:  "#fff"
+  # decoration: false
+  # resizable: false
+  # skip_taskbar: true
+  color_background: "#000"
+  font_size: large
   timeout: 1
-  xpos: 1540
-  ypos: 20
+  # xpos: 3380
+  # ypos: 0
 
 ui:
   - text: SYSTEM
+    type: system
     items:
       - func: hostname
         text: "Hostname:"
@@ -53,3 +57,9 @@ ui:
   - text: TOP MEMORY
     type: mem_consumers
     limit: 5
+
+  - text: FILESYSTEM
+    type: filesystem
+    items:
+      - text: "root:"
+        mount_point: /

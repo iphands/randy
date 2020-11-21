@@ -349,7 +349,7 @@ fn update_ui(timeout: i64,
         if stash_fs.len() != 0 {
             #[cfg(feature = "timings")]
             use std::time::{Instant};
-            let mut now = Instant::now();
+            let now = Instant::now();
 
             let fs_usage = deets::get_fs(stash_fs.keys().map(|s| s.as_str()).collect::<Vec<&str>>());
 
