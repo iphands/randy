@@ -350,6 +350,7 @@ fn update_ui(config: &Yaml,
         if stash_fs.len() != 0 && (*frame_counter % mod_fs == 0) {
             #[cfg(feature = "timings")]
             use std::time::{Instant};
+            #[cfg(feature = "timings")]
             let now = Instant::now();
 
             let fs_usage = deets::get_fs(stash_fs.keys().map(|s| s.as_str()).collect::<Vec<&str>>());
