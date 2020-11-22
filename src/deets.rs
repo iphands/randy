@@ -10,8 +10,7 @@ use std::time;
 use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::fs::File;
-use std::io::Seek;
-use std::io::SeekFrom;
+use std::io::{BufReader, Seek, SeekFrom};
 use std::process::Command;
 use std::sync::Mutex;
 
@@ -58,7 +57,7 @@ lazy_static! {
     // it has to persist beyond a single frame
     static ref CPU_LOADS:      Mutex<HashMap<i32, CpuLoad>> = Mutex::new(HashMap::new());
     static ref PROC_LOAD_HIST: Mutex<HashMap<u32, (f64, f64)>> = Mutex::new(HashMap::new());
-    static ref PROC_PID_FILES: Mutex<HashMap<String, File>> = Mutex::new(HashMap::new());
+    static ref PROC_PID_FILES: Mutex<HashMap<String, BufReader<File>>> = Mutex::new(HashMap::new());
     pub static ref CPU_COUNT: i32 = get_match_strings_from_path("/proc/cpuinfo", &vec!["processor"]).len() as i32;
     pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
 }
@@ -247,13 +246,13 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
 
             let status_lines = match proc_files_map.contains_key(pid) {
                 true => {
-                    let file = proc_files_map.get_mut(pid).unwrap();
-                    match file.seek(SeekFrom::Start(0)) {
+                    let reader = proc_files_map.get_mut(pid).unwrap();
+                    match reader.seek(SeekFrom::Start(0)) {
                         Ok(_)  => (),
                         Err(_) => continue,
                     }
 
-                    match try_exact_match_strings_from_file(file, &vec!["Name", "VmRSS"], Some(_hack)) {
+                    match try_exact_match_strings_from_file(reader, &vec!["Name", "VmRSS"], Some(_hack)) {
                         Ok(s)  => { s },
                         Err(_) => {
                             proc_files_map.remove(pid);
@@ -269,7 +268,8 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
 
                     match try_match_strings_from_file(&mut file, &vec!["Name", "VmRSS"]) {
                         Ok(vec) => {
-                            proc_files_map.insert(pid.to_string(), file);
+                            let reader = BufReader::new(file);
+                            proc_files_map.insert(pid.to_string(), reader);
                             vec
                         },
                         Err(_) => continue,
