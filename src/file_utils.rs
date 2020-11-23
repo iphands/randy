@@ -17,15 +17,15 @@ pub fn get_match_strings_from_path(path: &str, filters: &Vec<&str>) -> Vec<Strin
     }
 }
 
-pub fn try_exact_match_strings_from_file(file: &mut File, filters: &Vec<&str>, hack: Option<fn(&i32, &str) -> u8>) -> Result<Vec<String>, std::io::Error> {
+pub fn try_exact_match_strings_from_reader(reader: &mut BufReader<File>, filters: &Vec<&str>, hack: Option<fn(&i32, &str) -> u8>) -> Result<Vec<String>, std::io::Error> {
     let filter_count = filters.len() - 1;
     let mut count = 0;
-    let mut reader = BufReader::new(file);
     let mut lines_vec = Vec::new();
     let mut line_num = -1;
+    let mut line = String::new();
 
     loop {
-        let mut line = String::new();
+        line.clear();
         match reader.read_line(&mut line) {
             Ok(0)  => return Ok(lines_vec),
             Err(e) => return Err(e),
