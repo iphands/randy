@@ -41,10 +41,10 @@ label.key {
 }
 
 progressbar {
-    padding-left: 0.5em;
-    padding-right: 0.5em;
-    padding-bottom: 5px;
-    padding-right: 5px;
+    padding-left:   0.5em;
+    padding-right:  0.5em;
+    padding-bottom: 3px;
+    padding-top:    0px;
 }
 
 frame label {

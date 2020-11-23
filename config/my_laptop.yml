@@ -1,8 +1,9 @@
 ---
 settings:
-  color_bar:   "#e1eeeb"
+  # color_bar:   "#e1eeeb"
   # color_label: "#d7d787"
-  color_label:  "#87d7ff"
+  color_bar:   "#e1eeff"
+  color_label: "#87d7ff"
   color_text:  "#e1eeeb"
   # decoration: false
   # resizable: false
@@ -11,7 +12,7 @@ settings:
   font_size: large
   font_size_top: large
   timeout: 2
-  xpos: 3380
+  xpos: 0
   ypos: 0
 
 ui:
