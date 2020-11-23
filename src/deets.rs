@@ -198,12 +198,18 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
 
     fn _hack(line_num: &i32, line: &str) -> bool {
         if line_num == &0 {
-            if line.starts_with("Name:\tkworker") ||
-                line.starts_with("Name:\tksoftirqd") ||
-                line.starts_with("Name:\tmigration/") {
+            let first = line.bytes().nth(6).unwrap();
+            if first == 107 {
+                if line.starts_with("Name:\tkworker") || line.starts_with("Name:\tksoftirqd") {
                     return false;
                 }
+        } else if first == 109 {
+                if line.starts_with("Name:\tmigration/") {
+                    return false;
+                }
+            }
         }
+
         return true;
     }
 
