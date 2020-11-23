@@ -230,6 +230,8 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
 
 
     let mut pids = HashSet::new();
+    let match_vec = &vec!["Name", "VmRSS"];
+
     for dir_entry in fs::read_dir("/proc").unwrap() {
         #[cfg(not(feature = "timings"))]
         thread::sleep(YEILD_TIME);
@@ -252,7 +254,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
                         Err(_) => continue,
                     }
 
-                    match try_exact_match_strings_from_reader(reader, &vec!["Name", "VmRSS"], Some(_hack)) {
+                    match try_exact_match_strings_from_reader(reader, match_vec, Some(_hack)) {
                         Ok(s)  => { s },
                         Err(_) => {
                             proc_files_map.remove(pid);
@@ -266,7 +268,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
                         Err(_) => continue,
                     };
 
-                    match try_match_strings_from_file(&mut file, &vec!["Name", "VmRSS"]) {
+                    match try_match_strings_from_file(&mut file, match_vec) {
                         Ok(vec) => {
                             let reader = BufReader::new(file);
                             proc_files_map.insert(pid.to_string(), reader);
