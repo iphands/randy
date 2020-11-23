@@ -22,9 +22,10 @@ pub fn try_exact_match_strings_from_file(reader: &mut BufReader<File>, filters: 
     let mut count = 0;
     let mut lines_vec = Vec::new();
     let mut line_num = -1;
+    let mut line = String::new();
 
     loop {
-        let mut line = String::new();
+        line.clear();
         match reader.read_line(&mut line) {
             Ok(0)  => return Ok(lines_vec),
             Err(e) => return Err(e),
