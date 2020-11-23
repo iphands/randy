@@ -17,7 +17,7 @@ pub fn get_match_strings_from_path(path: &str, filters: &Vec<&str>) -> Vec<Strin
     }
 }
 
-pub fn try_exact_match_strings_from_file(reader: &mut BufReader<File>, filters: &Vec<&str>, hack: Option<fn(&i32, &str) -> u8>) -> Result<Vec<String>, std::io::Error> {
+pub fn try_exact_match_strings_from_reader(reader: &mut BufReader<File>, filters: &Vec<&str>, hack: Option<fn(&i32, &str) -> u8>) -> Result<Vec<String>, std::io::Error> {
     let filter_count = filters.len() - 1;
     let mut count = 0;
     let mut lines_vec = Vec::new();

@@ -252,7 +252,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
                         Err(_) => continue,
                     }
 
-                    match try_exact_match_strings_from_file(reader, &vec!["Name", "VmRSS"], Some(_hack)) {
+                    match try_exact_match_strings_from_reader(reader, &vec!["Name", "VmRSS"], Some(_hack)) {
                         Ok(s)  => { s },
                         Err(_) => {
                             proc_files_map.remove(pid);

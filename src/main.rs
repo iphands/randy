@@ -329,12 +329,12 @@ fn update_ui(config: &Yaml,
     }
 
     let timeout = config["timeout"].as_i64().unwrap_or(1);
-    let mod_top = config["skip_top"].as_i64().unwrap_or(2) as u64;
-    let mod_fs  = config["skip_fs"].as_i64().unwrap_or(2)  as u64;
+    let mod_top = config["mod_top"].as_i64().unwrap_or(2) as u64;
+    let mod_fs  = config["mod_fs"].as_i64().unwrap_or(2)  as u64;
 
     let update = move || {
         let mut frame_counter = FRAME_COUNT.lock().unwrap();
-        let mut frame_cache = deets::get_frame_cache(*frame_counter % 2 == 0);
+        let mut frame_cache = deets::get_frame_cache(*frame_counter % mod_top == 0);
         let cpu_mhz_vec = deets::get_cpu_mhz();
         let cpu_mhz_vec_len = cpu_mhz_vec.len();
 
