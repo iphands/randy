@@ -197,14 +197,17 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
     let proc_files_map = &mut PROC_PID_FILES.lock().unwrap();
 
     fn _hack(line_num: &i32, line: &str) -> u8 {
-        if line_num == &1 {
-            if line.starts_with("Name:\tkworker") {
-                return 1;
-            }
+        if line_num == &0 {
+            if line.starts_with("Name:\tkworker") ||
+                line.starts_with("Name:\tksoftirqd") ||
+                line.starts_with("Name:\tmigration/") {
+                    return 1;
+                }
         }
         return 0;
     }
 
+    #[inline(always)]
     fn _do_cpu(path: &str, pid: &str, total_time: f64) -> f32 {
         let proc_loads_map = &mut PROC_LOAD_HIST.lock().unwrap();
         let stat_line = match try_strings_from_path(&format!("{}/stat", &path), 1) {
@@ -581,6 +584,7 @@ pub fn get_cpu_usage(cpu_num: i32) -> f64 {
     return last_load.percent;
 }
 
+#[inline(always)]
 fn str_from_bytes(mut buffer: Vec<u8>) -> String {
     let end = buffer.iter().position(|&b| b == 0).unwrap_or_else(|| buffer.len());
     buffer.resize(end, 0);
