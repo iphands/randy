@@ -22,11 +22,11 @@ pub fn try_exact_match_strings_from_reader(reader: &mut BufReader<File>, filters
     let mut count = 0;
     let mut lines_vec = Vec::new();
     let mut line_num = -1;
-    let mut line = String::new();
+    let line = &mut String::new();
 
     loop {
         line.clear();
-        match reader.read_line(&mut line) {
+        match reader.read_line(line) {
             Ok(0)  => return Ok(lines_vec),
             Err(e) => return Err(e),
             _ => {
@@ -43,7 +43,7 @@ pub fn try_exact_match_strings_from_reader(reader: &mut BufReader<File>, filters
 
                 for filter in filters {
                     if line.starts_with(filter) {
-                        let l = line.clone().trim().to_string();
+                        let l = line.trim().clone().to_string();
                         if count == filter_count {
                             lines_vec.push(l);
                             return Ok(lines_vec);
