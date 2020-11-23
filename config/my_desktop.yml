@@ -11,7 +11,8 @@ settings:
   timeout: 1
   xpos: 3335
   ypos: 0
-  # mod_top: 1
+  mod_top: 1
+  mod_fs:  5
 
 ui:
   - text: SYSTEM

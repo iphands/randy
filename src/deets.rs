@@ -196,15 +196,15 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
     let cpu_loads_map  = &mut CPU_LOADS.lock().unwrap();
     let proc_files_map = &mut PROC_PID_FILES.lock().unwrap();
 
-    fn _hack(line_num: &i32, line: &str) -> u8 {
+    fn _hack(line_num: &i32, line: &str) -> bool {
         if line_num == &0 {
             if line.starts_with("Name:\tkworker") ||
                 line.starts_with("Name:\tksoftirqd") ||
                 line.starts_with("Name:\tmigration/") {
-                    return 1;
+                    return false;
                 }
         }
-        return 0;
+        return true;
     }
 
     #[inline(always)]
