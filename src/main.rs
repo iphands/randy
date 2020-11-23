@@ -116,6 +116,7 @@ fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> (gtk::Label, Op
         Some("bar") => {
             let progress = gtk::ProgressBar::new();
             progress.set_hexpand(true);
+            progress.set_sensitive(false);
 
             let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
             vbox.add(&line_box);
@@ -154,6 +155,7 @@ fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
         let progress = gtk::ProgressBar::new();
         progress.set_hexpand(true);
         progress.get_style_context().add_class("cpus-progress");
+        progress.set_sensitive(false);
 
         line_box.add(&key);
         line_box.add(&val);
@@ -289,6 +291,8 @@ fn add_filesystem(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<S
             Some(s) => {
                 let progress = gtk::ProgressBar::new();
                 progress.set_hexpand(true);
+                progress.set_sensitive(false);
+
                 container.add(&progress);
                 s.insert(String::from(item["mount_point"].as_str().unwrap()), (space, progress));
             },
