@@ -57,7 +57,6 @@ const LOAD_SHIFT_F32: f32 = (1 << libc::SI_LOAD_SHIFT) as f32;
 #[cfg(not(feature = "timings"))]
 const YEILD_TIME: time::Duration = time::Duration::from_nanos(1024);
 
-#[cfg(not(feature = "nvml-wrapper"))]
 lazy_static! {
     // this one should be separate from frame cache
     // it has to persist beyond a single frame
@@ -70,14 +69,7 @@ lazy_static! {
 
 #[cfg(feature = "nvml-wrapper")]
 lazy_static! {
-    // this one should be separate from frame cache
-    // it has to persist beyond a single frame
-    static ref CPU_LOADS:      Mutex<HashMap<i32, CpuLoad>> = Mutex::new(HashMap::new());
-    static ref PROC_LOAD_HIST: Mutex<HashMap<u32, (f64, f64)>> = Mutex::new(HashMap::new());
-    static ref PROC_PID_FILES: Mutex<HashMap<String, BufReader<File>>> = Mutex::new(HashMap::new());
     static ref NVML_O:         Mutex<nvml_wrapper::NVML> = Mutex::new(NVML::init().unwrap());
-    pub static ref CPU_COUNT: i32 = get_match_strings_from_path("/proc/cpuinfo", &vec!["processor"]).len() as i32;
-    pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
 }
 
 fn get_hostname_from_utsname(n: [c_char; 65]) -> String {
