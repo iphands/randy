@@ -16,7 +16,9 @@ use std::sync::Mutex;
 
 use yaml_rust::{Yaml};
 
+#[cfg(feature = "nvml-wrapper")]
 use nvml_wrapper::enum_wrappers::device::{TemperatureSensor};
+#[cfg(feature = "nvml-wrapper")]
 use nvml_wrapper::NVML;
 
 pub struct FileSystemUsage {
@@ -55,6 +57,18 @@ const LOAD_SHIFT_F32: f32 = (1 << libc::SI_LOAD_SHIFT) as f32;
 #[cfg(not(feature = "timings"))]
 const YEILD_TIME: time::Duration = time::Duration::from_nanos(1024);
 
+#[cfg(not(feature = "nvml-wrapper"))]
+lazy_static! {
+    // this one should be separate from frame cache
+    // it has to persist beyond a single frame
+    static ref CPU_LOADS:      Mutex<HashMap<i32, CpuLoad>> = Mutex::new(HashMap::new());
+    static ref PROC_LOAD_HIST: Mutex<HashMap<u32, (f64, f64)>> = Mutex::new(HashMap::new());
+    static ref PROC_PID_FILES: Mutex<HashMap<String, BufReader<File>>> = Mutex::new(HashMap::new());
+    pub static ref CPU_COUNT: i32 = get_match_strings_from_path("/proc/cpuinfo", &vec!["processor"]).len() as i32;
+    pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
+}
+
+#[cfg(feature = "nvml-wrapper")]
 lazy_static! {
     // this one should be separate from frame cache
     // it has to persist beyond a single frame
@@ -62,7 +76,6 @@ lazy_static! {
     static ref PROC_LOAD_HIST: Mutex<HashMap<u32, (f64, f64)>> = Mutex::new(HashMap::new());
     static ref PROC_PID_FILES: Mutex<HashMap<String, BufReader<File>>> = Mutex::new(HashMap::new());
     static ref NVML_O:         Mutex<nvml_wrapper::NVML> = Mutex::new(NVML::init().unwrap());
-
     pub static ref CPU_COUNT: i32 = get_match_strings_from_path("/proc/cpuinfo", &vec!["processor"]).len() as i32;
     pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
 }
@@ -366,14 +379,11 @@ fn get_cpu_speed_rpi() -> String {
     return format!("{} MHz", mhz);
 }
 
+#[cfg(feature = "nvml-wrapper")]
 fn get_nvidia_gpu_temp() -> String {
-    use std::time::{Instant};
-    let now = Instant::now();
     let nvml = NVML_O.lock().unwrap();
     let device = nvml.device_by_index(0).unwrap();
     let temperature = device.temperature(TemperatureSensor::Gpu).unwrap();
-    println!("nvidia:        millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
-
     return format!("{}C", temperature);
 }
 
@@ -393,6 +403,8 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
         "cpu_temp_sys" => get_cpu_temp_sys(),
         "cpu_speed_rpi" => get_cpu_speed_rpi(),
         "cpu_voltage_rpi" => get_cpu_voltage_rpi(),
+
+        #[cfg(feature = "nvml-wrapper")]
         "nvidia_gpu_temp" => get_nvidia_gpu_temp(),
 
         #[cfg(feature = "sensors")]
