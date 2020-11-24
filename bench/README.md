@@ -8,10 +8,10 @@ For repeatability you should consider setting your frequency scaling gov to `per
 and pinning the run to a particular CPU with `taskset`.
 example:
 ```shell
-# cpupower frequency-set -g performance
-# exit
-$ cargo bench --norun     # compile with all CPUS
-$ taskset 0x4 cargo bench # pin bench to CPU 0x4
+sudo cpupower frequency-set -g performance
+
+cargo bench --norun     # compile with all CPUS
+taskset 0x4 cargo bench # pin bench to CPU 0x4
 ```
 
 # What is here
