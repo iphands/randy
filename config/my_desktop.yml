@@ -76,8 +76,6 @@ ui:
     items:
       - text: "boot:"
         mount_point: /boot
-      - text: "home:"
-        mount_point: /home
       - text: "root:"
         mount_point: /
       - text: "noir:"

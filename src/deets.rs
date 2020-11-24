@@ -383,29 +383,30 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
     let func: &str = item["func"].as_str().unwrap();
 
     let ret: String = match func {
-        "hostname" => get_hostname_from_utsname(frame_cache.utsname.nodename as [c_char; 65]),
-        "kernel" => get_uname(frame_cache.utsname.release as [c_char; 65]),
-        "uptime" => get_uptime_string(frame_cache.sysinfo.uptime as c_int),
-        "load" => get_load(frame_cache.sysinfo.loads as [c_ulong; 3]),
-        "procs_count" => get_procs_count(&frame_cache.proc_stat),
+        "hostname" =>    timings!(func, get_hostname_from_utsname, frame_cache.utsname.nodename as [c_char; 65]),
+        "kernel" =>      timings!(func, get_uname, frame_cache.utsname.release as [c_char; 65]),
+        "uptime" =>      timings!(func, get_uptime_string, frame_cache.sysinfo.uptime as c_int),
+        "load" =>        timings!(func, get_load, frame_cache.sysinfo.loads as [c_ulong; 3]),
+        "procs_count" => timings!(func, get_procs_count, &frame_cache.proc_stat),
+
         "ram_usage" => format!("{:.2}GB / {:.2}GB",
                                (frame_cache.mem_total - frame_cache.mem_free),
                                frame_cache.mem_total),
-        "cpu_usage" => format!("{:.2}%", get_cpu_usage(-1)),
-        "cpu_temp_sys" => get_cpu_temp_sys(),
-        "cpu_speed_rpi" => get_cpu_speed_rpi(),
-        "cpu_voltage_rpi" => get_cpu_voltage_rpi(),
+        "cpu_usage" => format!("{:.2}%", timings!(func, get_cpu_usage, -1)),
+
+        "cpu_temp_sys" =>    timings!(func, get_cpu_temp_sys),
+        "cpu_speed_rpi" =>   timings!(func, get_cpu_speed_rpi),
+        "cpu_voltage_rpi" => timings!(func, get_cpu_voltage_rpi),
 
         #[cfg(feature = "nvml-wrapper")]
-        "nvidia_gpu_temp" => get_nvidia_gpu_temp(),
+        "nvidia_gpu_temp" => timings!("nvidia_temp", get_nvidia_gpu_temp),
 
         #[cfg(feature = "sensors")]
-        "sensor_info" => get_sensor_info(
-            item["sensor_name"].as_str().unwrap(),
-            item["label_name"].as_str().unwrap(),
-            item["val"].as_str().unwrap(),
-            item["whole"].as_bool().unwrap(),
-        ),
+        "sensor_info" => timings!("sensors", get_sensor_info,
+                                  item["sensor_name"].as_str().unwrap(),
+                                  item["label_name"].as_str().unwrap(),
+                                  item["val"].as_str().unwrap(),
+                                  item["whole"].as_bool().unwrap()),
         _ => {
             println!("Unkown func: {}", func);
             return String::from("unimpl");
@@ -480,28 +481,6 @@ pub fn get_fs_from_df(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
     }
 
     return map;
-}
-
-#[cfg(feature = "timings")]
-#[macro_export]
-macro_rules! timings {
-    ($name:literal, $func:tt $(, $optional:expr)*) => {
-        {
-            use std::time::{Instant};
-            let now = Instant::now();
-            let ret = $func($($optional, )*);
-            println!("{}:\tmillis: {}\tnanos: {}", $name, now.elapsed().as_millis(), now.elapsed().as_nanos());
-            ret
-        }
-    };
-}
-
-#[cfg(not(feature = "timings"))]
-#[macro_export]
-macro_rules! timings {
-    ($name:literal, $func:tt $(, $optional:expr)*) => {
-        $func($($optional, )*);
-    };
 }
 
 fn _do_top(do_top_bool: bool, mem_total: f64) -> Vec<PsInfo> {
