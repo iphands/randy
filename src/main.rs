@@ -338,18 +338,21 @@ fn update_ui(config: &Yaml,
 
     let update = move || {
         let mut frame_counter = FRAME_COUNT.lock().unwrap();
-        let mut frame_cache = deets::get_frame_cache(*frame_counter % mod_top == 0);
+        let should_top = match &top_cpus.len() + &top_mems.len() {
+            0 => false,
+            _ => *frame_counter % mod_top == 0,
+        };
+
+        let mut frame_cache = deets::get_frame_cache(should_top);
         let cpu_mhz_vec = deets::get_cpu_mhz();
         let cpu_mhz_vec_len = cpu_mhz_vec.len();
 
-        if &top_cpus.len() > &0 || &top_mems.len() > &0 {
-            if *frame_counter % mod_top == 0 {
-                frame_cache.ps_info.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap());
-                do_top(&frame_cache.ps_info, &top_cpus, "cpu");
+        if should_top {
+            frame_cache.ps_info.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap());
+            do_top(&frame_cache.ps_info, &top_cpus, "cpu");
 
-                frame_cache.ps_info.sort_by(|a, b| b.mem.partial_cmp(&a.mem).unwrap());
-                do_top(&frame_cache.ps_info, &top_mems, "mem");
-            }
+            frame_cache.ps_info.sort_by(|a, b| b.mem.partial_cmp(&a.mem).unwrap());
+            do_top(&frame_cache.ps_info, &top_mems, "mem");
         }
 
         if stash_fs.len() != 0 && (*frame_counter % mod_fs == 0) {
