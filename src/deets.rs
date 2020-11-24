@@ -361,7 +361,6 @@ fn get_cpu_speed_rpi() -> String {
     return format!("{} MHz", mhz);
 }
 
-
 fn get_nvidia_gpu_temp() -> String {
     let output = match Command::new("nvidia-smi").arg("-q").arg("-d").arg("TEMPERATURE").output() {
         Ok(o) => o,
@@ -505,6 +504,10 @@ pub fn get_frame_cache(do_top_bool: bool) -> FrameCache {
     now = Instant::now();
     let utsname = get_utsname();
     println!("utsname:       millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
+
+    // now = Instant::now();
+    // get_nvidia_gpu_temp();
+    // println!("nvidia_gpu:    millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
 
     println!("Size of PROC_PID_FILES: {}", PROC_PID_FILES.lock().unwrap().len());
     println!("");
