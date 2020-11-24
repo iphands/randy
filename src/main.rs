@@ -276,11 +276,13 @@ fn add_filesystem(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<S
 
         let wrapper = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
         let text = gtk::Label::new(None);
+        text.get_style_context().add_class("key");
         text.set_text(item["text"].as_str().unwrap());
         columns[0].add(&text);
 
         let space = gtk::Label::new(None);
         space.set_halign(gtk::Align::End);
+        space.get_style_context().add_class("val");
         columns[1].add(&space);
 
         wrapper.add(&columns[0]);
