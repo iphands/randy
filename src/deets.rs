@@ -483,56 +483,46 @@ pub fn get_fs_from_df(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
 }
 
 #[cfg(feature = "timings")]
-pub fn get_frame_cache(do_top_bool: bool) -> FrameCache {
-    use std::time::{Instant};
-
-    let mut now = Instant::now();
-    let proc_stat = get_proc_stat();
-    println!("proc_stat:     millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
-
-    // Always warm this cache up!
-    now = Instant::now();
-    do_all_cpu_usage(&proc_stat);
-    println!("all_cpu_usage: millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
-
-    now = Instant::now();
-    let mem = get_ram_usage();
-    println!("ram_usage:     millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
-
-    now = Instant::now();
-    let ps_info = match do_top_bool { true => get_ps_from_proc(mem.1 * 10000.0), false => Vec::new() };
-    println!("ps_info:       millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
-
-    now = Instant::now();
-    let sysinfo = get_sysinfo();
-    println!("sysinfo:       millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
-
-    now = Instant::now();
-    let utsname = get_utsname();
-    println!("utsname:       millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
-
-    println!("Size of PROC_PID_FILES: {}", PROC_PID_FILES.lock().unwrap().len());
-    println!("");
-    return FrameCache {
-        sysinfo:   sysinfo,
-        utsname:   utsname,
-        ps_info:   ps_info,
-        proc_stat: proc_stat,
-        mem_free:  mem.0,
-        mem_total: mem.1,
+#[macro_export]
+macro_rules! timings {
+    ($name:literal, $func:tt $(, $optional:expr)*) => {
+        {
+            use std::time::{Instant};
+            let now = Instant::now();
+            let ret = $func($($optional, )*);
+            println!("{}:\tmillis: {}\tnanos: {}", $name, now.elapsed().as_millis(), now.elapsed().as_nanos());
+            ret
+        }
     };
 }
 
 #[cfg(not(feature = "timings"))]
-pub fn get_frame_cache(do_top_bool: bool) -> FrameCache {
-    let proc_stat = get_proc_stat();
-    // Always warm this cache up!
-    do_all_cpu_usage(&proc_stat);
+#[macro_export]
+macro_rules! timings {
+    ($name:literal, $func:tt $(, $optional:expr)*) => {
+        $func($($optional, )*);
+    };
+}
 
-    let mem = get_ram_usage();
-    let ps_info = match do_top_bool { true => get_ps_from_proc(mem.1 * 10000.0), false => Vec::new() };
-    let sysinfo = get_sysinfo();
-    let utsname = get_utsname();
+fn _do_top(do_top_bool: bool, mem_total: f64) -> Vec<PsInfo> {
+    return match do_top_bool {
+        true => get_ps_from_proc(mem_total * 10000.0),
+        false => Vec::new()
+    };
+}
+
+pub fn get_frame_cache(do_top_bool: bool) -> FrameCache {
+    let proc_stat = timings!("proc_stat", get_proc_stat);
+    // Always warm this cache up!
+    timings!("all_cpu", do_all_cpu_usage, &proc_stat);
+
+    let mem = timings!("ram_usage", get_ram_usage);
+    let ps_info = timings!("ps_info", _do_top, do_top_bool, mem.1);
+    let sysinfo = timings!("sysinfo", get_sysinfo);
+    let utsname = timings!("utsname", get_utsname);
+
+    #[cfg(feature = "timings")]
+    println!("Size of PROC_PID_FILES: {}\n", PROC_PID_FILES.lock().unwrap().len());
 
     return FrameCache {
         sysinfo:   sysinfo,

@@ -335,6 +335,7 @@ fn update_ui(config: &Yaml,
     let timeout = config["timeout"].as_i64().unwrap_or(1);
     let mod_top = config["mod_top"].as_i64().unwrap_or(2) as u64;
     let mod_fs  = config["mod_fs"].as_i64().unwrap_or(2)  as u64;
+    let get_fs = deets::get_fs;
 
     let update = move || {
         let mut frame_counter = FRAME_COUNT.lock().unwrap();
@@ -356,16 +357,7 @@ fn update_ui(config: &Yaml,
         }
 
         if stash_fs.len() != 0 && (*frame_counter % mod_fs == 0) {
-            #[cfg(feature = "timings")]
-            use std::time::{Instant};
-            #[cfg(feature = "timings")]
-            let now = Instant::now();
-
-            let fs_usage = deets::get_fs(stash_fs.keys().map(|s| s.as_str()).collect::<Vec<&str>>());
-
-            #[cfg(feature = "timings")]
-            println!("fs_usage:      millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
-
+            let fs_usage = timings!("fs_usage", get_fs, stash_fs.keys().map(|s| s.as_str()).collect::<Vec<&str>>());
             for (k, v) in fs_usage.iter() {
                 let stash = stash_fs.get(k).unwrap();
                 stash.0.set_text(&format!("{} / {} {}", v.used_str, v.total_str, v.use_pct));
