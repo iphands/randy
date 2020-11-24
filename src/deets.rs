@@ -11,6 +11,7 @@ use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::fs::File;
 use std::io::{BufReader, Seek, SeekFrom};
+use std::io::prelude::*;
 use std::process::Command;
 use std::sync::Mutex;
 
@@ -62,7 +63,7 @@ lazy_static! {
     // it has to persist beyond a single frame
     static ref CPU_LOADS:      Mutex<HashMap<i32, CpuLoad>> = Mutex::new(HashMap::new());
     static ref PROC_LOAD_HIST: Mutex<HashMap<u32, (f64, f64)>> = Mutex::new(HashMap::new());
-    static ref PROC_PID_FILES: Mutex<HashMap<String, BufReader<File>>> = Mutex::new(HashMap::new());
+    static ref PROC_PID_FILES: Mutex<HashMap<String, (BufReader<File>,BufReader<File>)>> = Mutex::new(HashMap::new());
     pub static ref CPU_COUNT: i32 = get_match_strings_from_path("/proc/cpuinfo", &vec!["processor"]).len() as i32;
     pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
 }
@@ -259,49 +260,63 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
 
             let status_lines = match proc_files_map.contains_key(pid) {
                 true => {
-                    let reader = proc_files_map.get_mut(pid).unwrap();
-                    match reader.seek(SeekFrom::Start(0)) {
+                    let (comm_reader, statm_reader) = proc_files_map.get_mut(pid).unwrap();
+                    match comm_reader.seek(SeekFrom::Start(0)) {
                         Ok(_)  => (),
                         Err(_) => continue,
                     }
 
-                    match try_exact_match_strings_from_reader(reader, match_vec, Some(_hack)) {
-                        Ok(s)  => { s },
-                        Err(_) => {
-                            proc_files_map.remove(pid);
-                            continue
-                        },
+                    match statm_reader.seek(SeekFrom::Start(0)) {
+                        Ok(_)  => (),
+                        Err(_) => continue,
                     }
+
+                    //
+                    let comm = &mut String::new();
+                    comm_reader.read_line(comm);
+
+                    let statm = &mut String::new();
+                    statm_reader.read_line(statm);
+                    let rss = statm.split(' ').collect::<Vec<&str>>()[1];
+
+                    vec![comm.trim().to_string(), rss.to_string()]
                 },
                 false => {
-                    let mut file = match File::open(&format!("{}/status", &path)) {
+                    let mut comm_file = match File::open(&format!("{}/comm", &path)) {
                         Ok(f)  => f,
                         Err(_) => continue,
                     };
+                    let mut comm_reader = BufReader::new(comm_file);
+                    let comm = &mut String::new();
+                    comm_reader.read_line(comm);
 
-                    match try_match_strings_from_file(&mut file, match_vec) {
-                        Ok(vec) => {
-                            let reader = BufReader::new(file);
-                            proc_files_map.insert(pid.to_string(), reader);
-                            vec
-                        },
+
+                    let mut statm_file = match File::open(&format!("{}/statm", &path)) {
+                        Ok(f)  => f,
                         Err(_) => continue,
-                    }
+                    };
+                    let mut statm_reader = BufReader::new(statm_file);
+                    let statm = &mut String::new();
+                    statm_reader.read_line(statm);
+                    let rss = statm.split(' ').collect::<Vec<&str>>()[1];
+
+                    proc_files_map.insert(pid.to_string(), (comm_reader, statm_reader));
+                    vec![comm.trim().to_string(), rss.to_string()]
                 },
             };
 
-            if status_lines.len() != 2 { continue; }
-
-            let proc_used = status_lines[1][7..(status_lines[1].len() - 3)].trim().parse::<f64>();
+            // if status_lines.len() != 2 { continue; }
+            let proc_used = status_lines[1].parse::<u64>();
+            //status_lines[1][7..(status_lines[1].len() - 3)].trim().parse::<f64>();
 
             match proc_used {
                 Ok(used) => {
                     // let cpu = _do_cpu(&path, &pid, cpu_loads_map[&0].total as f64);
                     procs.push(PsInfo {
-                        comm: String::from(&status_lines[0][6..]),
+                        comm: status_lines[0].clone(),
                         pid: String::from(pid),
                         cpu: _do_cpu(&path, &pid, cpu_loads_map[&0].total as f64),
-                        mem: (used / mem_used) as f32,
+                        mem: ((used as f64) / mem_used) as f32,
                     });
                 },
                 _ => (),

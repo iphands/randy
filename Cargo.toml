@@ -20,6 +20,13 @@ default = ["sensors", "nvml-wrapper"]
 benchmark = []
 timings = []
 
+[[bench]]
+name = "proc"
+harness = false
+
+[dev-dependencies]
+criterion = "0.3"
+
 [dependencies]
 glib = "0.10.3"
 gio = "0.9.1"
