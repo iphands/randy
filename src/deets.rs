@@ -327,6 +327,7 @@ fn get_ps() -> Vec<PsInfo> {
 
     let mut ps_info_vec = Vec::new();
     let out_str = String::from_utf8_lossy(&output.stdout);
+
     for line in out_str.lines() {
         let tmp = line.split(" ")
             .collect::<Vec<&str>>()

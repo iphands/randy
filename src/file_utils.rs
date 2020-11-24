@@ -42,17 +42,20 @@ pub fn try_exact_match_strings_from_reader(reader: &mut BufReader<File>, filters
                     None => (),
                 };
 
-                for filter in filters {
+                match filters.iter().try_for_each(|filter| {
                     if line.starts_with(filter) {
                         let l = line.trim().clone().to_string();
+                        lines_vec.push(l);
                         if count == filter_count {
-                            lines_vec.push(l);
-                            return Ok(lines_vec);
+                            return None;
                         }
                         count += 1;
-                        lines_vec.push(l)
                     }
-                }
+                    return Some(());
+                }) {
+                    None => { return Ok(lines_vec); },
+                    _ => (),
+                };
             },
         }
     }
