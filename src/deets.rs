@@ -16,6 +16,9 @@ use std::sync::Mutex;
 
 use yaml_rust::{Yaml};
 
+use nvml_wrapper::enum_wrappers::device::{TemperatureSensor};
+use nvml_wrapper::NVML;
+
 pub struct FileSystemUsage {
     pub used:  f64,
     pub total: f64,
@@ -43,7 +46,7 @@ pub struct FrameCache {
     pub ps_info: Vec<PsInfo>,
     proc_stat: Vec<String>,
     pub mem_total: f64,
-    pub mem_free: f64
+    pub mem_free: f64,
 }
 
 const LOAD_SHIFT_F32: f32 = (1 << libc::SI_LOAD_SHIFT) as f32;
@@ -58,6 +61,8 @@ lazy_static! {
     static ref CPU_LOADS:      Mutex<HashMap<i32, CpuLoad>> = Mutex::new(HashMap::new());
     static ref PROC_LOAD_HIST: Mutex<HashMap<u32, (f64, f64)>> = Mutex::new(HashMap::new());
     static ref PROC_PID_FILES: Mutex<HashMap<String, BufReader<File>>> = Mutex::new(HashMap::new());
+    static ref NVML_O:         Mutex<nvml_wrapper::NVML> = Mutex::new(NVML::init().unwrap());
+
     pub static ref CPU_COUNT: i32 = get_match_strings_from_path("/proc/cpuinfo", &vec!["processor"]).len() as i32;
     pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
 }
@@ -362,17 +367,14 @@ fn get_cpu_speed_rpi() -> String {
 }
 
 fn get_nvidia_gpu_temp() -> String {
-    let output = match Command::new("nvidia-smi").arg("-q").arg("-d").arg("TEMPERATURE").output() {
-        Ok(o) => o,
-        Err(e) => panic!("Error running nvidia-smi -q -d TEMPERATURE: {}", e)
-    };
+    use std::time::{Instant};
+    let now = Instant::now();
+    let nvml = NVML_O.lock().unwrap();
+    let device = nvml.device_by_index(0).unwrap();
+    let temperature = device.temperature(TemperatureSensor::Gpu).unwrap();
+    println!("nvidia:        millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
 
-    let out_str = String::from_utf8_lossy(&output.stdout);
-
-    return match out_str.lines().find(|line| { line.contains("GPU Current Temp") }) {
-        Some(line) => format!("{}C", line.split(": ").collect::<Vec<&str>>()[1].replace(" C", "")),
-        _ => String::from("uknown"),
-    };
+    return format!("{}C", temperature);
 }
 
 pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
@@ -504,10 +506,6 @@ pub fn get_frame_cache(do_top_bool: bool) -> FrameCache {
     now = Instant::now();
     let utsname = get_utsname();
     println!("utsname:       millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
-
-    // now = Instant::now();
-    // get_nvidia_gpu_temp();
-    // println!("nvidia_gpu:    millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
 
     println!("Size of PROC_PID_FILES: {}", PROC_PID_FILES.lock().unwrap().len());
     println!("");
