@@ -17,7 +17,7 @@ overflow-checks = false
 
 [features]
 default = ["sensors", "nvml-wrapper"]
-benchmark = []
+runtime_bench = []
 timings = []
 
 [dependencies]

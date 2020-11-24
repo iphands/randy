@@ -404,7 +404,7 @@ fn update_ui(config: &Yaml,
     // update now!!
     update();
 
-    #[cfg(feature = "benchmark")]
+    #[cfg(feature = "runtime_bench")]
     {
         use std::time::{Instant};
         let bench_update = move || {
@@ -418,7 +418,7 @@ fn update_ui(config: &Yaml,
         glib::timeout_add_seconds_local(timeout as u32, bench_update);
     }
 
-    #[cfg(not(feature = "benchmark"))]
+    #[cfg(not(feature = "runtime_bench"))]
     glib::timeout_add_seconds_local(timeout as u32, update);
 }
 

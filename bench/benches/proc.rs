@@ -1,12 +1,15 @@
-#[path = "../src/file_utils.rs"]
+#![allow(dead_code)]
+// #![allow(unused_imports)]
+#![allow(unused_must_use)]
+
+#[path = "../../src/file_utils.rs"]
 mod file_utils;
 
+use criterion::{ criterion_group, criterion_main, Criterion};
+
 use std::io::prelude::*;
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use std::fs::File;
 use std::io::{BufReader, Seek, SeekFrom};
-
-const PID_DIR: &str = "/proc/3856796";
 
 fn _hack(line_num: &i32, line: &str) -> bool {
     if line_num == &0 {
@@ -33,7 +36,6 @@ fn test_status(match_vec: &Vec<&str>, mut reader: &mut BufReader<File>) -> (Stri
     return (comm, used);
 }
 
-// fn test_other(comm_reader: &mut BufReader<File>, statm_reader: &mut BufReader<File>) -> (String, f64) {
 fn test_other(comm_path: &str, statm_path: &str) -> (String, f64) {
     let comm = &file_utils::get_strings_from_path(comm_path, 1)[0];
     let statm = &file_utils::get_strings_from_path(statm_path, 1)[0];
@@ -55,23 +57,25 @@ fn test_buff (comm_reader: &mut BufReader<File>, statm_reader: &mut BufReader<Fi
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
+    let path = std::env::var("TPID").expect("You must set TPID env var to something like /proc/NNNN");
+
     {
         let match_vec = vec!["Name", "VmRSS"];
-        let mut file = File::open(&format!("{}/status", &PID_DIR)).unwrap();
+        let file = File::open(&format!("{}/status", &path)).unwrap();
         let mut reader = BufReader::new(file);
         c.bench_function("status", |b| b.iter(|| test_status(&match_vec, &mut reader)));
     }
 
     {
-        let comm_path = &format!("{}/comm", &PID_DIR);
-        let statm_path = &format!("{}/statm", &PID_DIR);
+        let comm_path = &format!("{}/comm", &path);
+        let statm_path = &format!("{}/statm", &path);
         c.bench_function("other ", |b| b.iter(|| test_other (&comm_path, &statm_path)));
     }
 
     {
-        let mut statm_file = File::open(&format!("{}/statm", &PID_DIR)).unwrap();
+        let statm_file = File::open(&format!("{}/statm", &path)).unwrap();
         let mut statm_reader = BufReader::new(statm_file);
-        let mut comm_file = File::open(&format!("{}/comm", &PID_DIR)).unwrap();
+        let comm_file = File::open(&format!("{}/comm", &path)).unwrap();
         let mut comm_reader = BufReader::new(comm_file);
         c.bench_function("otherb", |b| b.iter(|| test_buff  (&mut comm_reader, &mut statm_reader)));
     }

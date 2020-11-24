@@ -1,0 +1,13 @@
+[package]
+name = "bench"
+version = "0.1.0"
+authors = ["Ian Page Hands <iphands@gmail.com>"]
+edition = "2018"
+publish = false
+
+[[bench]]
+name = "proc"
+harness = false
+
+[dev-dependencies]
+criterion = "0.3"
