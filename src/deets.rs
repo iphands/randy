@@ -104,18 +104,10 @@ fn get_load(loads: [c_ulong; 3]) -> String {
 }
 
 fn get_procs_count(proc_stat: &Vec<String>) -> String {
-    let mut running: Option<String> = None;
-
-    for line in proc_stat {
-        if line.starts_with("procs_running") {
-            running = Some(line.replace("procs_running ", ""));
-        }
-    }
-
-    match running {
-        Some(r) => return r,
+    return match proc_stat.iter().find(|line| { line.starts_with("procs_running") }) {
+        Some(r) => r.replace("procs_running ", ""),
         _ => panic!("Couldn't find running procs in /proc/stat"),
-    }
+    };
 }
 
 // fn get_ram_usage(totalram: u64, freeram: u64) -> String {
@@ -327,6 +319,7 @@ fn get_ps() -> Vec<PsInfo> {
 
     let mut ps_info_vec = Vec::new();
     let out_str = String::from_utf8_lossy(&output.stdout);
+
     for line in out_str.lines() {
         let tmp = line.split(" ")
             .collect::<Vec<&str>>()
@@ -368,7 +361,6 @@ fn get_cpu_speed_rpi() -> String {
     return format!("{} MHz", mhz);
 }
 
-
 fn get_nvidia_gpu_temp() -> String {
     let output = match Command::new("nvidia-smi").arg("-q").arg("-d").arg("TEMPERATURE").output() {
         Ok(o) => o,
@@ -376,13 +368,11 @@ fn get_nvidia_gpu_temp() -> String {
     };
 
     let out_str = String::from_utf8_lossy(&output.stdout);
-    for line in out_str.lines() {
-        if line.contains("GPU Current Temp") {
-            return format!("{}C", line.split(": ").collect::<Vec<&str>>()[1].replace(" C", ""));
-        }
-    }
 
-    return format!("unknown");
+    return match out_str.lines().find(|line| { line.contains("GPU Current Temp") }) {
+        Some(line) => format!("{}C", line.split(": ").collect::<Vec<&str>>()[1].replace(" C", "")),
+        _ => String::from("uknown"),
+    };
 }
 
 pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
@@ -514,6 +504,10 @@ pub fn get_frame_cache(do_top_bool: bool) -> FrameCache {
     now = Instant::now();
     let utsname = get_utsname();
     println!("utsname:       millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
+
+    // now = Instant::now();
+    // get_nvidia_gpu_temp();
+    // println!("nvidia_gpu:    millis: {}\tnanos: {}", now.elapsed().as_millis(), now.elapsed().as_nanos());
 
     println!("Size of PROC_PID_FILES: {}", PROC_PID_FILES.lock().unwrap().len());
     println!("");
