@@ -3,6 +3,11 @@ name = "randy"
 version = "1.4.1"
 authors = ["Ian Page Hands <iphands@gmail.com>"]
 edition = "2018"
+description = "Conky like app in Rust"
+homepage = "https://github.com/iphands/randy"
+repository = "https://github.com/iphands/randy"
+readme = "README.md"
+license-file = "LICENSE"
 
 [profile.dev]
 opt-level = "s"
