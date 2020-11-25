@@ -69,6 +69,8 @@ fn build_ui(application: &gtk::Application) {
     window.set_position(gtk::WindowPosition::Center);
     window.set_default_size(375, -1);
     window.set_skip_taskbar_hint(config["settings"]["skip_taskbar"].as_bool().unwrap_or(true));
+    // window.set_focus(None);
+    window.set_keep_below(true);
 
     let screen = window.get_screen().unwrap();
     let visual = screen.get_rgba_visual().unwrap();
