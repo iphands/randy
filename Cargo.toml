@@ -8,7 +8,7 @@ homepage = "https://github.com/iphands/randy"
 repository = "https://github.com/iphands/randy"
 readme = "README.md"
 license-file = "LICENSE"
-exclude = [ "assets" ]
+exclude = [ "/assets/*", "/scripts/*" ]
 
 [profile.dev]
 opt-level = "s"
