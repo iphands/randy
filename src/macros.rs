@@ -24,3 +24,10 @@ macro_rules! timings {
         $func($($optional, )*);
     };
 }
+
+#[macro_export]
+macro_rules! split_to_strs {
+    ($str:expr, $delimiter:literal) => {
+        $str.split($delimiter).collect::<Vec<&str>>()
+    };
+}

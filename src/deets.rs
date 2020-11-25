@@ -120,15 +120,13 @@ fn get_procs_count(proc_stat: &Vec<String>) -> String {
     };
 }
 
-// fn get_ram_usage(totalram: u64, freeram: u64) -> String {
 pub fn get_ram_usage() -> (f64, f64)  {
     fn reduce(i: u64) -> f64 {
         return (i as f64) / 1024.0 / 1024.0;
     }
 
     fn get_item(i: usize, v: &Vec<String>) -> u64 {
-        return v[i]
-            .split(' ').collect::<String>()
+        return v[i].split(' ').collect::<String>()
             .split(':').collect::<Vec<&str>>()[1]
             .replace("kB", "").parse().unwrap();
     }
@@ -136,7 +134,6 @@ pub fn get_ram_usage() -> (f64, f64)  {
     let meminfo = get_strings_from_path("/proc/meminfo", 3);
     let free  = reduce(get_item(2, &meminfo));
     let total = reduce(get_item(0, &meminfo));
-    // return format!("{:.2}GB / {:.2}GB", (total - free), total);
     return (free, total);
 }
 
@@ -144,8 +141,7 @@ pub fn get_cpu_mhz() -> Vec<u16> {
     return get_match_strings_from_path("/proc/cpuinfo", &vec!["cpu MHz"])
         .into_iter()
         .map(|s| {
-            return s.split(": ").collect::<Vec<&str>>()[1]
-                .parse::<f32>().unwrap() as u16;
+            return split_to_strs!(s, ": ")[1].parse::<f32>().unwrap() as u16;
         }).collect();
 }
 
@@ -223,7 +219,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
             Err(_) => return 0.0,
         };
 
-        let stat_vec  = stat_line[0].split(" ").collect::<Vec<&str>>();
+        let stat_vec  = split_to_strs!(stat_line[0], " ");
         let pid_u32   = pid.parse::<u32>().unwrap();
 
         let proc_time: f64 = stat_vec[13].parse::<f64>().unwrap() + stat_vec[14].parse::<f64>().unwrap();
@@ -331,8 +327,7 @@ fn get_ps() -> Vec<PsInfo> {
     let out_str = String::from_utf8_lossy(&output.stdout);
 
     for line in out_str.lines() {
-        let tmp = line.split(" ")
-            .collect::<Vec<&str>>()
+        let tmp = split_to_strs!(line, " ")
             .into_iter()
             .filter(|s| s != &"")
             .collect::<Vec<&str>>();
@@ -355,7 +350,7 @@ fn get_cpu_voltage_rpi() -> String {
     };
 
     let out_str = String::from_utf8_lossy(&output.stdout);
-    return String::from(out_str.trim().split('=').collect::<Vec<&str>>()[1]);
+    return String::from(split_to_strs!(out_str.trim(), '=')[1]);
 }
 
 fn get_cpu_speed_rpi() -> String {
@@ -365,7 +360,7 @@ fn get_cpu_speed_rpi() -> String {
     };
 
     let out_str = String::from_utf8_lossy(&output.stdout);
-    let mhz_str = out_str.trim().split('=').collect::<Vec<&str>>()[1];
+    let mhz_str = split_to_strs!(out_str.trim(), '=')[1];
     let mhz = mhz_str.parse::<u32>().unwrap() / 1000 / 1000;
 
     return format!("{} MHz", mhz);
@@ -423,7 +418,7 @@ pub fn get_fs(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
     let lines = try_strings_from_path("/proc/mounts", 1024).unwrap();
 
     for line in lines {
-        let tokens: Vec<&str> =  line.split(' ').collect();
+        let tokens = split_to_strs!(line, ' ');
         for path in keys.iter() {
             if tokens[1] == *path {
                 let test = CString::new(*path).unwrap();
