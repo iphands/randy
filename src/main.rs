@@ -48,6 +48,11 @@ fn get_css(conf: &Yaml) -> String {
         .replace("{ font_size }", conf["font_size"].as_str().unwrap_or("large"));
 }
 
+fn _is_interactive(config: &Yaml) -> bool {
+    return config["decoration"].as_bool().unwrap_or(false) ||
+        config["resizable"].as_bool().unwrap_or(false);
+}
+
 fn build_ui(application: &gtk::Application) {
     let window = gtk::ApplicationWindow::new(application);
 
@@ -69,8 +74,8 @@ fn build_ui(application: &gtk::Application) {
     window.set_position(gtk::WindowPosition::Center);
     window.set_default_size(375, -1);
     window.set_skip_taskbar_hint(config["settings"]["skip_taskbar"].as_bool().unwrap_or(true));
-    // window.set_focus(None);
-    window.set_keep_below(true);
+    window.set_keep_below(!_is_interactive(&config["settings"]));
+    window.set_accept_focus(_is_interactive(&config["settings"]));
 
     let screen = window.get_screen().unwrap();
     let visual = screen.get_rgba_visual().unwrap();
