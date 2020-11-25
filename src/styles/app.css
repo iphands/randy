@@ -1,5 +1,6 @@
 window {
     background-color: { background_color };
+    opacity: { opacity };
     color: { color };
     font-family: monospace;
     font-size: { font_size };

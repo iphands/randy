@@ -42,6 +42,7 @@ fn get_css(conf: &Yaml) -> String {
     return css
         .replace("{ background_color }", conf["color_background"].as_str().unwrap_or("#000"))
         .replace("{ color }", conf["color_text"].as_str().unwrap_or("#fff"))
+        .replace("{ opacity }", conf["opacity"].as_str().unwrap_or("1"))
         .replace("{ label_color }", conf["color_label"].as_str().unwrap_or("#eee"))
         .replace("{ bar_color }", conf["color_bar"].as_str().unwrap_or("#fff"))
         .replace("{ font_size_top }", conf["font_size_top"].as_str().unwrap_or("medium"))

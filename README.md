@@ -22,6 +22,7 @@ Conky inspired system info viewer written in Rust / GTK3
   * color_bar - color of the usage **bars**
   * color_label - color of the "labels"
   * color_text - color of all other text
+  * opacity - the base opacity of the randy window
   * decoration - hide/show window decorations
   * font_size
   * mod_top - modulo used to skip frames for getting top data
