@@ -1,10 +1,9 @@
 #!/bin/bash
 
-
 FEATURES=""
 for var in `rustc --target=x86_64-linux-kernel --print target-features | fgrep inst | awk '{print $1}' | sort -u`
 do
-    echo "looking for $var"
+    # echo "looking for $var"
     TMP="`fgrep -o $var /proc/cpuinfo | head -n1 | fgrep $var`"
     if [ "$?" == "0" ]
     then
@@ -14,8 +13,10 @@ done
 
 FEATURES="${FEATURES:1}"
 echo $FEATURES
-export RUSTFLAGS="-C opt-level=3 -C debuginfo=0 -C target-cpu=native -C target-feature=$FEATURES"
-# export RUSTFLAGS="-C opt-level=3 -C debuginfo=0 -C target-cpu=native"
+# export RUSTFLAGS="-C opt-level=3 -C debuginfo=0 -C target-cpu=native -C target-feature=$FEATURES"
+export RUSTFLAGS="-C opt-level=3 -C debuginfo=0 -C target-cpu=native"
+
+set -e
 
 if [ "$HOSTNAME" == "handslap" ]
 then

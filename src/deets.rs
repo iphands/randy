@@ -239,17 +239,17 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
     let mut pids = HashSet::new();
     let match_vec = &vec!["Name", "VmRSS"];
 
-    for dir_entry in fs::read_dir("/proc").unwrap() {
+    fs::read_dir("/proc").unwrap().for_each(|dir_entry| {
         #[cfg(not(feature = "timings"))]
         thread::sleep(YEILD_TIME);
 
         let entry: fs::DirEntry = match dir_entry {
             Ok(r)  => r,
-            Err(_) => continue,
+            Err(_) => return,
         };
 
-        let path = &entry.path().display().to_string();
-        if path.chars().nth(6).unwrap().is_ascii_digit() {
+        let path = String::from(entry.path().to_str().unwrap());
+        if path.bytes().nth(6).unwrap().is_ascii_digit() {
             let pid = &path[6..];
             pids.insert(pid.to_string());
 
@@ -258,21 +258,21 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
                     let reader = proc_files_map.get_mut(pid).unwrap();
                     match reader.seek(SeekFrom::Start(0)) {
                         Ok(_)  => (),
-                        Err(_) => continue,
+                        Err(_) => return,
                     }
 
                     match try_exact_match_strings_from_reader(reader, match_vec, Some(_hack)) {
                         Ok(s)  => { s },
                         Err(_) => {
                             proc_files_map.remove(pid);
-                            continue
+                            return;
                         },
                     }
                 },
                 false => {
                     let mut file = match File::open(&format!("{}/status", &path)) {
                         Ok(f)  => f,
-                        Err(_) => continue,
+                        Err(_) => return,
                     };
 
                     match try_match_strings_from_file(&mut file, match_vec) {
@@ -281,12 +281,12 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
                             proc_files_map.insert(pid.to_string(), reader);
                             vec
                         },
-                        Err(_) => continue,
+                        Err(_) => return,
                     }
                 },
             };
 
-            if status_lines.len() != 2 { continue; }
+            if status_lines.len() != 2 { return; }
 
             let proc_used = status_lines[1][7..(status_lines[1].len() - 3)].trim().parse::<f64>();
 
@@ -303,7 +303,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
                 _ => (),
             };
          }
-    }
+    });
 
     proc_files_map.retain(|i, _| { pids.contains(i) });
     return procs;

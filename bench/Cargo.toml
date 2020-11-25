@@ -13,5 +13,9 @@ harness = false
 name = "macro"
 harness = false
 
+[["bench"]]
+name = "direntry"
+harness = false
+
 [dev-dependencies]
 criterion = "0.3"
