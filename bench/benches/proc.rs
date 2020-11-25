@@ -5,7 +5,7 @@
 #[path = "../../src/file_utils.rs"]
 mod file_utils;
 
-use criterion::{ criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 
 use std::io::prelude::*;
 use std::fs::File;
@@ -58,18 +58,19 @@ fn test_buff (comm_reader: &mut BufReader<File>, statm_reader: &mut BufReader<Fi
 
 fn criterion_benchmark(c: &mut Criterion) {
     let path = std::env::var("TPID").expect("You must set TPID env var to something like /proc/NNNN");
+    let mut group = c.benchmark_group("proc");
 
     {
         let match_vec = vec!["Name", "VmRSS"];
         let file = File::open(&format!("{}/status", &path)).unwrap();
         let mut reader = BufReader::new(file);
-        c.bench_function("status", |b| b.iter(|| test_status(&match_vec, &mut reader)));
+        group.bench_function("status", |b| b.iter(|| test_status(&match_vec, &mut reader)));
     }
 
     {
         let comm_path = &format!("{}/comm", &path);
         let statm_path = &format!("{}/statm", &path);
-        c.bench_function("other ", |b| b.iter(|| test_other (&comm_path, &statm_path)));
+        group.bench_function("comm+statm", |b| b.iter(|| test_other (&comm_path, &statm_path)));
     }
 
     {
@@ -77,7 +78,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         let mut statm_reader = BufReader::new(statm_file);
         let comm_file = File::open(&format!("{}/comm", &path)).unwrap();
         let mut comm_reader = BufReader::new(comm_file);
-        c.bench_function("otherb", |b| b.iter(|| test_buff  (&mut comm_reader, &mut statm_reader)));
+        group.bench_function("comm+statm cached", |b| b.iter(|| test_buff  (&mut comm_reader, &mut statm_reader)));
     }
 }
 

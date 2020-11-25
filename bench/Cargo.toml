@@ -9,5 +9,9 @@ publish = false
 name = "proc"
 harness = false
 
+[["bench"]]
+name = "macro"
+harness = false
+
 [dev-dependencies]
 criterion = "0.3"
