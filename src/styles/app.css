@@ -43,11 +43,19 @@ frame label {
 }
 
 trough {
-    background-color: @bg_color;
+    background-color: { background_color };
     min-height: 10px;
 }
 
-progressbar > trough > progress {
+progressbar.high > trough > progress {
+    background-color: { bar_color_high };
+}
+
+progressbar.med > trough > progress {
+    background-color: { bar_color_med };
+}
+
+trough > progress {
     background-color: { bar_color } ;
     min-height: 10px;
 }

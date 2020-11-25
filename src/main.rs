@@ -39,11 +39,15 @@ lazy_static! {
 
 fn get_css(conf: &Yaml) -> String {
     let css: String = String::from(include_str!("styles/app.css"));
+    let bar_color = conf["color_bar"].as_str().unwrap_or("#fff");
+
     return css
         .replace("{ background_color }", conf["color_background"].as_str().unwrap_or("#000"))
         .replace("{ color }", conf["color_text"].as_str().unwrap_or("#fff"))
         .replace("{ label_color }", conf["color_label"].as_str().unwrap_or("#eee"))
         .replace("{ bar_color }", conf["color_bar"].as_str().unwrap_or("#fff"))
+        .replace("{ bar_color_med }", conf["color_bar_med"].as_str().unwrap_or(bar_color))
+        .replace("{ bar_color_high }", conf["color_bar_high"].as_str().unwrap_or(bar_color))
         .replace("{ font_family }", conf["font_family"].as_str().unwrap_or("monospace"))
         .replace("{ font_size_top }", conf["font_size_top"].as_str().unwrap_or("medium"))
         .replace("{ font_size }", conf["font_size"].as_str().unwrap_or("large"));
@@ -389,6 +393,18 @@ fn update_ui(config: &Yaml,
             }
 
             cpu.progress.set_fraction(usage / 100.0);
+
+            if usage > 80.0 {
+                cpu.progress.get_style_context().remove_class("med");
+                cpu.progress.get_style_context().add_class("high");
+            } else if usage > 50.0 {
+                cpu.progress.get_style_context().add_class("med");
+                cpu.progress.get_style_context().remove_class("high");
+            } else {
+                cpu.progress.get_style_context().remove_class("med");
+                cpu.progress.get_style_context().remove_class("high");
+            }
+
             cpu.pct_label.set_text(&format!("{:.0}%", usage));
         }
 
