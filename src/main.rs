@@ -326,6 +326,21 @@ fn add_filesystem(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<S
     }
 }
 
+fn _update_bar(bar: &gtk::ProgressBar, fraction: f64) {
+    if fraction > 0.80 {
+        bar.get_style_context().remove_class("med");
+        bar.get_style_context().add_class("high");
+    } else if fraction > 0.50 {
+        bar.get_style_context().add_class("med");
+        bar.get_style_context().remove_class("high");
+    } else {
+        bar.get_style_context().remove_class("med");
+        bar.get_style_context().remove_class("high");
+    }
+
+    bar.set_fraction(fraction);
+}
+
 fn update_ui(config: &Yaml,
              values: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
              cpus: Vec<Cpu>,
@@ -381,7 +396,7 @@ fn update_ui(config: &Yaml,
             for (k, v) in fs_usage.iter() {
                 let stash = stash_fs.get(k).unwrap();
                 stash.0.set_text(&format!("{} / {} {}", v.used_str, v.total_str, v.use_pct));
-                stash.1.set_fraction(v.used / v.total);
+                _update_bar(&stash.1, v.used / v.total);
             }
         }
 
@@ -392,19 +407,7 @@ fn update_ui(config: &Yaml,
                 cpu.mhz.set_text(&format!("{:04.0} MHz", cpu_mhz_vec[i]));
             }
 
-            cpu.progress.set_fraction(usage / 100.0);
-
-            if usage > 80.0 {
-                cpu.progress.get_style_context().remove_class("med");
-                cpu.progress.get_style_context().add_class("high");
-            } else if usage > 50.0 {
-                cpu.progress.get_style_context().add_class("med");
-                cpu.progress.get_style_context().remove_class("high");
-            } else {
-                cpu.progress.get_style_context().remove_class("med");
-                cpu.progress.get_style_context().remove_class("high");
-            }
-
+            _update_bar(&cpu.progress, usage / 100.0);
             cpu.pct_label.set_text(&format!("{:.0}%", usage));
         }
 
@@ -416,8 +419,8 @@ fn update_ui(config: &Yaml,
             match &val.1 {
                 Some(bar) => {
                     match func {
-                        "cpu_usage" => bar.set_fraction(deets::get_cpu_usage(-1) / 100.0),
-                        "ram_usage" => bar.set_fraction((frame_cache.mem_total - frame_cache.mem_free) / frame_cache.mem_total),
+                        "cpu_usage" => _update_bar(bar, deets::get_cpu_usage(-1) / 100.0),
+                        "ram_usage" => _update_bar(bar, (frame_cache.mem_total - frame_cache.mem_free) / frame_cache.mem_total),
                         _ => (),
                     };
                 },
