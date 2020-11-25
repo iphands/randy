@@ -5,9 +5,6 @@ Conky inspired system info viewer written in Rust / GTK3
 Conky was named after the puppet... so this thing is Randy
 > A man’s gotta eat, Julian.
 
-# Randy
-Conky inspired system info viewer written in Rust / GTK3
-
 ## Features
 
 ### Configurable modules
