@@ -1,5 +1,5 @@
 window {
-    background-color: { background_color };
+    background-color: { color_background };
     color: { color };
     font-family: { font_family };
     font-size: { font_size };
@@ -26,7 +26,7 @@ label.val {
 }
 
 label.key {
-    color: { label_color };
+    color: { color_label };
     padding-left: 0.5em;
 }
 
@@ -43,20 +43,20 @@ frame label {
 }
 
 trough {
-    background-color: { background_color };
+    background-color: { color_trough };
     min-height: 10px;
 }
 
 progressbar.high > trough > progress {
-    background-color: { bar_color_high };
+    background-color: { color_bar_high };
 }
 
 progressbar.med > trough > progress {
-    background-color: { bar_color_med };
+    background-color: { color_bar_med };
 }
 
 trough > progress {
-    background-color: { bar_color } ;
+    background-color: { color_bar } ;
     min-height: 10px;
 }
 
@@ -65,7 +65,7 @@ trough > progress {
 }
 
 .top-frame label:first-child {
-    color: { label_color };
+    color: { color_label };
 }
 
 .top-frame label:not(:first-child) {

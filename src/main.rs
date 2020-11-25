@@ -37,20 +37,26 @@ lazy_static! {
     static ref FRAME_COUNT: Mutex<u64> = Mutex::new(0);
 }
 
-fn get_css(conf: &Yaml) -> String {
+fn get_css(conf: &Yaml, composited: bool) -> String {
     let css: String = String::from(include_str!("styles/app.css"));
-    let bar_color = conf["color_bar"].as_str().unwrap_or("#fff");
+    let color_bar = conf["color_bar"].as_str().unwrap_or("#fff");
+    let color_background = conf["color_background"].as_str().unwrap_or("#000");
+    let color_trough = match composited {
+        true  => conf["color_trough"].as_str().unwrap_or("rgba(0, 0, 0, 0)"),
+        false => conf["color_trough"].as_str().unwrap_or(color_background),
+    };
 
     return css
-        .replace("{ background_color }", conf["color_background"].as_str().unwrap_or("#000"))
-        .replace("{ color }", conf["color_text"].as_str().unwrap_or("#fff"))
-        .replace("{ label_color }", conf["color_label"].as_str().unwrap_or("#eee"))
-        .replace("{ bar_color }", conf["color_bar"].as_str().unwrap_or("#fff"))
-        .replace("{ bar_color_med }", conf["color_bar_med"].as_str().unwrap_or(bar_color))
-        .replace("{ bar_color_high }", conf["color_bar_high"].as_str().unwrap_or(bar_color))
-        .replace("{ font_family }", conf["font_family"].as_str().unwrap_or("monospace"))
-        .replace("{ font_size_top }", conf["font_size_top"].as_str().unwrap_or("medium"))
-        .replace("{ font_size }", conf["font_size"].as_str().unwrap_or("large"));
+        .replace("{ color }",            conf["color_text"].as_str().unwrap_or("#fff"))
+        .replace("{ color_background }", color_background)
+        .replace("{ color_bar }",        conf["color_bar"].as_str().unwrap_or("#fff"))
+        .replace("{ color_bar_med }",    conf["color_bar_med"].as_str().unwrap_or(color_bar))
+        .replace("{ color_bar_high }",   conf["color_bar_high"].as_str().unwrap_or(color_bar))
+        .replace("{ color_label }",      conf["color_label"].as_str().unwrap_or("#eee"))
+        .replace("{ color_trough }",     color_trough)
+        .replace("{ font_family }",      conf["font_family"].as_str().unwrap_or("monospace"))
+        .replace("{ font_size_top }",    conf["font_size_top"].as_str().unwrap_or("medium"))
+        .replace("{ font_size }",        conf["font_size"].as_str().unwrap_or("large"));
 }
 
 fn _is_interactive(config: &Yaml) -> bool {
@@ -63,12 +69,9 @@ fn build_ui(application: &gtk::Application) {
 
     let s: &str = &get_file();
     let config = &get_config(s)[0];
-
-    //Add custom CSS
-
-    let css: &str = &get_css(&config["settings"]);
-
     let screen = window.get_screen().unwrap();
+
+    let css: &str = &get_css(&config["settings"], screen.is_composited());
     let provider = gtk::CssProvider::new();
     provider.load_from_data(css.as_bytes()).expect("Failed to load CSS");
     gtk::StyleContext::add_provider_for_screen(&screen, &provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
