@@ -1,7 +1,7 @@
 window {
     background-color: { background_color };
     color: { color };
-    font-family: monospace;
+    font-family: { font_family };
     font-size: { font_size };
 }
 

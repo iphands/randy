@@ -23,6 +23,7 @@ Conky inspired system info viewer written in Rust / GTK3
   * color_label - color of the "labels"
   * color_text - color of all other text
   * decoration - hide/show window decorations
+  * font_family - the CSS-style font family string (font names with spaces must be wrapped in escaped quotes, eg `font_family: "\"Terminus (TTF)\", \"Liberation Mono\", monospace"`)
   * font_size
   * mod_top - modulo used to skip frames for getting top data
   * mod_fs - modulo used to skip frames for getting filesystem data
