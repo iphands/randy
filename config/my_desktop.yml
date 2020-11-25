@@ -6,8 +6,8 @@ settings:
   # decoration: false
   # resizable: false
   # skip_taskbar: true
-  color_background: "#656565"
 
+  color_background: "#656565"
   color_bar:      "#e1eeff"
   color_bar_med:  "#ffeeaa"
   color_bar_high: "#ffaaaa"
@@ -18,7 +18,7 @@ settings:
   font_family: "\"Roboto Mono\""
   font_size: medium
   timeout: 1
-  xpos: 3335
+  xpos: 3470
   ypos: 0
   mod_top: 1
   mod_fs:  5

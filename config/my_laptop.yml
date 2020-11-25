@@ -6,7 +6,10 @@ settings:
   # color_text:  "#fff"
 
   color_background: "rgba(0, 0, 0, 0.5);"
-  color_bar:   "#e1eeff"
+  color_bar:      "#e1eeff"
+  color_bar_med:  "#ffeeaa"
+  color_bar_high: "#ffaaaa"
+
   color_label: "#87d7ff"
   color_text:  "#e1eeeb"
 
