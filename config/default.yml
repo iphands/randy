@@ -1,6 +1,7 @@
 ---
 settings:
   # color_bar:   "#fff"
+  # color_background: "rgba(0, 0, 0, 0.75);"
   # color_label: "#eee"
   # color_text:  "#fff"
   # decoration: false

@@ -1,15 +1,5 @@
-@define-color bg_color { background_color };
-
-GtkLayout {
-  background-color: transparent;
-}
-
-GtkViewport {
-  background-color: transparent;
-}
-
 window {
-    background-color: @bg_color;
+    background-color: { background_color };
     color: { color };
     font-family: monospace;
     font-size: { font_size };

@@ -70,6 +70,10 @@ fn build_ui(application: &gtk::Application) {
     window.set_default_size(375, -1);
     window.set_skip_taskbar_hint(config["settings"]["skip_taskbar"].as_bool().unwrap_or(true));
 
+    let screen = window.get_screen().unwrap();
+    let visual = screen.get_rgba_visual().unwrap();
+    window.set_visual(Some(&visual));
+
     if !config["settings"]["xpos"].is_badvalue() &&
         !config["settings"]["ypos"].is_badvalue() {
             window.move_(

@@ -8,7 +8,8 @@ settings:
   # decoration: false
   # resizable: false
   # skip_taskbar: true
-  color_background: "#262626"
+  # color_background: "#262626"
+  color_background: "rgba(0, 0, 0, 0.75);"
   font_size: large
   font_size_top: large
   timeout: 2
