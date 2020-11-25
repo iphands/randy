@@ -7,6 +7,10 @@ settings:
   # resizable: false
   # skip_taskbar: true
   color_background: "#656565"
+  color_bar:   "#e1eeff"
+  color_label: "#87d7ff"
+  color_text:  "#e1eeeb"
+
   font_size: medium
   timeout: 1
   xpos: 3335
