@@ -5,7 +5,7 @@ settings:
   # color_label: "#87d7ff"
   # color_text:  "#fff"
 
-  color_background: "rgba(0, 0, 0, 0.25);"
+  color_background: "rgba(0, 0, 0, 0.5);"
   color_bar:   "#e1eeff"
   color_label: "#87d7ff"
   color_text:  "#e1eeeb"
@@ -19,7 +19,7 @@ settings:
   font_size_top: large
   timeout: 2
   xpos: 0
-  ypos: 0
+  ypos: 55
 
 ui:
   - text: SYSTEM
