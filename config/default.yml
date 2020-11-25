@@ -5,6 +5,7 @@ settings:
   # color_label: "#eee"
   # color_text:  "#fff"
   # decoration: false
+  # font_family: "\"Liberation Mono\", monospace"
   # font_size: large
   # mod_top: 2
   # mod_fs: 5
