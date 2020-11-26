@@ -15,7 +15,7 @@ Not do things as fast as possible (hence to parallel scans of /proc/*).
 ```shell
 ps -eo etimes,times,command | grep randy
 ```
-Check out the benches directory/sub-crate for some testing in pursuit of this goal.
+Check out the `bench` directory/sub-crate for some testing in pursuit of this goal.
 
 ## Features
 
