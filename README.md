@@ -34,5 +34,21 @@ Conky was named after the puppet... so this thing is Randy
 * xpos - starting position x
 * ypos - starting position y
 
+## Building
+### Optional deps / features
+By default Randy turns on support for getting temp from NVidia cards via NVML shared objects and CPU temps via lm-sensors.
+
+You can disable these by simply building with `--no-default-features`
+
+### Required build packages
+I have only barely looked into packaging but [jhjaggars](https://github.com/jhjaggars) put some helpful hints for Raspbian and Fedora in here:
+* https://github.com/iphands/randy/issues/2
+* https://github.com/iphands/randy/issues/1
+
+### Example
+```shell
+cargo run --release --no-default-features  # build with lm-sensors and nvml disabled
+```
+
 ## Screenshot
 ![screenshot](https://raw.githubusercontent.com/iphands/ronky/main/assets/screenshot.png)
