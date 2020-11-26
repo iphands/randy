@@ -15,7 +15,7 @@ settings:
   color_label: "#87d7ff"
   color_text:  "#e1eeeb"
 
-  font_family: "\"Roboto Mono\""
+  font_family: "\"Noto Sans Mono ExtraCondensed Medium\""
   font_size: medium
   timeout: 1
   xpos: 3470

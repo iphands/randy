@@ -17,12 +17,12 @@ settings:
   # resizable: false
   # skip_taskbar: true
   # color_background: "#262626"
-
-  font_size: large
-  font_size_top: large
+  #font_family: "\"Noto Sans\""
+  font_family: "\"Droid Sans Mono\""
+  font_size: 11pt
   timeout: 2
   xpos: 0
-  ypos: 55
+  ypos: 0
 
 ui:
   - text: SYSTEM

@@ -46,6 +46,8 @@ fn get_css(conf: &Yaml, composited: bool) -> String {
         false => conf["color_trough"].as_str().unwrap_or(color_background),
     };
 
+    let font_size = conf["font_size"].as_str().unwrap_or("large");
+
     return css
         .replace("{ color }",            conf["color_text"].as_str().unwrap_or("#fff"))
         .replace("{ color_background }", color_background)
@@ -55,8 +57,8 @@ fn get_css(conf: &Yaml, composited: bool) -> String {
         .replace("{ color_label }",      conf["color_label"].as_str().unwrap_or("#eee"))
         .replace("{ color_trough }",     color_trough)
         .replace("{ font_family }",      conf["font_family"].as_str().unwrap_or("monospace"))
-        .replace("{ font_size_top }",    conf["font_size_top"].as_str().unwrap_or("medium"))
-        .replace("{ font_size }",        conf["font_size"].as_str().unwrap_or("large"));
+        .replace("{ font_size_top }",    conf["font_size_top"].as_str().unwrap_or(font_size))
+        .replace("{ font_size }",        font_size);
 }
 
 fn _is_interactive(config: &Yaml) -> bool {
