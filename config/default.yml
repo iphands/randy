@@ -1,11 +1,11 @@
 ---
 settings:
-  # color_bar:      "#ffffff"
-  # color_bar_med:  "#ffad00"
-  # color_bar_high: "#ff0000"
-  # color_background: "rgba(0, 0, 0, 0.75);"
-  # color_label: "#eee"
-  # color_text:  "#fff"
+  # color_bar:      "#e1eeff"
+  # color_bar_med:  "#ffeeaa"
+  # color_bar_high: "#ffaaaa"
+  # color_background: "rgba(0, 0, 0, 0.5)"
+  # color_label: "#87d7ff"
+  # color_text:  "#e1eeeb"
   # decoration: false
   # font_family: "\"Liberation Mono\", monospace"
   # font_size: large
@@ -14,7 +14,7 @@ settings:
   # resizable: false
   # skip_taskbar: true
   timeout: 1
-  # xpos: 3380
+  # xpos: 0
   # ypos: 0
 
 ui:

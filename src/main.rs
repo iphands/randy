@@ -39,8 +39,7 @@ lazy_static! {
 
 fn get_css(conf: &Yaml, composited: bool) -> String {
     let css: String = String::from(include_str!("styles/app.css"));
-    let color_bar = conf["color_bar"].as_str().unwrap_or("#fff");
-    let color_background = conf["color_background"].as_str().unwrap_or("#000");
+    let color_background = conf["color_background"].as_str().unwrap_or("rgba(0, 0, 0, 0.5)");
     let color_trough = match composited {
         true  => conf["color_trough"].as_str().unwrap_or("rgba(0, 0, 0, 0)"),
         false => conf["color_trough"].as_str().unwrap_or(color_background),
@@ -49,12 +48,12 @@ fn get_css(conf: &Yaml, composited: bool) -> String {
     let font_size = conf["font_size"].as_str().unwrap_or("large");
 
     return css
-        .replace("{ color }",            conf["color_text"].as_str().unwrap_or("#fff"))
+        .replace("{ color }",            conf["color_text"].as_str().unwrap_or("#e1eeeb"))
         .replace("{ color_background }", color_background)
-        .replace("{ color_bar }",        conf["color_bar"].as_str().unwrap_or("#fff"))
-        .replace("{ color_bar_med }",    conf["color_bar_med"].as_str().unwrap_or(color_bar))
-        .replace("{ color_bar_high }",   conf["color_bar_high"].as_str().unwrap_or(color_bar))
-        .replace("{ color_label }",      conf["color_label"].as_str().unwrap_or("#eee"))
+        .replace("{ color_bar }",        conf["color_bar"].as_str().unwrap_or("#e1eeff"))
+        .replace("{ color_bar_med }",    conf["color_bar_med"].as_str().unwrap_or("#ffeeaa"))
+        .replace("{ color_bar_high }",   conf["color_bar_high"].as_str().unwrap_or("#ffaaaa"))
+        .replace("{ color_label }",      conf["color_label"].as_str().unwrap_or("#87d7ff"))
         .replace("{ color_trough }",     color_trough)
         .replace("{ font_family }",      conf["font_family"].as_str().unwrap_or("monospace"))
         .replace("{ font_size_top }",    conf["font_size_top"].as_str().unwrap_or(font_size))
@@ -62,8 +61,7 @@ fn get_css(conf: &Yaml, composited: bool) -> String {
 }
 
 fn _is_interactive(config: &Yaml) -> bool {
-    return config["decoration"].as_bool().unwrap_or(false) ||
-        config["resizable"].as_bool().unwrap_or(false);
+    return config["decoration"].as_bool().unwrap_or(false) || config["resizable"].as_bool().unwrap_or(false);
 }
 
 fn build_ui(application: &gtk::Application) {
