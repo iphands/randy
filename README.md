@@ -55,9 +55,13 @@ At the moment Randy only really runs on Linux. Running on ther operating systems
 
 ## Building
 ### Optional deps / features
-By default Randy turns on support for getting temp from NVIDIA cards via NVML shared objects and CPU temps via lm-sensors.
+* `nvidia`: Enable NVIDIA card temp sensing via NVML .so
+* `sensors`: Enable lm-sensors integration
 
-You can disable these by simply building with `--no-default-features`
+Example:
+```shell
+cargo run --features sensors,nvidia
+```
 
 ### Required build packages
 I have only barely looked into packaging but [jhjaggars](https://github.com/jhjaggars) put some helpful hints for Raspbian and Fedora in here:
