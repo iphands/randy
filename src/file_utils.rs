@@ -36,7 +36,7 @@ pub fn try_exact_match_strings_from_reader(reader: &mut BufReader<File>, filters
 
                 match hack {
                     Some(f) => match f(&line_num, &line) {
-                        false => continue,
+                        false => return Ok(lines_vec),
                         true  => (),
                     },
                     None => (),
