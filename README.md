@@ -5,6 +5,18 @@ Conky inspired system info viewer written in Rust / GTK3
 Conky was named after the puppet... so this thing is Randy
 > A man’s gotta eat, Julian.
 
+## Goals
+### Learn a ton
+I'm new to Rust (you can tell in the code!), having fun and learning a lot.
+
+### Frick Ricky, stay off the CPU
+Strive to do things in as little cycles as possible.
+Not do things as fast as possible (hence to parallel scans of /proc/*).
+```shell
+ps -eo etimes,times,command | grep randy
+```
+Check out the benches directory/sub-crate for some testing in pursuit of this goal.
+
 ## Features
 
 ### Configurable modules
@@ -28,15 +40,15 @@ Conky was named after the puppet... so this thing is Randy
 * font_size
 * mod_top - modulo used to skip frames for getting top data
 * mod_fs - modulo used to skip frames for getting filesystem data
-* resizable
-* skip_taskbar - incase you want to see a Randy item in the taskbar
+* resizable - bool to make the GUI resizable
+* skip_taskbar - in case you want to see a Randy item in the taskbar
 * timeout - time in seconds to wait between frame updates
 * xpos - starting position x
 * ypos - starting position y
 
 ## Building
 ### Optional deps / features
-By default Randy turns on support for getting temp from NVidia cards via NVML shared objects and CPU temps via lm-sensors.
+By default Randy turns on support for getting temp from NVIDIA cards via NVML shared objects and CPU temps via lm-sensors.
 
 You can disable these by simply building with `--no-default-features`
 
