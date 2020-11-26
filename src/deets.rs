@@ -248,7 +248,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
             Err(_) => return,
         };
 
-        let path = String::from(entry.path().to_str().unwrap());
+        let path = entry.path().into_os_string().into_string().unwrap();
         if path.bytes().nth(6).unwrap().is_ascii_digit() {
             let pid = &path[6..];
             pids.insert(pid.to_string());
