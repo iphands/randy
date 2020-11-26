@@ -527,6 +527,7 @@ pub fn get_frame_cache(do_top_bool: bool) -> FrameCache {
 
     #[cfg(feature = "timings")]
     println!("Size of PROC_PID_FILES: {}", PROC_PID_FILES.lock().unwrap().len());
+    #[cfg(feature = "timings")]
     println!("Size of PROC_STAT_READERS: {}\n", PROC_STAT_READERS.lock().unwrap().len());
 
     return FrameCache {
