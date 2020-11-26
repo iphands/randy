@@ -63,6 +63,8 @@ lazy_static! {
     static ref CPU_LOADS:      Mutex<HashMap<i32, CpuLoad>> = Mutex::new(HashMap::new());
     static ref PROC_LOAD_HIST: Mutex<HashMap<u32, (f64, f64)>> = Mutex::new(HashMap::new());
     static ref PROC_PID_FILES: Mutex<HashMap<String, BufReader<File>>> = Mutex::new(HashMap::new());
+    static ref PROC_STAT_READERS: Mutex<HashMap<u32, BufReader<File>>> = Mutex::new(HashMap::new());
+
     pub static ref CPU_COUNT: i32 = get_match_strings_from_path("/proc/cpuinfo", &vec!["processor"]).len() as i32;
     pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
 }
@@ -214,13 +216,37 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
     #[inline(always)]
     fn _do_cpu(path: &str, pid: &str, total_time: f64) -> f32 {
         let proc_loads_map = &mut PROC_LOAD_HIST.lock().unwrap();
-        let stat_line = match try_strings_from_path(&format!("{}/stat", &path), 1) {
+        let readers_map = &mut PROC_STAT_READERS.lock().unwrap();
+        let pid_u32   = pid.parse::<u32>().unwrap();
+
+        if !readers_map.contains_key(&pid_u32) {
+            let p = &format!("{}/stat", &path);
+            let tmp_reader = BufReader::new(match File::open(p) {
+                Ok(f)  => f,
+                Err(_) => return 0.0,
+            });
+
+            readers_map.insert(pid_u32, tmp_reader);
+        }
+
+        let reader = readers_map.get_mut(&pid_u32).unwrap();
+        match reader.seek(SeekFrom::Start(0)) {
+            Ok(_)  => (),
+            Err(_) => {
+                readers_map.remove(&pid_u32);
+                return 0.0;
+            },
+        };
+
+        let stat_line = match try_strings_from_reader(reader, 1) {
             Ok(v)  => v,
-            Err(_) => return 0.0,
+            Err(_) => {
+                readers_map.remove(&pid_u32);
+                return 0.0;
+            },
         };
 
         let stat_vec  = split_to_strs!(stat_line[0], " ");
-        let pid_u32   = pid.parse::<u32>().unwrap();
 
         let proc_time: f64 = stat_vec[13].parse::<f64>().unwrap() + stat_vec[14].parse::<f64>().unwrap();
 
@@ -234,7 +260,6 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
         proc_loads_map.insert(pid_u32, (proc_time, total_time));
         return util as f32;
     }
-
 
     let mut pids = HashSet::new();
     let match_vec = &vec!["Name", "VmRSS"];
@@ -258,12 +283,17 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
                     let reader = proc_files_map.get_mut(pid).unwrap();
                     match reader.seek(SeekFrom::Start(0)) {
                         Ok(_)  => (),
-                        Err(_) => return,
+                        Err(_) => {
+                            PROC_STAT_READERS.lock().unwrap().remove(&pid.parse::<u32>().unwrap());
+                            proc_files_map.remove(pid);
+                            return
+                        },
                     }
 
                     match try_exact_match_strings_from_reader(reader, match_vec, Some(_hack)) {
                         Ok(s)  => { s },
                         Err(_) => {
+                            PROC_STAT_READERS.lock().unwrap().remove(&pid.parse::<u32>().unwrap());
                             proc_files_map.remove(pid);
                             return;
                         },
@@ -292,7 +322,6 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
 
             match proc_used {
                 Ok(used) => {
-                    // let cpu = _do_cpu(&path, &pid, cpu_loads_map[&0].total as f64);
                     procs.push(PsInfo {
                         comm: String::from(&status_lines[0][6..]),
                         pid: String::from(pid),
@@ -305,6 +334,7 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
          }
     });
 
+    PROC_STAT_READERS.lock().unwrap().retain(|i, _| { pids.contains(&i.to_string()) });
     proc_files_map.retain(|i, _| { pids.contains(i) });
     return procs;
 }
@@ -496,7 +526,8 @@ pub fn get_frame_cache(do_top_bool: bool) -> FrameCache {
     let utsname = timings!("utsname", get_utsname);
 
     #[cfg(feature = "timings")]
-    println!("Size of PROC_PID_FILES: {}\n", PROC_PID_FILES.lock().unwrap().len());
+    println!("Size of PROC_PID_FILES: {}", PROC_PID_FILES.lock().unwrap().len());
+    println!("Size of PROC_STAT_READERS: {}\n", PROC_STAT_READERS.lock().unwrap().len());
 
     return FrameCache {
         sysinfo:   sysinfo,
