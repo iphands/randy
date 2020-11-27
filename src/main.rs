@@ -374,6 +374,7 @@ fn update_ui(config: &Yaml,
     let mod_top = config["mod_top"].as_i64().unwrap_or(2) as u64;
     let mod_fs  = config["mod_fs"].as_i64().unwrap_or(2)  as u64;
     let get_fs = deets::get_fs;
+    let get_mhz = deets::get_cpu_mhz;
 
     let update = move || {
         let mut frame_counter = FRAME_COUNT.lock().unwrap();
@@ -383,7 +384,7 @@ fn update_ui(config: &Yaml,
         };
 
         let mut frame_cache = deets::get_frame_cache(*frame_counter, should_top);
-        let cpu_mhz_vec = deets::get_cpu_mhz();
+        let cpu_mhz_vec = timings!("cpu_mhz", get_mhz);
         let cpu_mhz_vec_len = cpu_mhz_vec.len();
 
         if should_top {

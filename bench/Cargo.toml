@@ -17,5 +17,9 @@ harness = false
 name = "direntry"
 harness = false
 
+[["bench"]]
+name = "digit_test"
+harness = false
+
 [dev-dependencies]
 criterion = "0.3"

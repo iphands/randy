@@ -64,6 +64,8 @@ lazy_static! {
     static ref PROC_LOAD_HIST: Mutex<HashMap<u32, (f64, f64)>> = Mutex::new(HashMap::new());
     static ref PROC_PID_FILES: Mutex<HashMap<String, BufReader<File>>> = Mutex::new(HashMap::new());
     static ref PROC_STAT_READERS: Mutex<HashMap<u32, BufReader<File>>> = Mutex::new(HashMap::new());
+    static ref MOUNTS_READER:  Mutex<BufReader<File>> = Mutex::new(BufReader::new(File::open("/proc/mounts").unwrap()));
+    static ref CPU_INFO_FILE:  Mutex<File> = Mutex::new(File::open("/proc/cpuinfo").unwrap());
 
     pub static ref CPU_COUNT: i32 = get_match_strings_from_path("/proc/cpuinfo", &vec!["processor"]).len() as i32;
     pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
@@ -122,7 +124,7 @@ fn get_procs_count(proc_stat: &Vec<String>) -> String {
     };
 }
 
-pub fn get_ram_usage() -> (f64, f64)  {
+fn get_ram_usage() -> (f64, f64)  {
     fn reduce(i: u64) -> f64 {
         return (i as f64) / 1024.0 / 1024.0;
     }
@@ -140,7 +142,9 @@ pub fn get_ram_usage() -> (f64, f64)  {
 }
 
 pub fn get_cpu_mhz() -> Vec<u16> {
-    return get_match_strings_from_path("/proc/cpuinfo", &vec!["cpu MHz"])
+    let mut file = CPU_INFO_FILE.lock().unwrap();
+    file.seek(SeekFrom::Start(0)).unwrap();
+    return try_match_strings_from_file(&mut *file, &vec!["cpu MHz"]).unwrap()
         .into_iter()
         .map(|s| {
             return split_to_strs!(s, ": ")[1].parse::<f32>().unwrap() as u16;
@@ -452,17 +456,26 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
 pub fn get_fs(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
     let mut map: HashMap<String, FileSystemUsage> = HashMap::new();
 
-    let lines = try_strings_from_path("/proc/mounts", 1024).unwrap();
+    let reader = &mut MOUNTS_READER.lock().unwrap();
+    reader.seek(SeekFrom::Start(0)).unwrap();
 
-    for line in lines {
+    let lines = try_strings_from_reader(reader, 1024).unwrap();
+
+    // TODO we know the items to look for ahead of time
+    // optimize this!
+
+    let keys_total = keys.len();
+    let mut found_count = 0;
+
+    lines.iter().find(|line| {
         let tokens = split_to_strs!(line, ' ');
-        for path in keys.iter() {
-            if tokens[1] == *path {
-                let test = CString::new(*path).unwrap();
+        let ret = keys.iter().find(|path| {
+            if tokens[1] == **path {
+                let test = CString::new(**path).unwrap();
                 let mut statvfs: libc::statvfs = unsafe { mem::zeroed() };
                 unsafe { libc::statvfs(test.as_ptr(), &mut statvfs) };
 
-                let free  = ((statvfs.f_bsize  * statvfs.f_bfree)  / 1024 / 1024) as f64 / 1024.0;
+                let free  = ((statvfs.f_bsize  * statvfs.f_bfree) / 1024 / 1024) as f64 / 1024.0;
                 let mut total = ((statvfs.f_frsize * statvfs.f_blocks) / 1024 / 1024) as f64 / 1024.0;
                 let mut used  = total - free;
                 let mut size_char = 'G';
@@ -473,16 +486,23 @@ pub fn get_fs(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
                     size_char = 'M';
                 }
 
-                map.insert(String::from(*path), FileSystemUsage {
+                map.insert(String::from(**path), FileSystemUsage {
                     used: used,
                     total: total,
                     used_str: format!("{:.0}{}", used, size_char),
                     total_str: format!("{:.0}{}", total, size_char),
                     use_pct: format!("{:.0}%", (used / total) * 100.0),
                 });
+
+                found_count += 1;
+                if found_count == keys_total { return true; }
             }
-        }
-    }
+            return false;
+        });
+
+        ret == None
+    });
+
     return map;
 }
 

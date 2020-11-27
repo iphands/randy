@@ -20,7 +20,8 @@ settings:
   #font_family: "\"Noto Sans\""
   font_family: "\"Droid Sans Mono\""
   font_size: 11pt
-  timeout: 2
+  timeout: 1
+  # mod_top: 2
   xpos: 0
   ypos: 0
 
