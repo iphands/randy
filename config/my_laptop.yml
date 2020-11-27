@@ -71,10 +71,9 @@ ui:
       - func: load
         text: "Load:"
 
-  - text: CPUS
+  - text: CPU
     type: cpus
     func: cpus
-    text: "CPU"
 
   - text: TOP CPU
     type: cpu_consumers
@@ -83,6 +82,12 @@ ui:
   - text: TOP MEMORY
     type: mem_consumers
     limit: 3
+
+  - text: NETWORKING
+    type: net
+    items:
+      - name: wifi
+        interface: wlp2s0
 
   - text: FILESYSTEM
     type: filesystem

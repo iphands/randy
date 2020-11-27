@@ -33,6 +33,15 @@ struct TopRow {
     pct: gtk::Label,
 }
 
+struct UiStash {
+    cpus: Vec<Cpu>,
+    fs: HashMap<String, (gtk::Label, gtk::ProgressBar)>,
+    // net:
+    system: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
+    top_mems: Vec<TopRow>,
+    top_cpus: Vec<TopRow>,
+}
+
 lazy_static! {
     static ref FRAME_COUNT: Mutex<u64> = Mutex::new(0);
 }
@@ -101,14 +110,16 @@ fn build_ui(application: &gtk::Application) {
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
     vbox.get_style_context().add_class("container");
 
-    let mut values: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)> = HashMap::new();
-    let mut cpus: Vec<Cpu>    = Vec::new();
-    let mut top_mems: Vec<TopRow> = Vec::new();
-    let mut top_cpus: Vec<TopRow> = Vec::new();
-    let mut stash_fs: HashMap<String, (gtk::Label, gtk::ProgressBar)> = HashMap::new();
+    let mut stash = UiStash {
+        system: HashMap::new(),
+        cpus: Vec::new(),
+        top_mems: Vec::new(),
+        top_cpus: Vec::new(),
+        fs: HashMap::new(),
+    };
 
-    init_ui(&mut values, &mut cpus, &mut top_mems, &mut top_cpus, &mut stash_fs, &vbox, &config["ui"]);
-    update_ui(&config["settings"], values, cpus, top_mems, top_cpus, stash_fs);
+    init_ui(&mut stash, &vbox, &config["ui"]);
+    update_ui(&config["settings"], stash);
 
     window.add(&vbox);
     window.show_all();
@@ -250,11 +261,7 @@ fn add_consumers(uniq_item: &str, limit: i64, container: &gtk::Box, mems: &mut V
     container.add(&columns[2]);
 }
 
-fn init_ui(values: &mut HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
-           cpus: &mut Vec<Cpu>,
-           top_mems: &mut Vec<TopRow>,
-           top_cpus: &mut Vec<TopRow>,
-           stash_fs: &mut HashMap<String, (gtk::Label, gtk::ProgressBar)>,
+fn init_ui(stash: &mut UiStash,
            vbox: &gtk::Box,
            ui_config: &yaml_rust::Yaml) {
 
@@ -271,14 +278,15 @@ fn init_ui(values: &mut HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::Progre
         if !i["type"].is_badvalue() {
             let limit = i["limit"].as_i64().unwrap_or(5);
             match i["type"].as_str().unwrap() {
-                "cpus" => add_cpus(&inner_box, cpus),
-                "mem_consumers" => add_consumers("MEM", limit, &inner_box,  top_mems),
-                "cpu_consumers" => add_consumers("CPU", limit, &inner_box,  top_cpus),
-                "filesystem" =>    add_filesystem(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), stash_fs),
+                "cpus"          => add_cpus(&inner_box, &mut stash.cpus),
+                "mem_consumers" => add_consumers("MEM", limit, &inner_box, &mut stash.top_mems),
+                "cpu_consumers" => add_consumers("CPU", limit, &inner_box, &mut stash.top_cpus),
+                "filesystem"    => add_filesystem(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.fs),
+                // "net"           => add_net(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new())),
                 "system" => {
                     for item in i["items"].as_vec().unwrap_or(&Vec::new()) {
                         let val = add_standard(item, &inner_box);
-                        values.insert(item.clone(), val);
+                        stash.system.insert(item.clone(), val);
                     }
                 }
                 _ => (),
@@ -345,12 +353,7 @@ fn _update_bar(bar: &gtk::ProgressBar, fraction: f64) {
     bar.set_fraction(fraction);
 }
 
-fn update_ui(config: &Yaml,
-             values: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
-             cpus: Vec<Cpu>,
-             top_mems: Vec<TopRow>,
-             top_cpus: Vec<TopRow>,
-             stash_fs: HashMap<String, (gtk::Label, gtk::ProgressBar)>) {
+fn update_ui(config: &Yaml, stash: UiStash) {
 
     fn do_top(ps_info: &Vec<deets::PsInfo>, top_ui_items: &Vec<TopRow>, member: &str) {
         for (i, lbl) in top_ui_items.iter().enumerate() {
@@ -379,7 +382,7 @@ fn update_ui(config: &Yaml,
 
     let update = move || {
         let mut frame_counter = FRAME_COUNT.lock().unwrap();
-        let should_top = match &top_cpus.len() + &top_mems.len() {
+        let should_top = match &stash.top_cpus.len() + &stash.top_mems.len() {
             0 => false,
             _ => *frame_counter % mod_top == 0,
         };
@@ -390,22 +393,22 @@ fn update_ui(config: &Yaml,
 
         if should_top {
             frame_cache.ps_info.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap());
-            do_top(&frame_cache.ps_info, &top_cpus, "cpu");
+            do_top(&frame_cache.ps_info, &stash.top_cpus, "cpu");
 
             frame_cache.ps_info.sort_by(|a, b| b.mem.partial_cmp(&a.mem).unwrap());
-            do_top(&frame_cache.ps_info, &top_mems, "mem");
+            do_top(&frame_cache.ps_info, &stash.top_mems, "mem");
         }
 
-        if stash_fs.len() != 0 && (*frame_counter % mod_fs == 0) {
-            let fs_usage = timings!("fs_usage", get_fs, stash_fs.keys().map(|s| s.as_str()).collect::<Vec<&str>>());
+        if stash.fs.len() != 0 && (*frame_counter % mod_fs == 0) {
+            let fs_usage = timings!("fs_usage", get_fs, stash.fs.keys().map(|s| s.as_str()).collect::<Vec<&str>>());
             fs_usage.iter().for_each(|(k, v)| {
-                let stash = stash_fs.get(k).unwrap();
+                let stash = stash.fs.get(k).unwrap();
                 stash.0.set_text(&format!("{} / {} {}", v.used_str, v.total_str, v.use_pct));
                 _update_bar(&stash.1, v.used / v.total);
             });
         }
 
-        cpus.iter().enumerate().for_each(|(i, cpu)| {
+        stash.cpus.iter().enumerate().for_each(|(i, cpu)| {
             let usage = deets::get_cpu_usage(i as i32);
 
             if cpu_mhz_vec_len != 0 {
@@ -416,7 +419,7 @@ fn update_ui(config: &Yaml,
             cpu.pct_label.set_text(&format!("{:.0}%", usage));
         });
 
-        values.iter().for_each(|(item, val)| {
+        stash.system.iter().for_each(|(item, val)| {
             let func: &str = item["func"].as_str().unwrap();
             let deet = deets::do_func(item, &frame_cache);
             val.0.set_text(&deet.as_str());
