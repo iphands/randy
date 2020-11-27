@@ -382,7 +382,7 @@ fn update_ui(config: &Yaml,
             _ => *frame_counter % mod_top == 0,
         };
 
-        let mut frame_cache = deets::get_frame_cache(should_top);
+        let mut frame_cache = deets::get_frame_cache(*frame_counter, should_top);
         let cpu_mhz_vec = deets::get_cpu_mhz();
         let cpu_mhz_vec_len = cpu_mhz_vec.len();
 

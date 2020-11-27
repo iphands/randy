@@ -191,10 +191,11 @@ fn get_cpu_temp_sys() -> String {
     }
 }
 
-fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
+fn get_ps_from_proc(counter: u64, mem_used: f64) -> Vec<PsInfo> {
     let mut procs = Vec::new();
     let cpu_loads_map  = &mut CPU_LOADS.lock().unwrap();
     let proc_files_map = &mut PROC_PID_FILES.lock().unwrap();
+    let should_run_retain = counter % 15 == 0;
 
     fn _hack(line_num: &i32, line: &str) -> bool {
         if line_num == &0 {
@@ -276,7 +277,10 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
         let path = entry.path().into_os_string().into_string().unwrap();
         if path.bytes().nth(6).unwrap().is_ascii_digit() {
             let pid = &path[6..];
-            pids.insert(pid.to_string());
+
+            if should_run_retain {
+                pids.insert(pid.to_string());
+            }
 
             let status_lines = match proc_files_map.contains_key(pid) {
                 true => {
@@ -334,8 +338,11 @@ fn get_ps_from_proc(mem_used: f64) -> Vec<PsInfo> {
          }
     });
 
-    PROC_STAT_READERS.lock().unwrap().retain(|i, _| { pids.contains(&i.to_string()) });
-    proc_files_map.retain(|i, _| { pids.contains(i) });
+    if should_run_retain {
+        PROC_STAT_READERS.lock().unwrap().retain(|i, _| { pids.contains(&i.to_string()) });
+        proc_files_map.retain(|i, _| { pids.contains(i) });
+    }
+
     return procs;
 }
 
@@ -508,20 +515,20 @@ pub fn get_fs_from_df(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
     return map;
 }
 
-fn _do_top(do_top_bool: bool, mem_total: f64) -> Vec<PsInfo> {
+fn _do_top(counter: u64, do_top_bool: bool, mem_total: f64) -> Vec<PsInfo> {
     return match do_top_bool {
-        true => get_ps_from_proc(mem_total * 10000.0),
+        true => get_ps_from_proc(counter, mem_total * 10000.0),
         false => Vec::new()
     };
 }
 
-pub fn get_frame_cache(do_top_bool: bool) -> FrameCache {
+pub fn get_frame_cache(counter: u64, do_top_bool: bool) -> FrameCache {
     let proc_stat = timings!("proc_stat", get_proc_stat);
     // Always warm this cache up!
     timings!("all_cpu", do_all_cpu_usage, &proc_stat);
 
     let mem = timings!("ram_usage", get_ram_usage);
-    let ps_info = timings!("ps_info", _do_top, do_top_bool, mem.1);
+    let ps_info = timings!("ps_info", _do_top, counter, do_top_bool, mem.1);
     let sysinfo = timings!("sysinfo", get_sysinfo);
     let utsname = timings!("utsname", get_utsname);
 
