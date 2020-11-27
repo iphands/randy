@@ -124,7 +124,7 @@ fn get_procs_count(proc_stat: &Vec<String>) -> String {
     };
 }
 
-pub fn get_ram_usage() -> (f64, f64)  {
+fn get_ram_usage() -> (f64, f64)  {
     fn reduce(i: u64) -> f64 {
         return (i as f64) / 1024.0 / 1024.0;
     }
