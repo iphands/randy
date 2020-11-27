@@ -194,7 +194,7 @@ fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
     }
 }
 
-fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) {
+fn add_consumers(uniq_item: &str, limit: i64, container: &gtk::Box, mems: &mut Vec<TopRow>) {
     container.get_style_context().add_class("top-frame");
     container.set_orientation(gtk::Orientation::Horizontal);
 
@@ -222,14 +222,13 @@ fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) 
         }
     }
 
-    // for (i, name) in [ "NAME-------------", "------PID", &format!("-----{}", uniq_item) ].iter().enumerate() {
     for (i, name) in [ "NAME             ", "      PID", &format!("     {}", uniq_item) ].iter().enumerate() {
         let label = gtk::Label::new(None);
         label.set_text(&name);
         add_to_column(i, &label, &columns);
     }
 
-    for _ in 0..5 {
+    for _ in 0..limit {
         let mut tmp: Vec<gtk::Label> = Vec::new();
 
         for i in 0..3 {
@@ -269,10 +268,11 @@ fn init_ui(values: &mut HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::Progre
         frame.add(&inner_box);
 
         if !i["type"].is_badvalue() {
+            let limit = i["limit"].as_i64().unwrap_or(5);
             match i["type"].as_str().unwrap() {
                 "cpus" => add_cpus(&inner_box, cpus),
-                "mem_consumers" => add_consumers("MEM", &inner_box,  top_mems),
-                "cpu_consumers" => add_consumers("CPU", &inner_box,  top_cpus),
+                "mem_consumers" => add_consumers("MEM", limit, &inner_box,  top_mems),
+                "cpu_consumers" => add_consumers("CPU", limit, &inner_box,  top_cpus),
                 "filesystem" =>    add_filesystem(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), stash_fs),
                 "system" => {
                     for item in i["items"].as_vec().unwrap_or(&Vec::new()) {
