@@ -195,11 +195,11 @@ fn get_cpu_temp_sys() -> String {
     }
 }
 
-fn get_ps_from_proc(counter: u64, mem_used: f64) -> Vec<PsInfo> {
+fn get_ps_from_proc(counter: u64, mod_top: u64, mem_used: f64) -> Vec<PsInfo> {
     let mut procs = Vec::new();
     let cpu_loads_map  = &mut CPU_LOADS.lock().unwrap();
     let proc_files_map = &mut PROC_PID_FILES.lock().unwrap();
-    let should_run_retain = counter % 15 == 0;
+    let should_run_retain = counter % (mod_top * 5) == 0;
 
     fn _hack(line_num: &i32, line: &str) -> bool {
         if line_num == &0 {
@@ -535,20 +535,20 @@ pub fn get_fs_from_df(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
     return map;
 }
 
-fn _do_top(counter: u64, do_top_bool: bool, mem_total: f64) -> Vec<PsInfo> {
+fn _do_top(counter: u64, mod_top: u64, do_top_bool: bool, mem_total: f64) -> Vec<PsInfo> {
     return match do_top_bool {
-        true => get_ps_from_proc(counter, mem_total * 10000.0),
+        true => get_ps_from_proc(counter, mod_top, mem_total * 10000.0),
         false => Vec::new()
     };
 }
 
-pub fn get_frame_cache(counter: u64, do_top_bool: bool) -> FrameCache {
+pub fn get_frame_cache(counter: u64, mod_top: u64, do_top_bool: bool) -> FrameCache {
     let proc_stat = timings!("proc_stat", get_proc_stat);
     // Always warm this cache up!
     timings!("all_cpu", do_all_cpu_usage, &proc_stat);
 
     let mem = timings!("ram_usage", get_ram_usage);
-    let ps_info = timings!("ps_info", _do_top, counter, do_top_bool, mem.1);
+    let ps_info = timings!("ps_info", _do_top, counter, mod_top, do_top_bool, mem.1);
     let sysinfo = timings!("sysinfo", get_sysinfo);
     let utsname = timings!("utsname", get_utsname);
 
