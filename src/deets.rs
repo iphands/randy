@@ -65,6 +65,7 @@ lazy_static! {
     static ref PROC_PID_FILES: Mutex<HashMap<String, BufReader<File>>> = Mutex::new(HashMap::new());
     static ref PROC_STAT_READERS: Mutex<HashMap<u32, BufReader<File>>> = Mutex::new(HashMap::new());
     static ref MOUNTS_READER:  Mutex<BufReader<File>> = Mutex::new(BufReader::new(File::open("/proc/mounts").unwrap()));
+    static ref CPU_INFO_FILE:  Mutex<File> = Mutex::new(File::open("/proc/cpuinfo").unwrap());
 
     pub static ref CPU_COUNT: i32 = get_match_strings_from_path("/proc/cpuinfo", &vec!["processor"]).len() as i32;
     pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
@@ -141,7 +142,9 @@ pub fn get_ram_usage() -> (f64, f64)  {
 }
 
 pub fn get_cpu_mhz() -> Vec<u16> {
-    return get_match_strings_from_path("/proc/cpuinfo", &vec!["cpu MHz"])
+    let mut file = CPU_INFO_FILE.lock().unwrap();
+    file.seek(SeekFrom::Start(0)).unwrap();
+    return try_match_strings_from_file(&mut *file, &vec!["cpu MHz"]).unwrap()
         .into_iter()
         .map(|s| {
             return split_to_strs!(s, ": ")[1].parse::<f32>().unwrap() as u16;
