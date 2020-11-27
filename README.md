@@ -37,6 +37,7 @@ At the moment Randy only really runs on Linux. Running on ther operating systems
 * Can enable/disable modules and sub items
 
 ### UI settings
+* bar_height - the height of the bars (default: 10px)
 * color_bar - base color of the usage bars
 * color_bar_med - color of the usage bars > 50% < 80%
 * color_bar_high - color of the usage bars > 80%

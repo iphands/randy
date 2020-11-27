@@ -48,6 +48,7 @@ fn get_css(conf: &Yaml, composited: bool) -> String {
     let font_size = conf["font_size"].as_str().unwrap_or("large");
 
     return css
+        .replace("{ bar_height }",       conf["bar_height"].as_str().unwrap_or("10px"))
         .replace("{ color }",            conf["color_text"].as_str().unwrap_or("#e1eeeb"))
         .replace("{ color_background }", color_background)
         .replace("{ color_bar }",        conf["color_bar"].as_str().unwrap_or("#e1eeff"))

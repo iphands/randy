@@ -57,7 +57,10 @@ progressbar.med > trough > progress {
 
 trough > progress {
     background-color: { color_bar } ;
-    min-height: 10px;
+}
+
+progress, trough {
+    min-height: { bar_height };
 }
 
 .top-frame label {
