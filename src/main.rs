@@ -397,14 +397,14 @@ fn update_ui(config: &Yaml,
 
         if stash_fs.len() != 0 && (*frame_counter % mod_fs == 0) {
             let fs_usage = timings!("fs_usage", get_fs, stash_fs.keys().map(|s| s.as_str()).collect::<Vec<&str>>());
-            for (k, v) in fs_usage.iter() {
+            fs_usage.iter().for_each(|(k, v)| {
                 let stash = stash_fs.get(k).unwrap();
                 stash.0.set_text(&format!("{} / {} {}", v.used_str, v.total_str, v.use_pct));
                 _update_bar(&stash.1, v.used / v.total);
-            }
+            });
         }
 
-        for (i, cpu) in cpus.iter().enumerate() {
+        cpus.iter().enumerate().for_each(|(i, cpu)| {
             let usage = deets::get_cpu_usage(i as i32);
 
             if cpu_mhz_vec_len != 0 {
@@ -413,9 +413,9 @@ fn update_ui(config: &Yaml,
 
             _update_bar(&cpu.progress, usage / 100.0);
             cpu.pct_label.set_text(&format!("{:.0}%", usage));
-        }
+        });
 
-        for (item, val) in values.iter() {
+        values.iter().for_each(|(item, val)| {
             let func: &str = item["func"].as_str().unwrap();
             let deet = deets::do_func(item, &frame_cache);
             val.0.set_text(&deet.as_str());
@@ -430,7 +430,7 @@ fn update_ui(config: &Yaml,
                 },
                 _ => (),
             }
-        }
+        });
 
         *frame_counter += 1;
         return glib::Continue(true);
