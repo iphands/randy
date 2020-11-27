@@ -22,8 +22,8 @@ settings:
   font_size: 11pt
   timeout: 1
   # mod_top: 2
-  # xpos: 0
-  # ypos: 0
+  xpos: 0
+  ypos: 0
 
 ui:
   - text: SYSTEM
