@@ -48,6 +48,9 @@ ui:
         text: "Load:"
 
       # requires that you build with --features sensors
+      # look at the output of runnig `sensors` from the CLI for the
+      # values of: sensor_name, label_name etc
+      #
       # - func: sensor_info
       #   sensor_name: k10temp-pci-00c3
       #   label_name: Tdie
@@ -60,6 +63,12 @@ ui:
       #   val: "{}mV"
       #   text: "CPU vcore:"
       #   whole: false
+      # - func: sensor_info
+      #   sensor_name: thinkpad-isa-0000
+      #   label_name: fan1
+      #   val: "{} RPM"
+      #   text: "Fan speed:"
+      #   whole: true
 
       # requires that you build with --features nvidia
       # - func: nvidia_gpu_temp
