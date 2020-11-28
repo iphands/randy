@@ -33,6 +33,7 @@ At the moment Randy only really runs on Linux. Running on ther operating systems
   * cpu_consumers - top N pids using cpu and their usage
   * mem_consumers - top N pids using mem and their usage
   * filesystem - usage of a given mounted filesystem
+  * net - usage recv/trans for a given network interface
 * Can order the modules how you wish
 * Can enable/disable modules and sub items
 

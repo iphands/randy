@@ -87,6 +87,12 @@ ui:
     type: mem_consumers
     limit: 5
 
+  # - text: NETWORKING
+  #   type: net
+  #   items:
+  #     - name: wifi
+  #       interface: wlp2s0
+
   - text: FILESYSTEM
     type: filesystem
     items:

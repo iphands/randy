@@ -16,7 +16,7 @@ use std::fs;
 use std::collections::HashMap;
 use std::env::args;
 use std::sync::Mutex;
-
+use std::time::Instant;
 use yaml_rust::{YamlLoader, Yaml};
 
 const SPACING: i32 = 3;
@@ -36,10 +36,15 @@ struct TopRow {
 struct UiStash {
     cpus: Vec<Cpu>,
     fs: HashMap<String, (gtk::Label, gtk::ProgressBar)>,
-    // net:
+    net: HashMap<String, (gtk::Label, gtk::Label)>,
     system: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
     top_mems: Vec<TopRow>,
     top_cpus: Vec<TopRow>,
+}
+
+struct NetDevCache {
+    last_bytes: u64,
+    last_instant: Instant,
 }
 
 lazy_static! {
@@ -113,6 +118,7 @@ fn build_ui(application: &gtk::Application) {
     let mut stash = UiStash {
         system: HashMap::new(),
         cpus: Vec::new(),
+        net: HashMap::new(),
         top_mems: Vec::new(),
         top_cpus: Vec::new(),
         fs: HashMap::new(),
@@ -282,7 +288,7 @@ fn init_ui(stash: &mut UiStash,
                 "mem_consumers" => add_consumers("MEM", limit, &inner_box, &mut stash.top_mems),
                 "cpu_consumers" => add_consumers("CPU", limit, &inner_box, &mut stash.top_cpus),
                 "filesystem"    => add_filesystem(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.fs),
-                // "net"           => add_net(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new())),
+                "net"           => add_net(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.net),
                 "system" => {
                     for item in i["items"].as_vec().unwrap_or(&Vec::new()) {
                         let val = add_standard(item, &inner_box);
@@ -293,6 +299,60 @@ fn init_ui(stash: &mut UiStash,
             }
         }
     }
+}
+
+fn add_net(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, (gtk::Label, gtk::Label)>) {
+    container.set_orientation(gtk::Orientation::Horizontal);
+    container.get_style_context().add_class("net");
+
+    let key_col  = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+    let up_col   = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+    let down_col = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+
+    items.iter().for_each(|item| {
+        let key = gtk::Label::new(None);
+        key.get_style_context().add_class("key");
+        key.set_text(&format!("{}:", item["name"].as_str().unwrap()));
+        key.set_halign(gtk::Align::Start);
+        key.set_hexpand(true);
+        key_col.add(&key);
+
+        let up_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+        let up_lbl = gtk::Label::new(None);
+        up_box.set_halign(gtk::Align::Start);
+        up_lbl.set_halign(gtk::Align::Start);
+        up_lbl.set_text("Up");
+        up_box.add(&up_lbl);
+
+        let up_val = gtk::Label::new(None);
+        up_val.get_style_context().add_class("val");
+        up_val.set_hexpand(true);
+        up_val.set_halign(gtk::Align::End);
+        up_box.add(&up_val);
+        up_box.set_halign(gtk::Align::Fill);
+        up_col.add(&up_box);
+
+        let down_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+        let down_lbl = gtk::Label::new(None);
+        down_box.set_halign(gtk::Align::Start);
+        down_lbl.set_halign(gtk::Align::Start);
+        down_lbl.set_text("Down");
+        down_box.add(&down_lbl);
+
+        let down_val = gtk::Label::new(None);
+        down_val.get_style_context().add_class("val");
+        down_val.set_hexpand(true);
+        down_val.set_halign(gtk::Align::End);
+        down_box.add(&down_val);
+        down_box.set_halign(gtk::Align::Fill);
+        down_col.add(&down_box);
+
+        stash.insert(String::from(item["interface"].as_str().unwrap()), (up_val, down_val));
+    });
+
+    container.add(&key_col);
+    container.add(&up_col);
+    container.add(&down_col);
 }
 
 fn add_filesystem(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, (gtk::Label, gtk::ProgressBar)>) {
@@ -379,8 +439,35 @@ fn update_ui(config: &Yaml, stash: UiStash) {
     let mod_fs  = config["mod_fs"].as_i64().unwrap_or(2)  as u64;
     let get_fs = deets::get_fs;
     let get_mhz = deets::get_cpu_mhz;
+    let mut net_cache: HashMap<String, NetDevCache> = HashMap::new();
 
-    let update = move || {
+    fn _get_net_bps(cache: &mut HashMap<String, NetDevCache>, key: &str, curr_bytes: &u64) -> String {
+        if !cache.contains_key(key) {
+            cache.insert(String::from(key), NetDevCache {
+                last_bytes: curr_bytes.clone(),
+                last_instant: Instant::now(),
+            });
+        }
+
+        let cache_val = cache.get(key).unwrap();
+        let mut lbl = "KB";
+        let mut bytes = (curr_bytes - cache_val.last_bytes) as f64 / 1024.0;
+        bytes = (bytes * 1000.0) / (cache_val.last_instant.elapsed().as_millis() as f64);
+
+        if bytes > 1000.0 {
+            bytes = bytes / 1024.0;
+            lbl = "MB";
+        }
+
+        cache.insert(String::from(key), NetDevCache {
+            last_bytes: curr_bytes.clone(),
+            last_instant: Instant::now(),
+        });
+
+        return format!("{:.2} {}", bytes, lbl);
+    }
+
+    let mut update = move || {
         let mut frame_counter = FRAME_COUNT.lock().unwrap();
         let should_top = match &stash.top_cpus.len() + &stash.top_mems.len() {
             0 => false,
@@ -397,6 +484,16 @@ fn update_ui(config: &Yaml, stash: UiStash) {
 
             frame_cache.ps_info.sort_by(|a, b| b.mem.partial_cmp(&a.mem).unwrap());
             do_top(&frame_cache.ps_info, &stash.top_mems, "mem");
+        }
+
+        if stash.net.len() != 0 {
+            stash.net.iter().for_each(|(interface, (up_lbl, down_lbl))| {
+                if frame_cache.net_dev.contains_key(interface) {
+                    let (up, down) = frame_cache.net_dev.get(interface).unwrap();
+                    up_lbl.set_text(&_get_net_bps(&mut net_cache, &format!("{} up", interface), &up));
+                    down_lbl.set_text(&_get_net_bps(&mut net_cache, &format!("{} down", interface), &down));
+                }
+            });
         }
 
         if stash.fs.len() != 0 && (*frame_counter % mod_fs == 0) {
