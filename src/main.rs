@@ -454,9 +454,14 @@ fn update_ui(config: &Yaml, stash: UiStash) {
         let mut bytes = (curr_bytes - cache_val.last_bytes) as f64 / 1024.0;
         bytes = (bytes * 1000.0) / (cache_val.last_instant.elapsed().as_millis() as f64);
 
-        if bytes > 1000.0 {
+        if bytes > 990.0 {
             bytes = bytes / 1024.0;
             lbl = "MB";
+        }
+
+        if bytes > 990.0 {
+            bytes = bytes / 1024.0;
+            lbl = "GB";
         }
 
         cache.insert(String::from(key), NetDevCache {

@@ -81,6 +81,14 @@ ui:
     type: mem_consumers
     limit: 5
 
+  - text: NETWORKING
+    type: net
+    items:
+      - name: ige00
+        interface: ige00
+      - name: mel00
+        interface: mel00
+
   - text: FILESYSTEM
     type: filesystem
     items:
