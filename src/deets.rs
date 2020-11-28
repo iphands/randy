@@ -43,12 +43,13 @@ pub struct PsInfo {
 }
 
 pub struct FrameCache {
-    sysinfo: libc::sysinfo,
-    utsname: libc::utsname,
-    pub ps_info: Vec<PsInfo>,
-    proc_stat: Vec<String>,
     pub mem_total: f64,
     pub mem_free: f64,
+    pub net_dev: HashMap<String, (u64, u64)>,
+    pub ps_info: Vec<PsInfo>,
+    proc_stat: Vec<String>,
+    sysinfo: libc::sysinfo,
+    utsname: libc::utsname,
 }
 
 const LOAD_SHIFT_F32: f32 = (1 << libc::SI_LOAD_SHIFT) as f32;
@@ -551,6 +552,7 @@ pub fn get_frame_cache(counter: u64, mod_top: u64, do_top_bool: bool) -> FrameCa
     let ps_info = timings!("ps_info", _do_top, counter, mod_top, do_top_bool, mem.1);
     let sysinfo = timings!("sysinfo", get_sysinfo);
     let utsname = timings!("utsname", get_utsname);
+    let net_dev = timings!("net_dev", get_net_dev);
 
     #[cfg(feature = "timings")]
     println!("Size of PROC_PID_FILES: {}", PROC_PID_FILES.lock().unwrap().len());
@@ -564,7 +566,21 @@ pub fn get_frame_cache(counter: u64, mod_top: u64, do_top_bool: bool) -> FrameCa
         proc_stat: proc_stat,
         mem_free:  mem.0,
         mem_total: mem.1,
+        net_dev: net_dev,
     };
+}
+
+fn get_net_dev() -> HashMap<String, (u64, u64)> {
+    let lines = try_strings_from_path("/proc/net/dev", 1024).unwrap();
+    let mut map: HashMap<String, (u64, u64)> = HashMap::new();
+
+    lines.iter().skip(2).for_each(|line| {
+        let tokens = line.split_ascii_whitespace().collect::<Vec<&str>>();
+        map.insert(String::from(&tokens[0][0..(tokens[0].len() - 1)]),
+                   (tokens[9].parse::<u64>().unwrap(), tokens[1].parse::<u64>().unwrap()));
+    });
+
+    return map;
 }
 
 fn do_all_cpu_usage(proc_stat: &Vec<String>) {
