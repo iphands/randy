@@ -9,6 +9,13 @@ Conky was named after the puppet... so this thing is Randy
 ### Learn a ton
 I'm new to Rust (you can tell in the code!), having fun and learning a lot.
 
+I'd like to come up with a more standard "module" interface once I've developed more of the modules and refactor based on what I have learned.
+
+### Feature parity with my old Conky config
+**Done!** My old Conky setup looked more or less like [the Randy screenshot](https://github.com/iphands/randy#screenshot).
+
+Took 200+ commits to get there, but its there and working!
+
 ### Frick Ricky, stay off the CPU
 Strive to do things in as little cycles as possible.
 Not do things as fast as possible (hence to parallel scans of /proc/*).
@@ -21,8 +28,9 @@ ps -eo etimes,times,command | grep randy
 * Build with `--features timings` to see details about how long things take in Randy
 
 ### Linux only
-At the moment Randy only really runs on Linux. Running on ther operating systems is not a goal.
-*Note:* somone shared a screenshot of [Randy running on Windows](https://raw.githubusercontent.com/iphands/ronky/main/assets/winderz.png) with WSfL though :D.
+At the moment Randy only really runs on Linux. Running on other operating systems is not a goal.
+
+*Note:* someone shared a screenshot of [Randy running on Windows](https://raw.githubusercontent.com/iphands/ronky/main/assets/winderz.png) with WSfL though :D.
 
 ## Features
 
