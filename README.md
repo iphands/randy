@@ -50,6 +50,7 @@ At the moment Randy only really runs on Linux. Running on other operating system
 * color_bar - base color of the usage bars
 * color_bar_med - color of the usage bars > 50% < 80%
 * color_bar_high - color of the usage bars > 80%
+* color_borders - color of the GTK *borders* (frame borders, bar borders) defaults to same as *color_text*
 * color_label - color of the "labels"
 * color_text - color of all other text
 * decoration - hide/show window decorations

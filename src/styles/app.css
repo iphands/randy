@@ -16,6 +16,10 @@ window {
     padding-right: 0.25em;
 }
 
+* {
+    border-color: { color_borders };
+}
+
 .innerbox {
     padding-bottom: 0.25em;
 }

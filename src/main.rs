@@ -53,6 +53,7 @@ lazy_static! {
 
 fn get_css(conf: &Yaml, composited: bool) -> String {
     let css: String = String::from(include_str!("styles/app.css"));
+    let color_text = conf["color_text"].as_str().unwrap_or("#e1eeeb");
     let color_background = conf["color_background"].as_str().unwrap_or("rgba(0, 0, 0, 0.5)");
     let color_trough = match composited {
         true  => conf["color_trough"].as_str().unwrap_or("rgba(0, 0, 0, 0)"),
@@ -65,6 +66,7 @@ fn get_css(conf: &Yaml, composited: bool) -> String {
         .replace("{ bar_height }",       conf["bar_height"].as_str().unwrap_or("10px"))
         .replace("{ color }",            conf["color_text"].as_str().unwrap_or("#e1eeeb"))
         .replace("{ color_background }", color_background)
+        .replace("{ color_borders }",    conf["color_borders"].as_str().unwrap_or(color_text))
         .replace("{ color_bar }",        conf["color_bar"].as_str().unwrap_or("#e1eeff"))
         .replace("{ color_bar_med }",    conf["color_bar_med"].as_str().unwrap_or("#ffeeaa"))
         .replace("{ color_bar_high }",   conf["color_bar_high"].as_str().unwrap_or("#ffaaaa"))
