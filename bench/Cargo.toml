@@ -21,5 +21,9 @@ harness = false
 name = "digit_test"
 harness = false
 
+[["bench"]]
+name = "split"
+harness = false
+
 [dev-dependencies]
 criterion = "0.3"
