@@ -97,3 +97,9 @@ randy /tmp/configs/my_cool_config.yml
 ## Screenshots
 ![screenshot](https://raw.githubusercontent.com/iphands/ronky/main/assets/screenshot.png)
 ![screenshot_green](https://raw.githubusercontent.com/iphands/ronky/main/assets/green.png)
+
+## FAQ
+* Does randy work with Wayland?
+  * Yes, check out the [proof](https://raw.githubusercontent.com/iphands/ronky/main/assets/wayland.png)
+* Does randy wortk with X?
+  * Yes
