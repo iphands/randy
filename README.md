@@ -94,5 +94,6 @@ Example:
 randy /tmp/configs/my_cool_config.yml
 ```
 
-## Screenshot
+## Screenshots
 ![screenshot](https://raw.githubusercontent.com/iphands/ronky/main/assets/screenshot.png)
+![screenshot_green](https://raw.githubusercontent.com/iphands/ronky/main/assets/green.png)
