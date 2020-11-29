@@ -16,13 +16,13 @@ Not do things as fast as possible (hence to parallel scans of /proc/*).
 ps -eo etimes,times,command | grep randy
 ```
 
-### Linux only
-At the moment Randy only really runs on Linux. Running on ther operating systems is not a goal.
-*Note:* somone shared a screenshot of [Randy running on Windows](https://raw.githubusercontent.com/iphands/ronky/main/assets/winderz.png) with WSfL though :D.
-
 #### Speed tests
 * Check out the `bench` directory/sub-crate for some speed testing
 * Build with `--features timings` to see details about how long things take in Randy
+
+### Linux only
+At the moment Randy only really runs on Linux. Running on ther operating systems is not a goal.
+*Note:* somone shared a screenshot of [Randy running on Windows](https://raw.githubusercontent.com/iphands/ronky/main/assets/winderz.png) with WSfL though :D.
 
 ## Features
 
