@@ -470,7 +470,7 @@ pub fn get_fs(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
 
     lines.iter().find(|line| {
         let tokens = split_to_strs!(line, ' ');
-        let ret = keys.iter().find(|path| {
+        keys.iter().find(|path| {
             if tokens[1] == **path {
                 let test = CString::new(**path).unwrap();
                 let mut statvfs: libc::statvfs = unsafe { mem::zeroed() };
@@ -496,12 +496,10 @@ pub fn get_fs(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
                 });
 
                 found_count += 1;
-                if found_count == keys_total { return true; }
             }
-            return false;
+            found_count == keys_total
         });
-
-        ret == None
+        found_count == keys_total
     });
 
     return map;
