@@ -125,10 +125,9 @@ fn build_ui(application: &gtk::Application) {
     };
 
     init_ui(&mut stash, &vbox, &config["ui"]);
-    update_ui(&config["settings"], stash);
-
     window.add(&vbox);
     window.show_all();
+    update_ui(&config["settings"], stash);
 }
 
 fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> (gtk::Label, Option<gtk::ProgressBar>) {
@@ -328,6 +327,7 @@ fn add_net(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, 
         up_val.get_style_context().add_class("val");
         up_val.set_hexpand(true);
         up_val.set_halign(gtk::Align::End);
+        up_val.set_text("0000.00 KB");
         up_box.add(&up_val);
         up_box.set_halign(gtk::Align::Fill);
         up_col.add(&up_box);
@@ -343,6 +343,7 @@ fn add_net(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, 
         down_val.get_style_context().add_class("val");
         down_val.set_hexpand(true);
         down_val.set_halign(gtk::Align::End);
+        down_val.set_text("0000.00 KB");
         down_box.add(&down_val);
         down_box.set_halign(gtk::Align::Fill);
         down_col.add(&down_box);
