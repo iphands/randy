@@ -131,7 +131,8 @@ fn get_ram_usage() -> (f64, f64)  {
     }
 
     fn get_item(i: usize, v: &Vec<String>) -> u64 {
-        return v[i].split(' ').collect::<String>()
+        return v[i]
+            .split_ascii_whitespace().collect::<String>()
             .split(':').collect::<Vec<&str>>()[1]
             .replace("kB", "").parse().unwrap();
     }
@@ -252,7 +253,7 @@ fn get_ps_from_proc(counter: u64, mod_top: u64, mem_used: f64) -> Vec<PsInfo> {
             },
         };
 
-        let stat_vec  = split_to_strs!(stat_line[0], " ");
+        let stat_vec  = split_spc_to_strs!(stat_line[0]);
 
         let proc_time: f64 = stat_vec[13].parse::<f64>().unwrap() + stat_vec[14].parse::<f64>().unwrap();
 
@@ -369,7 +370,7 @@ fn get_ps() -> Vec<PsInfo> {
     let out_str = String::from_utf8_lossy(&output.stdout);
 
     for line in out_str.lines() {
-        let tmp = split_to_strs!(line, " ")
+        let tmp = split_spc_to_strs!(line)
             .into_iter()
             .filter(|s| s != &"")
             .collect::<Vec<&str>>();
@@ -469,7 +470,7 @@ pub fn get_fs(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
     let mut found_count = 0;
 
     lines.iter().find(|line| {
-        let tokens = split_to_strs!(line, ' ');
+        let tokens = split_spc_to_strs!(line);
         keys.iter().find(|path| {
             if tokens[1] == **path {
                 let test = CString::new(**path).unwrap();
@@ -573,7 +574,7 @@ fn get_net_dev() -> HashMap<String, (u64, u64)> {
     let mut map: HashMap<String, (u64, u64)> = HashMap::new();
 
     lines.iter().skip(2).for_each(|line| {
-        let tokens = line.split_ascii_whitespace().collect::<Vec<&str>>();
+        let tokens = split_spc_to_strs!(line);
         map.insert(String::from(&tokens[0][0..(tokens[0].len() - 1)]),
                    (tokens[9].parse::<u64>().unwrap(), tokens[1].parse::<u64>().unwrap()));
     });
@@ -596,7 +597,7 @@ fn do_all_cpu_usage(proc_stat: &Vec<String>) {
         let last_load = &loads_map[&cpu_num];
 
         let proc_stat_line_items: Vec<u64> = proc_stat[(cpu_num + 1) as usize]
-            .split(' ')
+            .split_ascii_whitespace()
             .filter_map(|s| s.parse::<u64>().ok())
             .collect();
 
