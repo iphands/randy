@@ -4,7 +4,7 @@ settings:
   # color_background: "rgba(0, 0, 0, 0.75);"
   # color_label: "#eee"
   # color_text:  "#fff"
-  # opacity:  "0.8"
+  # base_opacity:  "0.8"
   # decoration: false
   # font_size: large
   # mod_top: 2
