@@ -498,8 +498,11 @@ fn update_ui(config: &Yaml, stash: UiStash) {
     let timeout = config["timeout"].as_i64().unwrap_or(1);
     let mod_top = config["mod_top"].as_i64().unwrap_or(2) as u64;
     let mod_fs  = config["mod_fs"].as_i64().unwrap_or(2)  as u64;
+    let mod_bat = config["mod_bat"].as_i64().unwrap_or(2) as u64;
+
     let get_fs = deets::get_fs;
     let get_mhz = deets::get_cpu_mhz;
+    let get_battery = deets::get_battery;
     let mut net_cache: HashMap<String, NetDevCache> = HashMap::new();
 
     fn _get_net_bps(cache: &mut HashMap<String, NetDevCache>, key: &str, curr_bytes: &u64) -> String {
@@ -552,9 +555,9 @@ fn update_ui(config: &Yaml, stash: UiStash) {
             do_top(&frame_cache.ps_info, &stash.top_mems, "mem");
         }
 
-        if stash.batts.len() != 0 {
+        if stash.batts.len() != 0 && (*frame_counter % mod_bat == 0) {
             stash.batts.iter().for_each(|(path, battery)| {
-                let (plugged, pct) = deets::get_battery(path);
+                let (plugged, pct) = timings!("battery", get_battery, path);
                 battery.lbl_status.set_text(match plugged { true => &battery.str_plugged, false => &battery.str_battery, });
                 battery.lbl_pct.set_text(&battery.str_pct_template.replace("{}", &pct));
             });

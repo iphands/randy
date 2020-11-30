@@ -25,5 +25,9 @@ harness = false
 name = "split"
 harness = false
 
+[["bench"]]
+name = "bat_test"
+harness = false
+
 [dev-dependencies]
 criterion = "0.3"

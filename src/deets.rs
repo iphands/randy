@@ -67,6 +67,7 @@ lazy_static! {
     static ref PROC_STAT_READERS: Mutex<HashMap<u32, BufReader<File>>> = Mutex::new(HashMap::new());
     static ref MOUNTS_READER:  Mutex<BufReader<File>> = Mutex::new(BufReader::new(File::open("/proc/mounts").unwrap()));
     static ref CPU_INFO_FILE:  Mutex<File> = Mutex::new(File::open("/proc/cpuinfo").unwrap());
+    static ref BATTERY_CACHE:  Mutex<HashMap<String, (BufReader<File>, BufReader<File>)>> = Mutex::new(HashMap::new());
 
     pub static ref CPU_COUNT: i32 = get_match_strings_from_path("/proc/cpuinfo", &vec!["processor"]).len() as i32;
     pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
@@ -387,12 +388,23 @@ fn get_ps() -> Vec<PsInfo> {
 }
 
 pub fn get_battery(path: &str) -> (bool, String) {
-    let capacity = &try_strings_from_path(&format!("{}/capacity", path), 1).unwrap()[0];
-    let status   = match try_strings_from_path(&format!("{}/status", path), 1).unwrap()[0].as_str() {
+    let mut reader_map = BATTERY_CACHE.lock().unwrap();
+    let path_string = String::from(path);
+
+    if !reader_map.contains_key(path) {
+        let cap_reader    = BufReader::new(File::open(format!("{}/capacity", path)).unwrap());
+        let status_reader = BufReader::new(File::open(format!("{}/status", path)).unwrap());
+        reader_map.insert(path_string, (cap_reader, status_reader));
+    }
+
+    let (cap_reader, status_reader) = reader_map.get_mut(path).unwrap();
+    let capacity = &try_strings_from_reader(cap_reader, 1).unwrap()[0];
+
+    let status   = match try_strings_from_reader(status_reader, 1).unwrap()[0].as_str() {
         "Discharging" => false,
-        "Full" => true,
-        "Uknown" => true,
-        _ => true,
+        "Full"        => true,
+        "Uknown"      => true,
+        _             => true,
     };
 
     return (status, String::from(capacity));
@@ -471,8 +483,6 @@ pub fn get_fs(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
     let mut map: HashMap<String, FileSystemUsage> = HashMap::new();
 
     let reader = &mut MOUNTS_READER.lock().unwrap();
-    reader.seek(SeekFrom::Start(0)).unwrap();
-
     let lines = try_strings_from_reader(reader, 1024).unwrap();
 
     // TODO we know the items to look for ahead of time

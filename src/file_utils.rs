@@ -1,6 +1,6 @@
 use std::{str, fs};
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Seek, SeekFrom};
 use std::io::prelude::*;
 
 pub fn get_strings_from_path(path: &str, line_end: usize) -> Vec<String> {
@@ -91,6 +91,7 @@ pub fn try_match_strings_from_path(path: &str, filters: &Vec<&str>) -> Result<Ve
 
 #[inline(always)]
 pub fn try_strings_from_reader(reader: &mut BufReader<File>, line_end: usize) -> Result<Vec<String>, std::io::Error> {
+    reader.seek(SeekFrom::Start(0)).unwrap();
     let mut lines: Vec<String> = Vec::new();
     for _ in 0..line_end {
         let mut line = String::new();

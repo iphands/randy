@@ -57,8 +57,9 @@ At the moment Randy only really runs on Linux. Running on other operating system
 * decoration - hide/show window decorations
 * font_family - the CSS-style font family string (font names with spaces must be wrapped in escaped quotes, eg `fo_family: "\"Terminus (TTF)\", \"Liberation Mono\", monospace"`)
 * font_size
-* mod_top - modulo used to skip frames for getting top data
-* mod_fs - modulo used to skip frames for getting filesystem data
+* mod_bat -modulo used to skip frames for getting battery data (default: 2)
+* mod_fs - modulo used to skip frames for getting filesystem data (default: 2)
+* mod_top - modulo used to skip frames for getting top data (default: 2)
 * resizable - bool to make the GUI resizable
 * skip_taskbar - in case you want to see a Randy item in the taskbar
 * timeout - time in seconds to wait between frame updates

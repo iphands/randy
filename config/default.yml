@@ -10,8 +10,9 @@ settings:
   # decoration: false
   # font_family: "\"Liberation Mono\", monospace"
   # font_size: large
+  # mod_bat: 2
+  # mod_fs:  2
   # mod_top: 2
-  # mod_fs: 5
   # resizable: false
   # skip_taskbar: true
   timeout: 1
@@ -99,8 +100,8 @@ ui:
   #   items:
   #     - name: bat0
   #       path: /sys/devices/LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/device:19/PNP0C09:00/PNP0C0A:00/power_supply/BAT0
-  #       battery_text:  "discharging 🔋"
-  #       pluggged_text: "charging    ⚡"
+  #       battery_text:  "Uplugged   🔋"
+  #       pluggged_text: "Plugged in ⚡"
   #       percent_template: "{}%"
 
   - text: FILESYSTEM
