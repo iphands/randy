@@ -2,3 +2,6 @@
 /scratch
 /stash
 /bench/target
+
+/packaging/flatpak/.flatpak-builder/
+/packaging/flatpak/build-dir/

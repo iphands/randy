@@ -1,0 +1,28 @@
+app-id: org.ahands.ian.randy
+runtime: org.gnome.Platform
+runtime-version: '3.38'
+sdk: org.gnome.Sdk
+command: randy
+
+finish-args:
+  - "--share=ipc"
+  - "--socket=x11"
+  - "--env=GDK_BACKEND=x11"
+  - "--socket=wayland"
+  - "--filesystem=/proc:ro"
+  - "--socket=session-bus"
+
+modules:
+  - name: randy
+    buildsystem: simple
+    build-commands:
+      - install -D randy /app/bin/randy
+    post-install:
+      - install -Dm644 org.ahands.ian.Randy.default.yml /app/bin/config/default.yml
+    sources:
+      - type: file
+        path: /home/iphands/prog/rust/randy/target/debug/randy
+        # path: /bin/randy
+      - type: file
+        path: /home/iphands/prog/rust/randy/config/default.yml
+        dest-filename: org.ahands.ian.Randy.default.yml
