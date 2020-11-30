@@ -94,6 +94,15 @@ ui:
   #     - name: wifi
   #       interface: wlp2s0
 
+  # - text: BATTERY
+  #   type: battery
+  #   items:
+  #     - name: bat0
+  #       path: /sys/devices/LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/device:19/PNP0C09:00/PNP0C0A:00/power_supply/BAT0
+  #       battery_text:  "discharging 🔋"
+  #       pluggged_text: "charging    ⚡"
+  #       percent_template: "{}%"
+
   - text: FILESYSTEM
     type: filesystem
     items:

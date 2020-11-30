@@ -34,12 +34,21 @@ struct TopRow {
 }
 
 struct UiStash {
+    batts: HashMap<String, Battery>,
     cpus: Vec<Cpu>,
     fs: HashMap<String, (gtk::Label, gtk::ProgressBar)>,
     net: HashMap<String, (gtk::Label, gtk::Label)>,
     system: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
     top_mems: Vec<TopRow>,
     top_cpus: Vec<TopRow>,
+}
+
+struct Battery {
+    lbl_pct:          gtk::Label,
+    lbl_status:       gtk::Label,
+    str_battery:      String,
+    str_plugged:      String,
+    str_pct_template: String,
 }
 
 struct NetDevCache {
@@ -118,6 +127,7 @@ fn build_ui(application: &gtk::Application) {
     vbox.get_style_context().add_class("container");
 
     let mut stash = UiStash {
+        batts: HashMap::new(),
         system: HashMap::new(),
         cpus: Vec::new(),
         net: HashMap::new(),
@@ -285,6 +295,7 @@ fn init_ui(stash: &mut UiStash,
         if !i["type"].is_badvalue() {
             let limit = i["limit"].as_i64().unwrap_or(5);
             match i["type"].as_str().unwrap() {
+                "battery"       => add_batt(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.batts),
                 "cpus"          => add_cpus(&inner_box, &mut stash.cpus),
                 "mem_consumers" => add_consumers("MEM", limit, &inner_box, &mut stash.top_mems),
                 "cpu_consumers" => add_consumers("CPU", limit, &inner_box, &mut stash.top_cpus),
@@ -300,6 +311,53 @@ fn init_ui(stash: &mut UiStash,
             }
         }
     }
+}
+
+fn add_batt(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, Battery>) {
+    container.set_orientation(gtk::Orientation::Horizontal);
+    container.get_style_context().add_class("batt");
+
+    let key_col = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+    let val_col = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+
+    items.iter().for_each(|item| {
+        let str_battery = item["battery_text"].as_str().unwrap();
+        let str_plugged = item["pluggged_text"].as_str().unwrap();
+        let str_pct_template = item["percent_template"].as_str().unwrap();
+
+        let key = gtk::Label::new(None);
+        key.get_style_context().add_class("key");
+        key.set_text(&format!("{}:", item["name"].as_str().unwrap()));
+        key.set_halign(gtk::Align::Start);
+        key.set_hexpand(true);
+        key_col.add(&key);
+
+        let val_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+        val_box.set_halign(gtk::Align::Start);
+
+        let status_lbl = gtk::Label::new(None);
+        status_lbl.set_halign(gtk::Align::Start);
+        status_lbl.set_text(str_battery);
+
+        let pct_lbl = gtk::Label::new(None);
+        pct_lbl.set_halign(gtk::Align::Start);
+        pct_lbl.set_text(&String::from(str_pct_template.replace("{}", "000")));
+
+        val_box.add(&status_lbl);
+        val_box.add(&pct_lbl);
+        val_col.add(&val_box);
+
+        stash.insert(String::from(item["path"].as_str().unwrap()), Battery {
+            lbl_pct:          pct_lbl,
+            lbl_status:       status_lbl,
+            str_battery:      String::from(str_battery),
+            str_plugged:      String::from(str_plugged),
+            str_pct_template: String::from(str_pct_template),
+        });
+    });
+
+    container.add(&key_col);
+    container.add(&val_col);
 }
 
 fn add_net(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, (gtk::Label, gtk::Label)>) {
@@ -492,6 +550,14 @@ fn update_ui(config: &Yaml, stash: UiStash) {
 
             frame_cache.ps_info.sort_by(|a, b| b.mem.partial_cmp(&a.mem).unwrap());
             do_top(&frame_cache.ps_info, &stash.top_mems, "mem");
+        }
+
+        if stash.batts.len() != 0 {
+            stash.batts.iter().for_each(|(path, battery)| {
+                let (plugged, pct) = deets::get_battery(path);
+                battery.lbl_status.set_text(match plugged { true => &battery.str_plugged, false => &battery.str_battery, });
+                battery.lbl_pct.set_text(&battery.str_pct_template.replace("{}", &pct));
+            });
         }
 
         if stash.net.len() != 0 {
