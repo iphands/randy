@@ -6,8 +6,7 @@ settings:
   # color_text:  "#fff"
 
   bar_height: 8px
-  base_opacity: 0.80
-  color_background: "rgba(0, 0, 0, 0.5);"
+  color_background: "rgba(0, 0, 0, 0.50);"
   color_bar:      "#e1eeff"
   color_bar_med:  "#ffeeaa"
   color_bar_high: "#ffaaaa"
@@ -25,7 +24,7 @@ settings:
   timeout: 1
   # mod_top: 2
   xpos: 0
-  ypos: 0
+  ypos: 50
 
 ui:
   - text: SYSTEM
@@ -71,6 +70,15 @@ ui:
       - func: load
         text: "Load:"
 
+  - text: BATTERY
+    type: battery
+    items:
+      - name: bat0
+        path: /sys/devices/LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/device:19/PNP0C09:00/PNP0C0A:00/power_supply/BAT0
+        battery_text:  "Unplugged  🔋"
+        pluggged_text: "Plugged in ⚡"
+        percent_template: "{}%"
+
   - text: CPU
     type: cpus
     func: cpus
@@ -88,15 +96,6 @@ ui:
     items:
       - name: wifi
         interface: wlp2s0
-
-  - text: BATTERY
-    type: battery
-    items:
-      - name: bat0
-        path: /sys/devices/LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/device:19/PNP0C09:00/PNP0C0A:00/power_supply/BAT0
-        battery_text:  "Unplugged  🔋"
-        pluggged_text: "Plugged in ⚡"
-        percent_template: "{}%"
 
   # - text: FILESYSTEM
   #   type: filesystem
