@@ -42,6 +42,7 @@ At the moment Randy only really runs on Linux. Running on other operating system
   * mem_consumers - top N pids using mem and their usage
   * filesystem - usage of a given mounted filesystem
   * net - usage recv/trans for a given network interface
+  * battery - charging/discharging percentage of /sys/*/power_supply's
 * Can order the modules how you wish
 * Can enable/disable modules and sub items
 

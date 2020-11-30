@@ -386,6 +386,18 @@ fn get_ps() -> Vec<PsInfo> {
     return ps_info_vec;
 }
 
+pub fn get_battery(path: &str) -> (bool, String) {
+    let capacity = &try_strings_from_path(&format!("{}/capacity", path), 1).unwrap()[0];
+    let status   = match try_strings_from_path(&format!("{}/status", path), 1).unwrap()[0].as_str() {
+        "Discharging" => false,
+        "Full" => true,
+        "Uknown" => true,
+        _ => true,
+    };
+
+    return (status, String::from(capacity));
+}
+
 fn get_cpu_voltage_rpi() -> String {
     let output = match Command::new("vcgencmd").arg("measure_volts").arg("core").output() {
         Ok(o) => o,
