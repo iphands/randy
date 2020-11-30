@@ -7,6 +7,7 @@ settings:
   # color_borders: "#e1eeeb"
   # color_label: "#87d7ff"
   # color_text: "#e1eeeb"
+  # base_opacity:  "0.8"
   # decoration: false
   # font_family: "\"Liberation Mono\", monospace"
   # font_size: large

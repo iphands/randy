@@ -1,6 +1,7 @@
 window {
     background-color: { color_background };
     color: { color };
+    opacity: { base_opacity };
     font-family: { font_family };
     font-size: { font_size };
 }

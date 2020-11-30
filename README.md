@@ -54,6 +54,7 @@ At the moment Randy only really runs on Linux. Running on other operating system
 * color_borders - color of the GTK *borders* (frame borders, bar borders) defaults to same as *color_text*
 * color_label - color of the "labels"
 * color_text - color of all other text
+* base_opacity - the base opacity of the Randy window.  affects `window` and all sub-widgets.  must be set as a string, eg `opacity: "0.2"`)
 * decoration - hide/show window decorations
 * font_family - the CSS-style font family string (font names with spaces must be wrapped in escaped quotes, eg `fo_family: "\"Terminus (TTF)\", \"Liberation Mono\", monospace"`)
 * font_size

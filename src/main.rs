@@ -81,6 +81,7 @@ fn get_css(conf: &Yaml, composited: bool) -> String {
         .replace("{ color_bar_high }",   conf["color_bar_high"].as_str().unwrap_or("#ffaaaa"))
         .replace("{ color_label }",      conf["color_label"].as_str().unwrap_or("#87d7ff"))
         .replace("{ color_trough }",     color_trough)
+        .replace("{ base_opacity }",     conf["base_opacity"].as_str().unwrap_or("1"))
         .replace("{ font_family }",      conf["font_family"].as_str().unwrap_or("monospace"))
         .replace("{ font_size_top }",    conf["font_size_top"].as_str().unwrap_or(font_size))
         .replace("{ font_size }",        font_size);
