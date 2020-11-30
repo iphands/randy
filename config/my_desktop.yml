@@ -6,16 +6,22 @@ settings:
   # decoration: false
   # resizable: false
   # skip_taskbar: true
+
   color_background: "#656565"
-  color_bar:   "#e1eeff"
+  color_bar:      "#e1eeff"
+  color_bar_med:  "#ffeeaa"
+  color_bar_high: "#ffaaaa"
+
   color_label: "#87d7ff"
   color_text:  "#e1eeeb"
 
+  font_family: "\"Droid Sans Mono\""
+  # font_family: "\"Noto Sans Mono ExtraCondensed Medium\""
   font_size: medium
   timeout: 1
-  xpos: 3335
+  xpos: 3300
   ypos: 0
-  mod_top: 1
+  mod_top: 2
   mod_fs:  5
 
 ui:
@@ -74,6 +80,14 @@ ui:
   - text: TOP MEMORY
     type: mem_consumers
     limit: 5
+
+  - text: NETWORKING
+    type: net
+    items:
+      - name: ige00
+        interface: ige00
+      - name: mel00
+        interface: mel00
 
   - text: FILESYSTEM
     type: filesystem

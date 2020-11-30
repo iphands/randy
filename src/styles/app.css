@@ -1,8 +1,8 @@
 window {
-    background-color: { background_color };
-    opacity: { base_opacity };
+    background-color: { color_background };
     color: { color };
-    font-family: monospace;
+    opacity: { base_opacity };
+    font-family: { font_family };
     font-size: { font_size };
 }
 
@@ -17,6 +17,10 @@ window {
     padding-right: 0.25em;
 }
 
+* {
+    border-color: { color_borders };
+}
+
 .innerbox {
     padding-bottom: 0.25em;
 }
@@ -27,7 +31,7 @@ label.val {
 }
 
 label.key {
-    color: { label_color };
+    color: { color_label };
     padding-left: 0.5em;
 }
 
@@ -44,13 +48,24 @@ frame label {
 }
 
 trough {
-    background-color: @bg_color;
+    background-color: { color_trough };
     min-height: 10px;
 }
 
-progressbar > trough > progress {
-    background-color: { bar_color } ;
-    min-height: 10px;
+progressbar.high > trough > progress {
+    background-color: { color_bar_high };
+}
+
+progressbar.med > trough > progress {
+    background-color: { color_bar_med };
+}
+
+trough > progress {
+    background-color: { color_bar } ;
+}
+
+progress, trough {
+    min-height: { bar_height };
 }
 
 .top-frame label {
@@ -58,7 +73,7 @@ progressbar > trough > progress {
 }
 
 .top-frame label:first-child {
-    color: { label_color };
+    color: { color_label };
 }
 
 .top-frame label:not(:first-child) {

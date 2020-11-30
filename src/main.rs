@@ -16,7 +16,7 @@ use std::fs;
 use std::collections::HashMap;
 use std::env::args;
 use std::sync::Mutex;
-
+use std::time::Instant;
 use yaml_rust::{YamlLoader, Yaml};
 
 const SPACING: i32 = 3;
@@ -33,25 +33,62 @@ struct TopRow {
     pct: gtk::Label,
 }
 
+struct UiStash {
+    batts: HashMap<String, Battery>,
+    cpus: Vec<Cpu>,
+    fs: HashMap<String, (gtk::Label, gtk::ProgressBar)>,
+    net: HashMap<String, (gtk::Label, gtk::Label)>,
+    system: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
+    top_mems: Vec<TopRow>,
+    top_cpus: Vec<TopRow>,
+}
+
+struct Battery {
+    lbl_pct:          gtk::Label,
+    lbl_status:       gtk::Label,
+    str_battery:      String,
+    str_plugged:      String,
+    str_pct_template: String,
+}
+
+struct NetDevCache {
+    last_bytes: u64,
+    last_instant: Instant,
+}
+
 lazy_static! {
     static ref FRAME_COUNT: Mutex<u64> = Mutex::new(0);
 }
 
-fn get_css(conf: &Yaml) -> String {
+fn get_css(conf: &Yaml, composited: bool) -> String {
     let css: String = String::from(include_str!("styles/app.css"));
+    let color_text = conf["color_text"].as_str().unwrap_or("#e1eeeb");
+    let color_background = conf["color_background"].as_str().unwrap_or("rgba(0, 0, 0, 0.5)");
+    let color_trough = match composited {
+        true  => conf["color_trough"].as_str().unwrap_or("rgba(0, 0, 0, 0)"),
+        false => conf["color_trough"].as_str().unwrap_or(color_background),
+    };
+
+    let font_size = conf["font_size"].as_str().unwrap_or("large");
+
     return css
-        .replace("{ background_color }", conf["color_background"].as_str().unwrap_or("#000"))
-        .replace("{ color }", conf["color_text"].as_str().unwrap_or("#fff"))
+        .replace("{ bar_height }",       conf["bar_height"].as_str().unwrap_or("10px"))
+        .replace("{ color }",            conf["color_text"].as_str().unwrap_or("#e1eeeb"))
+        .replace("{ color_background }", color_background)
+        .replace("{ color_borders }",    conf["color_borders"].as_str().unwrap_or(color_text))
+        .replace("{ color_bar }",        conf["color_bar"].as_str().unwrap_or("#e1eeff"))
+        .replace("{ color_bar_med }",    conf["color_bar_med"].as_str().unwrap_or("#ffeeaa"))
+        .replace("{ color_bar_high }",   conf["color_bar_high"].as_str().unwrap_or("#ffaaaa"))
+        .replace("{ color_label }",      conf["color_label"].as_str().unwrap_or("#87d7ff"))
+        .replace("{ color_trough }",     color_trough)
         .replace("{ opacity }", conf["opacity"].as_str().unwrap_or("1"))
-        .replace("{ label_color }", conf["color_label"].as_str().unwrap_or("#eee"))
-        .replace("{ bar_color }", conf["color_bar"].as_str().unwrap_or("#fff"))
-        .replace("{ font_size_top }", conf["font_size_top"].as_str().unwrap_or("medium"))
-        .replace("{ font_size }", conf["font_size"].as_str().unwrap_or("large"));
+        .replace("{ font_family }",      conf["font_family"].as_str().unwrap_or("monospace"))
+        .replace("{ font_size_top }",    conf["font_size_top"].as_str().unwrap_or(font_size))
+        .replace("{ font_size }",        font_size);
 }
 
 fn _is_interactive(config: &Yaml) -> bool {
-    return config["decoration"].as_bool().unwrap_or(false) ||
-        config["resizable"].as_bool().unwrap_or(false);
+    return config["decoration"].as_bool().unwrap_or(false) || config["resizable"].as_bool().unwrap_or(false);
 }
 
 fn build_ui(application: &gtk::Application) {
@@ -59,12 +96,9 @@ fn build_ui(application: &gtk::Application) {
 
     let s: &str = &get_file();
     let config = &get_config(s)[0];
-
-    //Add custom CSS
-
-    let css: &str = &get_css(&config["settings"]);
-
     let screen = window.get_screen().unwrap();
+
+    let css: &str = &get_css(&config["settings"], screen.is_composited());
     let provider = gtk::CssProvider::new();
     provider.load_from_data(css.as_bytes()).expect("Failed to load CSS");
     gtk::StyleContext::add_provider_for_screen(&screen, &provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
@@ -93,17 +127,20 @@ fn build_ui(application: &gtk::Application) {
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
     vbox.get_style_context().add_class("container");
 
-    let mut values: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)> = HashMap::new();
-    let mut cpus: Vec<Cpu>    = Vec::new();
-    let mut top_mems: Vec<TopRow> = Vec::new();
-    let mut top_cpus: Vec<TopRow> = Vec::new();
-    let mut stash_fs: HashMap<String, (gtk::Label, gtk::ProgressBar)> = HashMap::new();
+    let mut stash = UiStash {
+        batts: HashMap::new(),
+        system: HashMap::new(),
+        cpus: Vec::new(),
+        net: HashMap::new(),
+        top_mems: Vec::new(),
+        top_cpus: Vec::new(),
+        fs: HashMap::new(),
+    };
 
-    init_ui(&mut values, &mut cpus, &mut top_mems, &mut top_cpus, &mut stash_fs, &vbox, &config["ui"]);
-    update_ui(&config["settings"], values, cpus, top_mems, top_cpus, stash_fs);
-
+    init_ui(&mut stash, &vbox, &config["ui"]);
     window.add(&vbox);
     window.show_all();
+    update_ui(&config["settings"], stash);
 }
 
 fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> (gtk::Label, Option<gtk::ProgressBar>) {
@@ -187,7 +224,7 @@ fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
     }
 }
 
-fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) {
+fn add_consumers(uniq_item: &str, limit: i64, container: &gtk::Box, mems: &mut Vec<TopRow>) {
     container.get_style_context().add_class("top-frame");
     container.set_orientation(gtk::Orientation::Horizontal);
 
@@ -215,14 +252,13 @@ fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) 
         }
     }
 
-    // for (i, name) in [ "NAME-------------", "------PID", &format!("-----{}", uniq_item) ].iter().enumerate() {
     for (i, name) in [ "NAME             ", "      PID", &format!("     {}", uniq_item) ].iter().enumerate() {
         let label = gtk::Label::new(None);
         label.set_text(&name);
         add_to_column(i, &label, &columns);
     }
 
-    for _ in 0..5 {
+    for _ in 0..limit {
         let mut tmp: Vec<gtk::Label> = Vec::new();
 
         for i in 0..3 {
@@ -243,11 +279,7 @@ fn add_consumers(uniq_item: &str, container: &gtk::Box, mems: &mut Vec<TopRow>) 
     container.add(&columns[2]);
 }
 
-fn init_ui(values: &mut HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
-           cpus: &mut Vec<Cpu>,
-           top_mems: &mut Vec<TopRow>,
-           top_cpus: &mut Vec<TopRow>,
-           stash_fs: &mut HashMap<String, (gtk::Label, gtk::ProgressBar)>,
+fn init_ui(stash: &mut UiStash,
            vbox: &gtk::Box,
            ui_config: &yaml_rust::Yaml) {
 
@@ -262,21 +294,127 @@ fn init_ui(values: &mut HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::Progre
         frame.add(&inner_box);
 
         if !i["type"].is_badvalue() {
+            let limit = i["limit"].as_i64().unwrap_or(5);
             match i["type"].as_str().unwrap() {
-                "cpus" => add_cpus(&inner_box, cpus),
-                "mem_consumers" => add_consumers("MEM", &inner_box,  top_mems),
-                "cpu_consumers" => add_consumers("CPU", &inner_box,  top_cpus),
-                "filesystem" =>    add_filesystem(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), stash_fs),
+                "battery"       => add_batt(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.batts),
+                "cpus"          => add_cpus(&inner_box, &mut stash.cpus),
+                "mem_consumers" => add_consumers("MEM", limit, &inner_box, &mut stash.top_mems),
+                "cpu_consumers" => add_consumers("CPU", limit, &inner_box, &mut stash.top_cpus),
+                "filesystem"    => add_filesystem(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.fs),
+                "net"           => add_net(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.net),
                 "system" => {
                     for item in i["items"].as_vec().unwrap_or(&Vec::new()) {
                         let val = add_standard(item, &inner_box);
-                        values.insert(item.clone(), val);
+                        stash.system.insert(item.clone(), val);
                     }
                 }
                 _ => (),
             }
         }
     }
+}
+
+fn add_batt(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, Battery>) {
+    container.set_orientation(gtk::Orientation::Horizontal);
+    container.get_style_context().add_class("batt");
+
+    let key_col = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+    let val_col = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+
+    items.iter().for_each(|item| {
+        let str_battery = item["battery_text"].as_str().unwrap();
+        let str_plugged = item["pluggged_text"].as_str().unwrap();
+        let str_pct_template = item["percent_template"].as_str().unwrap();
+
+        let key = gtk::Label::new(None);
+        key.get_style_context().add_class("key");
+        key.set_text(&format!("{}:", item["name"].as_str().unwrap()));
+        key.set_halign(gtk::Align::Start);
+        key.set_hexpand(true);
+        key_col.add(&key);
+
+        let val_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+        val_box.set_halign(gtk::Align::Start);
+
+        let status_lbl = gtk::Label::new(None);
+        status_lbl.set_halign(gtk::Align::Start);
+        status_lbl.set_text(str_battery);
+
+        let pct_lbl = gtk::Label::new(None);
+        pct_lbl.set_halign(gtk::Align::Start);
+        pct_lbl.set_text(&String::from(str_pct_template.replace("{}", "000")));
+
+        val_box.add(&status_lbl);
+        val_box.add(&pct_lbl);
+        val_col.add(&val_box);
+
+        stash.insert(String::from(item["path"].as_str().unwrap()), Battery {
+            lbl_pct:          pct_lbl,
+            lbl_status:       status_lbl,
+            str_battery:      String::from(str_battery),
+            str_plugged:      String::from(str_plugged),
+            str_pct_template: String::from(str_pct_template),
+        });
+    });
+
+    container.add(&key_col);
+    container.add(&val_col);
+}
+
+fn add_net(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, (gtk::Label, gtk::Label)>) {
+    container.set_orientation(gtk::Orientation::Horizontal);
+    container.get_style_context().add_class("net");
+
+    let key_col  = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+    let up_col   = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+    let down_col = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+
+    items.iter().for_each(|item| {
+        let key = gtk::Label::new(None);
+        key.get_style_context().add_class("key");
+        key.set_text(&format!("{}:", item["name"].as_str().unwrap()));
+        key.set_halign(gtk::Align::Start);
+        key.set_hexpand(true);
+        key_col.add(&key);
+
+        let up_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+        let up_lbl = gtk::Label::new(None);
+        up_box.set_halign(gtk::Align::Start);
+        up_lbl.set_halign(gtk::Align::Start);
+        up_lbl.set_text("Up");
+        up_box.add(&up_lbl);
+
+        let up_val = gtk::Label::new(None);
+        up_val.get_style_context().add_class("val");
+        up_val.set_hexpand(true);
+        up_val.set_halign(gtk::Align::End);
+        up_val.set_text("0000.00 KB");
+        up_box.add(&up_val);
+        up_box.set_halign(gtk::Align::Fill);
+        up_col.add(&up_box);
+
+        let down_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+        let down_lbl = gtk::Label::new(None);
+        down_box.set_halign(gtk::Align::Start);
+        down_lbl.set_halign(gtk::Align::Start);
+        down_lbl.set_text("Down");
+        down_box.add(&down_lbl);
+
+        let down_val = gtk::Label::new(None);
+        down_val.get_style_context().add_class("val");
+        down_val.set_hexpand(true);
+        down_val.set_halign(gtk::Align::End);
+        down_val.set_text("0000.00 KB");
+        down_box.add(&down_val);
+        down_box.set_halign(gtk::Align::Fill);
+        down_col.add(&down_box);
+
+        stash.insert(String::from(item["interface"].as_str().unwrap()), (up_val, down_val));
+    });
+
+    container.add(&key_col);
+    container.add(&up_col);
+    container.add(&down_col);
 }
 
 fn add_filesystem(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, (gtk::Label, gtk::ProgressBar)>) {
@@ -322,12 +460,22 @@ fn add_filesystem(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<S
     }
 }
 
-fn update_ui(config: &Yaml,
-             values: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
-             cpus: Vec<Cpu>,
-             top_mems: Vec<TopRow>,
-             top_cpus: Vec<TopRow>,
-             stash_fs: HashMap<String, (gtk::Label, gtk::ProgressBar)>) {
+fn _update_bar(bar: &gtk::ProgressBar, fraction: f64) {
+    if fraction > 0.80 {
+        bar.get_style_context().remove_class("med");
+        bar.get_style_context().add_class("high");
+    } else if fraction > 0.50 {
+        bar.get_style_context().add_class("med");
+        bar.get_style_context().remove_class("high");
+    } else {
+        bar.get_style_context().remove_class("med");
+        bar.get_style_context().remove_class("high");
+    }
+
+    bar.set_fraction(fraction);
+}
+
+fn update_ui(config: &Yaml, stash: UiStash) {
 
     fn do_top(ps_info: &Vec<deets::PsInfo>, top_ui_items: &Vec<TopRow>, member: &str) {
         for (i, lbl) in top_ui_items.iter().enumerate() {
@@ -352,47 +500,98 @@ fn update_ui(config: &Yaml,
     let mod_top = config["mod_top"].as_i64().unwrap_or(2) as u64;
     let mod_fs  = config["mod_fs"].as_i64().unwrap_or(2)  as u64;
     let get_fs = deets::get_fs;
+    let get_mhz = deets::get_cpu_mhz;
+    let mut net_cache: HashMap<String, NetDevCache> = HashMap::new();
 
-    let update = move || {
+    fn _get_net_bps(cache: &mut HashMap<String, NetDevCache>, key: &str, curr_bytes: &u64) -> String {
+        if !cache.contains_key(key) {
+            cache.insert(String::from(key), NetDevCache {
+                last_bytes: curr_bytes.clone(),
+                last_instant: Instant::now(),
+            });
+        }
+
+        let cache_val = cache.get(key).unwrap();
+        let mut lbl = "KB";
+        let mut bytes = (curr_bytes - cache_val.last_bytes) as f64 / 1024.0;
+        bytes = (bytes * 1000.0) / (cache_val.last_instant.elapsed().as_millis() as f64);
+
+        if bytes > 990.0 {
+            bytes = bytes / 1024.0;
+            lbl = "MB";
+        }
+
+        if bytes > 990.0 {
+            bytes = bytes / 1024.0;
+            lbl = "GB";
+        }
+
+        cache.insert(String::from(key), NetDevCache {
+            last_bytes: curr_bytes.clone(),
+            last_instant: Instant::now(),
+        });
+
+        return format!("{:.2} {}", bytes, lbl);
+    }
+
+    let mut update = move || {
         let mut frame_counter = FRAME_COUNT.lock().unwrap();
-        let should_top = match &top_cpus.len() + &top_mems.len() {
+        let should_top = match &stash.top_cpus.len() + &stash.top_mems.len() {
             0 => false,
             _ => *frame_counter % mod_top == 0,
         };
 
-        let mut frame_cache = deets::get_frame_cache(should_top);
-        let cpu_mhz_vec = deets::get_cpu_mhz();
+        let mut frame_cache = deets::get_frame_cache(*frame_counter, mod_top, should_top);
+        let cpu_mhz_vec = timings!("cpu_mhz", get_mhz);
         let cpu_mhz_vec_len = cpu_mhz_vec.len();
 
         if should_top {
             frame_cache.ps_info.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap());
-            do_top(&frame_cache.ps_info, &top_cpus, "cpu");
+            do_top(&frame_cache.ps_info, &stash.top_cpus, "cpu");
 
             frame_cache.ps_info.sort_by(|a, b| b.mem.partial_cmp(&a.mem).unwrap());
-            do_top(&frame_cache.ps_info, &top_mems, "mem");
+            do_top(&frame_cache.ps_info, &stash.top_mems, "mem");
         }
 
-        if stash_fs.len() != 0 && (*frame_counter % mod_fs == 0) {
-            let fs_usage = timings!("fs_usage", get_fs, stash_fs.keys().map(|s| s.as_str()).collect::<Vec<&str>>());
-            for (k, v) in fs_usage.iter() {
-                let stash = stash_fs.get(k).unwrap();
+        if stash.batts.len() != 0 {
+            stash.batts.iter().for_each(|(path, battery)| {
+                let (plugged, pct) = deets::get_battery(path);
+                battery.lbl_status.set_text(match plugged { true => &battery.str_plugged, false => &battery.str_battery, });
+                battery.lbl_pct.set_text(&battery.str_pct_template.replace("{}", &pct));
+            });
+        }
+
+        if stash.net.len() != 0 {
+            stash.net.iter().for_each(|(interface, (up_lbl, down_lbl))| {
+                if frame_cache.net_dev.contains_key(interface) {
+                    let (up, down) = frame_cache.net_dev.get(interface).unwrap();
+                    up_lbl.set_text(&_get_net_bps(&mut net_cache, &format!("{} up", interface), &up));
+                    down_lbl.set_text(&_get_net_bps(&mut net_cache, &format!("{} down", interface), &down));
+                }
+            });
+        }
+
+        if stash.fs.len() != 0 && (*frame_counter % mod_fs == 0) {
+            let fs_usage = timings!("fs_usage", get_fs, stash.fs.keys().map(|s| s.as_str()).collect::<Vec<&str>>());
+            fs_usage.iter().for_each(|(k, v)| {
+                let stash = stash.fs.get(k).unwrap();
                 stash.0.set_text(&format!("{} / {} {}", v.used_str, v.total_str, v.use_pct));
-                stash.1.set_fraction(v.used / v.total);
-            }
+                _update_bar(&stash.1, v.used / v.total);
+            });
         }
 
-        for (i, cpu) in cpus.iter().enumerate() {
+        stash.cpus.iter().enumerate().for_each(|(i, cpu)| {
             let usage = deets::get_cpu_usage(i as i32);
 
             if cpu_mhz_vec_len != 0 {
                 cpu.mhz.set_text(&format!("{:04.0} MHz", cpu_mhz_vec[i]));
             }
 
-            cpu.progress.set_fraction(usage / 100.0);
+            _update_bar(&cpu.progress, usage / 100.0);
             cpu.pct_label.set_text(&format!("{:.0}%", usage));
-        }
+        });
 
-        for (item, val) in values.iter() {
+        stash.system.iter().for_each(|(item, val)| {
             let func: &str = item["func"].as_str().unwrap();
             let deet = deets::do_func(item, &frame_cache);
             val.0.set_text(&deet.as_str());
@@ -400,14 +599,14 @@ fn update_ui(config: &Yaml,
             match &val.1 {
                 Some(bar) => {
                     match func {
-                        "cpu_usage" => bar.set_fraction(deets::get_cpu_usage(-1) / 100.0),
-                        "ram_usage" => bar.set_fraction((frame_cache.mem_total - frame_cache.mem_free) / frame_cache.mem_total),
+                        "cpu_usage" => _update_bar(bar, deets::get_cpu_usage(-1) / 100.0),
+                        "ram_usage" => _update_bar(bar, (frame_cache.mem_total - frame_cache.mem_free) / frame_cache.mem_total),
                         _ => (),
                     };
                 },
                 _ => (),
             }
-        }
+        });
 
         *frame_counter += 1;
         return glib::Continue(true);

@@ -5,8 +5,13 @@ settings:
   # color_label: "#87d7ff"
   # color_text:  "#fff"
 
+  bar_height: 8px
+
   color_background: "rgba(0, 0, 0, 0.5);"
-  color_bar:   "#e1eeff"
+  color_bar:      "#e1eeff"
+  color_bar_med:  "#ffeeaa"
+  color_bar_high: "#ffaaaa"
+
   color_label: "#87d7ff"
   color_text:  "#e1eeeb"
 
@@ -14,12 +19,13 @@ settings:
   # resizable: false
   # skip_taskbar: true
   # color_background: "#262626"
-
-  font_size: large
-  font_size_top: large
-  timeout: 2
+  #font_family: "\"Noto Sans\""
+  font_family: "\"Droid Sans Mono\""
+  font_size: 11pt
+  timeout: 1
+  # mod_top: 2
   xpos: 0
-  ypos: 55
+  ypos: 0
 
 ui:
   - text: SYSTEM
@@ -33,6 +39,20 @@ ui:
 
       - func: uptime
         text: "Uptime:"
+
+      - func: sensor_info
+        sensor_name: thinkpad-isa-0000
+        label_name: fan1
+        val: "{} RPM"
+        text: "Fan speed:"
+        whole: true
+
+      # - func: sensor_info
+      #   sensor_name: pch_skylake-virtual-0
+      #   label_name: temp1
+      #   val: "{} C"
+      #   text: "CPU temp:"
+      #   whole: true
 
       - func: cpu_usage
         text: "CPU usage:"
@@ -51,21 +71,35 @@ ui:
       - func: load
         text: "Load:"
 
-  - text: CPUS
+  - text: CPU
     type: cpus
     func: cpus
-    text: "CPU"
 
   - text: TOP CPU
     type: cpu_consumers
-    limit: 5
+    limit: 3
 
   - text: TOP MEMORY
     type: mem_consumers
-    limit: 5
+    limit: 3
 
-  - text: FILESYSTEM
-    type: filesystem
+  - text: NETWORKING
+    type: net
     items:
-      - text: "root:"
-        mount_point: /
+      - name: wifi
+        interface: wlp2s0
+
+  - text: BATTERY
+    type: battery
+    items:
+      - name: bat0
+        path: /sys/devices/LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/device:19/PNP0C09:00/PNP0C0A:00/power_supply/BAT0
+        battery_text:  "discharging 🔋"
+        pluggged_text: "charging    ⚡"
+        percent_template: "{}%"
+
+  # - text: FILESYSTEM
+  #   type: filesystem
+  #   items:
+  #     - text: "root:"
+  #       mount_point: /

@@ -36,7 +36,7 @@ pub fn try_exact_match_strings_from_reader(reader: &mut BufReader<File>, filters
 
                 match hack {
                     Some(f) => match f(&line_num, &line) {
-                        false => continue,
+                        false => return Ok(lines_vec),
                         true  => (),
                     },
                     None => (),
@@ -89,6 +89,25 @@ pub fn try_match_strings_from_path(path: &str, filters: &Vec<&str>) -> Result<Ve
     };
 }
 
+#[inline(always)]
+pub fn try_strings_from_reader(reader: &mut BufReader<File>, line_end: usize) -> Result<Vec<String>, std::io::Error> {
+    let mut lines: Vec<String> = Vec::new();
+    for _ in 0..line_end {
+        let mut line = String::new();
+        let e = match reader.read_line(&mut line) {
+            Err(e) => Some(e),
+            _ => None,
+        };
+
+        if e.is_some() { return Err(e.unwrap()); }
+        if line == "" { break; }
+        lines.push(String::from(line.trim()));
+    }
+
+    return Ok(lines);
+}
+
+#[inline(always)]
 pub fn try_strings_from_path(path: &str, line_end: usize) -> Result<Vec<String>, std::io::Error> {
     let mut file = BufReader::new(match File::open(&path) {
         Ok(f)  => f,

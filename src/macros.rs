@@ -31,3 +31,11 @@ macro_rules! split_to_strs {
         $str.split($delimiter).collect::<Vec<&str>>()
     };
 }
+
+#[macro_export]
+macro_rules! split_spc_to_strs {
+    ($str:expr) => {
+        $str.split_ascii_whitespace().collect::<Vec<&str>>()
+    };
+}
+

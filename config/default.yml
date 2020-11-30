@@ -1,18 +1,22 @@
 ---
 settings:
-  # color_bar:   "#fff"
-  # color_background: "rgba(0, 0, 0, 0.75);"
-  # color_label: "#eee"
-  # color_text:  "#fff"
+  # color_bar:      "#e1eeff"
+  # color_bar_med:  "#ffeeaa"
+  # color_bar_high: "#ffaaaa"
+  # color_background: "rgba(0, 0, 0, 0.5)"
+  # color_borders: "#e1eeeb"
+  # color_label: "#87d7ff"
+  # color_text: "#e1eeeb"
   # base_opacity:  "0.8"
   # decoration: false
+  # font_family: "\"Liberation Mono\", monospace"
   # font_size: large
   # mod_top: 2
   # mod_fs: 5
   # resizable: false
   # skip_taskbar: true
   timeout: 1
-  # xpos: 3380
+  # xpos: 0
   # ypos: 0
 
 ui:
@@ -45,7 +49,31 @@ ui:
       - func: load
         text: "Load:"
 
-      # - func: gpu_temp
+      # requires that you build with --features sensors
+      # look at the output of runnig `sensors` from the CLI for the
+      # values of: sensor_name, label_name etc
+      #
+      # - func: sensor_info
+      #   sensor_name: k10temp-pci-00c3
+      #   label_name: Tdie
+      #   val: "{}C"
+      #   text: "CPU temp:"
+      #   whole: true
+      # - func: sensor_info
+      #   sensor_name: k10temp-pci-00c3
+      #   label_name: Vcore
+      #   val: "{}mV"
+      #   text: "CPU vcore:"
+      #   whole: false
+      # - func: sensor_info
+      #   sensor_name: thinkpad-isa-0000
+      #   label_name: fan1
+      #   val: "{} RPM"
+      #   text: "Fan speed:"
+      #   whole: true
+
+      # requires that you build with --features nvidia
+      # - func: nvidia_gpu_temp
       #   text: "GPU Temp:"
 
   - text: CPUS
@@ -60,6 +88,21 @@ ui:
   - text: TOP MEMORY
     type: mem_consumers
     limit: 5
+
+  # - text: NETWORKING
+  #   type: net
+  #   items:
+  #     - name: wifi
+  #       interface: wlp2s0
+
+  # - text: BATTERY
+  #   type: battery
+  #   items:
+  #     - name: bat0
+  #       path: /sys/devices/LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/device:19/PNP0C09:00/PNP0C0A:00/power_supply/BAT0
+  #       battery_text:  "discharging 🔋"
+  #       pluggged_text: "charging    ⚡"
+  #       percent_template: "{}%"
 
   - text: FILESYSTEM
     type: filesystem

@@ -1,8 +1,14 @@
 [package]
 name = "randy"
-version = "1.4.1"
+version = "1.6.1"
 authors = ["Ian Page Hands <iphands@gmail.com>"]
 edition = "2018"
+description = "Conky like app in Rust"
+homepage = "https://github.com/iphands/randy"
+repository = "https://github.com/iphands/randy"
+readme = "README.md"
+license-file = "LICENSE"
+exclude = [ "/assets/*", "/scripts/*" ]
 
 [profile.dev]
 opt-level = "s"
@@ -16,9 +22,9 @@ lto = true
 overflow-checks = false
 
 [features]
-default = ["sensors", "nvml-wrapper"]
 runtime_bench = []
 timings = []
+nvidia = [ "nvml-wrapper" ]
 
 [dependencies]
 glib = "0.10"

@@ -18,15 +18,15 @@ export RUSTFLAGS="-C opt-level=3 -C debuginfo=0 -C target-cpu=native"
 
 set -e
 
-if [ "$HOSTNAME" == "handslap" ]
+if [ "$HOSTNAME" == "cosmo.lan" ]
 then
-    cargo build --release --no-default-features --features timings
+    cargo build --release --features timings,nvidia,sensors
     cp ./target/release/randy ./target/release/randy.timings
-    cargo build --release --no-default-features
+    cargo build --release --features nvidia,sensors
 else
-    cargo build --release --features timings
+    cargo build --release --features timings,sensors
     cp ./target/release/randy ./target/release/randy.timings
-    cargo build --release
+    cargo build --release --features sensors
 fi
 
 cp ./target/release/randy ./target/release/randy.nostrip
