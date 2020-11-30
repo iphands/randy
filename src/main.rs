@@ -70,9 +70,11 @@ fn get_css(conf: &Yaml, composited: bool) -> String {
     };
 
     let font_size = conf["font_size"].as_str().unwrap_or("large");
+    let base_opacity = format!("{:1.4}", conf["base_opacity"].as_f64().unwrap_or(1.0));
 
     return css
         .replace("{ bar_height }",       conf["bar_height"].as_str().unwrap_or("10px"))
+        .replace("{ base_opacity }",     &base_opacity)
         .replace("{ color }",            conf["color_text"].as_str().unwrap_or("#e1eeeb"))
         .replace("{ color_background }", color_background)
         .replace("{ color_borders }",    conf["color_borders"].as_str().unwrap_or(color_text))
@@ -81,7 +83,6 @@ fn get_css(conf: &Yaml, composited: bool) -> String {
         .replace("{ color_bar_high }",   conf["color_bar_high"].as_str().unwrap_or("#ffaaaa"))
         .replace("{ color_label }",      conf["color_label"].as_str().unwrap_or("#87d7ff"))
         .replace("{ color_trough }",     color_trough)
-        .replace("{ base_opacity }",     conf["base_opacity"].as_str().unwrap_or("1"))
         .replace("{ font_family }",      conf["font_family"].as_str().unwrap_or("monospace"))
         .replace("{ font_size_top }",    conf["font_size_top"].as_str().unwrap_or(font_size))
         .replace("{ font_size }",        font_size);
@@ -337,10 +338,13 @@ fn add_batt(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String,
         val_box.set_halign(gtk::Align::Start);
 
         let status_lbl = gtk::Label::new(None);
+        status_lbl.get_style_context().add_class("val");
+        status_lbl.get_style_context().add_class("emoji");
         status_lbl.set_halign(gtk::Align::Start);
         status_lbl.set_text(str_battery);
 
         let pct_lbl = gtk::Label::new(None);
+        pct_lbl.get_style_context().add_class("val");
         pct_lbl.set_halign(gtk::Align::Start);
         pct_lbl.set_text(&String::from(str_pct_template.replace("{}", "000")));
 
