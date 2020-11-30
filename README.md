@@ -98,8 +98,12 @@ randy /tmp/configs/my_cool_config.yml
 ```
 
 ## Screenshots
-![screenshot](https://raw.githubusercontent.com/iphands/ronky/main/assets/screenshot.png)
-![screenshot_green](https://raw.githubusercontent.com/iphands/ronky/main/assets/green.png)
+<table>
+ <tr>
+  <td><img src="https://raw.githubusercontent.com/iphands/ronky/main/assets/screenshot.png" alt="screenshot"></td>
+  <td><img src="https://raw.githubusercontent.com/iphands/ronky/main/assets/green.png" alt="screenshot_green"></td>
+ </tr>
+</table>
 
 ## FAQ
 * Does randy work with Wayland?
