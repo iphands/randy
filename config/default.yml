@@ -1,5 +1,6 @@
 ---
 settings:
+  # base_opacity: 0.8
   # color_bar:      "#e1eeff"
   # color_bar_med:  "#ffeeaa"
   # color_bar_high: "#ffaaaa"
@@ -7,7 +8,6 @@ settings:
   # color_borders: "#e1eeeb"
   # color_label: "#87d7ff"
   # color_text: "#e1eeeb"
-  # base_opacity:  "0.8"
   # decoration: false
   # font_family: "\"Liberation Mono\", monospace"
   # font_size: large
