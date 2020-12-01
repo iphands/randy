@@ -1,6 +1,6 @@
 [package]
 name = "randy"
-version = "1.6.3"
+version = "1.6.4"
 authors = ["Ian Page Hands <iphands@gmail.com>"]
 edition = "2018"
 description = "Conky like app in Rust"
@@ -24,6 +24,7 @@ overflow-checks = false
 [features]
 runtime_bench = []
 timings = []
+gentoo = []
 nvidia = [ "nvml-wrapper" ]
 
 [dependencies]

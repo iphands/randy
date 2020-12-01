@@ -621,7 +621,7 @@ dependencies = [
 
 [[package]]
 name = "randy"
-version = "1.6.3"
+version = "1.6.4"
 dependencies = [
  "gio",
  "glib",
