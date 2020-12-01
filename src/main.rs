@@ -642,6 +642,11 @@ fn update_ui(config: &Yaml, stash: UiStash) {
 
 fn get_file() -> String {
     let input = args().collect::<Vec<String>>();
+
+    #[cfg(feature = "gentoo")]
+    let mut config_path = &String::from("/usr/share/randy/config/my_desktop.yml");
+
+    #[cfg(not(feature = "gentoo"))]
     let mut config_path = &String::from("./config/default.yml");
 
     if input.len() > 1 {
