@@ -644,7 +644,7 @@ fn get_file() -> String {
     let input = args().collect::<Vec<String>>();
 
     #[cfg(feature = "gentoo")]
-    let mut config_path = &String::from("/usr/share/randy/config/my_desktop.yml");
+    let mut config_path = &String::from("/usr/share/randy/config/default.yml");
 
     #[cfg(not(feature = "gentoo"))]
     let mut config_path = &String::from("./config/default.yml");
