@@ -92,7 +92,7 @@ KEYWORDS="amd64 ~arm64 ~ppc64"
 LICENSE="GPL-3"
 SLOT="0"
 
-IUSE="wayland +X lm-sensors nvidia"
+IUSE="wayland +X lm-sensors nvidia debug"
 REQUIRED_USE="|| ( wayland X )"
 
 COMMON_DEPEND="
@@ -113,6 +113,7 @@ src_unpack() {
 src_configure() {
 	local myfeatures=(
 		gentoo
+		$(usex debug timings '')
 		$(usex lm-sensors sensors '')
 		$(usex nvidia nvidia '')
 	)
