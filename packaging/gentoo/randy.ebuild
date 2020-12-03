@@ -84,19 +84,21 @@ yaml-rust-0.4.4
 
 inherit cargo desktop
 
+DESCRIPTION="Conky inspired system info viewer written in Rust / GTK3"
+HOMEPAGE="https://github.com/iphands/randy"
 SRC_URI="https://github.com/iphands/${PN}/archive/${PV}.tar.gz -> ${P}.tar.gz
 $(cargo_crate_uris ${CRATES})"
 
 KEYWORDS="amd64 ~arm64 ~ppc64"
-
 LICENSE="GPL-3"
 SLOT="0"
 
-IUSE="wayland +X lm-sensors nvidia debug"
+IUSE="wayland X lm-sensors nvidia debug"
 REQUIRED_USE="|| ( wayland X )"
 
 COMMON_DEPEND="
 	dev-lang/rust
+	>=x11-libs/gtk+-3.22.0
 	lm-sensors? ( sys-apps/lm-sensors )
 	nvidia? ( x11-drivers/nvidia-drivers )
 "
