@@ -13,8 +13,9 @@ done
 
 FEATURES="${FEATURES:1}"
 echo $FEATURES
-# export RUSTFLAGS="-C opt-level=3 -C debuginfo=0 -C target-cpu=native -C target-feature=$FEATURES"
-export RUSTFLAGS="-C opt-level=3 -C debuginfo=0 -C target-cpu=native"
+FEATURES="-avx,-avx2,-sse,-sse2,-sse3,+sse4a,+ssse3"
+export RUSTFLAGS="-C opt-level=3 -C debuginfo=0 -C target-cpu=native -C target-feature=$FEATURES"
+# export RUSTFLAGS="-C opt-level=3 -C debuginfo=0 -C target-cpu=native"
 
 set -e
 
