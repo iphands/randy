@@ -16,9 +16,9 @@ use std::sync::Mutex;
 
 use yaml_rust::{Yaml};
 
-#[cfg(feature = "nvml-wrapper")]
+#[cfg(feature = "nvidia")]
 use nvml_wrapper::enum_wrappers::device::{TemperatureSensor};
-#[cfg(feature = "nvml-wrapper")]
+#[cfg(feature = "nvidia")]
 use nvml_wrapper::NVML;
 
 pub struct FileSystemUsage {
@@ -73,7 +73,7 @@ lazy_static! {
     pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
 }
 
-#[cfg(feature = "nvml-wrapper")]
+#[cfg(feature = "nvidia")]
 lazy_static! {
     static ref NVML_O:         Mutex<nvml_wrapper::NVML> = Mutex::new(NVML::init().unwrap());
 }
@@ -433,7 +433,7 @@ fn get_cpu_speed_rpi() -> String {
     return format!("{} MHz", mhz);
 }
 
-#[cfg(feature = "nvml-wrapper")]
+#[cfg(feature = "nvidia")]
 fn get_nvidia_gpu_temp() -> String {
     let nvml = NVML_O.lock().unwrap();
     let device = nvml.device_by_index(0).unwrap();
@@ -460,7 +460,7 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
         "cpu_speed_rpi" =>   timings!(func, get_cpu_speed_rpi),
         "cpu_voltage_rpi" => timings!(func, get_cpu_voltage_rpi),
 
-        #[cfg(feature = "nvml-wrapper")]
+        #[cfg(feature = "nvidia")]
         "nvidia_gpu_temp" => timings!("nvidia_temp", get_nvidia_gpu_temp),
 
         #[cfg(feature = "sensors")]

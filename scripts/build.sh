@@ -18,7 +18,9 @@ export RUSTFLAGS="-C opt-level=3 -C debuginfo=0 -C target-cpu=native"
 
 set -e
 
-if [ "$HOSTNAME" == "cosmo.lan" ]
+rm -rf target/release/randy*
+
+if [[ "$HOSTNAME" == "cosmo.lan" || "$HOSTNAME" == "cosmo" ]]
 then
     cargo build --release --features timings,nvidia,sensors
     cp ./target/release/randy ./target/release/randy.timings
