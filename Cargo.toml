@@ -7,7 +7,7 @@ description = "Conky like app in Rust"
 homepage = "https://github.com/iphands/randy"
 repository = "https://github.com/iphands/randy"
 readme = "README.md"
-license-file = "LICENSE"
+license = "GPL-3"
 exclude = [ "/assets/*", "/scripts/*" ]
 
 [profile.dev]

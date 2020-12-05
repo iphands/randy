@@ -22,7 +22,7 @@ settings:
   font_family: "\"Droid Sans Mono\""
   font_size: 11pt
   timeout: 1
-  # mod_top: 2
+  mod_top: 1
   xpos: 0
   ypos: 50
 
