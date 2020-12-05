@@ -42,7 +42,6 @@ libc-0.2.80
 libsensors-sys-0.2.0
 linked-hash-map-0.5.3
 memchr-2.3.4
-minimal-yaml-0.1.2
 nvml-wrapper-0.6.0
 nvml-wrapper-sys-0.4.2
 once_cell-1.5.2
