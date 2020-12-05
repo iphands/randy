@@ -12,7 +12,7 @@ I'm new to Rust (you can tell in the code!), having fun and learning a lot.
 I'd like to come up with a more standard "module" interface once I've developed more of the modules and refactor based on what I have learned.
 
 ### Feature parity with my old Conky config
-**Done!** My old Conky setup looked more or less like [the Randy screenshot](https://github.com/iphands/randy#screenshot).
+**Done!** My old Conky setup looked more or less like [the Randy screenshot](https://github.com/iphands/randy#screenshots).
 
 Took 200+ commits to get there, but its there and working!
 
