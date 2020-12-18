@@ -15,11 +15,12 @@ settings:
   color_label: "#87d7ff"
   color_text:  "#e1eeeb"
 
-  font_family: "\"Droid Sans Mono\""
+  # font_family: "\"Droid Sans Mono\""
   # font_family: "\"Noto Sans Mono ExtraCondensed Medium\""
+  font_family: "\"Anadale Mono Regular\""
   font_size: medium
   timeout: 1
-  xpos: 3300
+  xpos: 3350
   ypos: 0
   mod_top: 2
   mod_fs:  5

@@ -3,5 +3,10 @@
 /stash
 /bench/target
 
+/scripts/test.sh
+
 /packaging/flatpak/.flatpak-builder/
 /packaging/flatpak/build-dir/
+/packaging/fedora/builder/output/
+/packaging/fedora/builder/working/
+/packaging/gentoo/test.sh

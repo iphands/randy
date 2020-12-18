@@ -113,7 +113,7 @@ src_unpack() {
 
 src_configure() {
 	local myfeatures=(
-		gentoo
+		packaged
 		$(usex debug timings '')
 		$(usex lm-sensors sensors '')
 		$(usex nvidia nvidia '')
@@ -128,8 +128,8 @@ src_compile() {
 src_install() {
 	cargo_src_install
 
-	insinto /usr/share/randy/config
-	doins -r config/*
+	insinto /etc/randy
+	doins -r config/default.yml
 
 	local DOCS=(
 		README.md
