@@ -6,6 +6,5 @@ RUN dnf install -y fedora-packager fedora-review cargo rust rust-packaging \
 
 RUN adduser -u 1000 iphands
 USER iphands
-RUN mkdir /home/iphands/build
 
 CMD ["/bin/bash", "/randy/packaging/fedora/builder/build_it.sh"]
