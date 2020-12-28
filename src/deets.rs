@@ -190,7 +190,7 @@ fn get_cpu_temp_sys() -> String {
     match fs::read_to_string("/sys/class/thermal/thermal_zone0/temp") {
         Ok(s) => {
             match s.trim().parse::<u32>() {
-                Ok(i) => format!("{}C", (i / 1000)),
+                Ok(i) => format!("{}°C", (i / 1000)),
                 Err(e) => e.to_string(),
             }
         },
