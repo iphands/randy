@@ -78,9 +78,17 @@ cargo run --features sensors,nvidia
 ```
 
 ### Required build packages
-I have only barely looked into packaging but [jhjaggars](https://github.com/jhjaggars) put some helpful hints for Raspbian and Fedora in here:
-* https://github.com/iphands/randy/issues/2
-* https://github.com/iphands/randy/issues/1
+I have only barely looked into packaging yet.
+
+For Debian-based distributions, the following packages are required:
+```shell
+libglib2.0-dev libcairo2-dev libpango1.0-dev libatk1.0-dev libgdk-pixbuf2.0-dev libgtk-3-dev libsensors4-dev
+```
+
+For Fedora, the following packages are required:
+```shell
+glib-devel glib2-devel cairo-devel gdk-pixbuf2-devel pango-devel atk-devel cairo-gobject-devel gtk3-devel lm_sensors-devel
+```
 
 ### Example
 ```shell
@@ -89,9 +97,9 @@ cargo run --release --no-default-features  # build with lm-sensors and nvml disa
 
 ## Running
 Randy needs to be pointed at a config Yaml.
-It will look for the `deatult.yml` in `$PWD/config`. Should work ootb if you launch from the root of the Git repo.
+It will look for the `default.yml` in `$PWD/config`. Should work ootb if you launch from the root of the Git repo.
 
-If are launching Randy from elsewhere... point it at the config Yaml file of your choosing.
+If you are launching Randy from elsewhere... point it at the config Yaml file of your choosing.
 Example:
 ```shell
 randy /tmp/configs/my_cool_config.yml
@@ -108,5 +116,5 @@ randy /tmp/configs/my_cool_config.yml
 ## FAQ
 * Does randy work with Wayland?
   * Yes, check out the [proof](https://raw.githubusercontent.com/iphands/ronky/main/assets/wayland.png)
-* Does randy wortk with X?
+* Does randy work with X?
   * Yes
