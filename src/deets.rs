@@ -186,11 +186,16 @@ fn get_sensor_info(sensor_name: &str, label_name: &str, val: &str, whole: bool) 
     return String::from("unknown");
 }
 
-fn get_cpu_temp_sys() -> String {
+fn get_cpu_temp_sys(val: Option<&str>) -> String {
     match fs::read_to_string("/sys/class/thermal/thermal_zone0/temp") {
         Ok(s) => {
             match s.trim().parse::<u32>() {
-                Ok(i) => format!("{}C", (i / 1000)),
+                Ok(i) => {
+                    match val {
+                        Some(s) => s.replace("{}", format!("{}", (i / 1000)).as_str()),
+                        _ => format!("{}C", (i / 1000)),
+                    }
+                },
                 Err(e) => e.to_string(),
             }
         },
@@ -443,6 +448,7 @@ fn get_nvidia_gpu_temp() -> String {
 
 pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
     let func: &str = item["func"].as_str().unwrap();
+    let val: Option<&str> = item["val"].as_str();
 
     let ret: String = match func {
         "hostname" =>    timings!(func, get_hostname_from_utsname, frame_cache.utsname.nodename as [c_char; 65]),
@@ -456,7 +462,7 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
                                frame_cache.mem_total),
         "cpu_usage" => format!("{:.2}%", timings!(func, get_cpu_usage, -1)),
 
-        "cpu_temp_sys" =>    timings!(func, get_cpu_temp_sys),
+        "cpu_temp_sys" =>    timings!(func, get_cpu_temp_sys, val),
         "cpu_speed_rpi" =>   timings!(func, get_cpu_speed_rpi),
         "cpu_voltage_rpi" => timings!(func, get_cpu_voltage_rpi),
 
