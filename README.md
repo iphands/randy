@@ -89,9 +89,9 @@ cargo run --release --no-default-features  # build with lm-sensors and nvml disa
 
 ## Running
 Randy needs to be pointed at a config Yaml.
-It will look for the `deatult.yml` in `$PWD/config`. Should work ootb if you launch from the root of the Git repo.
+It will look for the `default.yml` in `$PWD/config`. Should work ootb if you launch from the root of the Git repo.
 
-If are launching Randy from elsewhere... point it at the config Yaml file of your choosing.
+If you are launching Randy from elsewhere... point it at the config Yaml file of your choosing.
 Example:
 ```shell
 randy /tmp/configs/my_cool_config.yml
@@ -108,5 +108,5 @@ randy /tmp/configs/my_cool_config.yml
 ## FAQ
 * Does randy work with Wayland?
   * Yes, check out the [proof](https://raw.githubusercontent.com/iphands/ronky/main/assets/wayland.png)
-* Does randy wortk with X?
+* Does randy work with X?
   * Yes
