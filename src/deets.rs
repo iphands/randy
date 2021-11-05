@@ -193,7 +193,7 @@ fn get_cpu_temp_sys(val: Option<&str>) -> String {
                 Ok(i) => {
                     match val {
                         Some(s) => s.replace("{}", format!("{}", (i / 1000)).as_str()),
-                        _ => format!("{}C", (i / 1000)),
+                        _ => format!("{}°C", (i / 1000)),
                     }
                 },
                 Err(e) => e.to_string(),
