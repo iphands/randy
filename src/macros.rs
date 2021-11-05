@@ -21,7 +21,7 @@ macro_rules! timings {
 #[macro_export]
 macro_rules! timings {
     ($name:expr, $func:tt $(, $optional:expr)*) => {
-        $func($($optional, )*);
+        $func($($optional, )*)
     };
 }
 

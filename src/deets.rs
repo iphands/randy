@@ -505,8 +505,8 @@ pub fn get_fs(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
                 let mut statvfs: libc::statvfs = unsafe { mem::zeroed() };
                 unsafe { libc::statvfs(test.as_ptr(), &mut statvfs) };
 
-                let free  = ((statvfs.f_bsize  * statvfs.f_bfree) / 1024 / 1024) as f64 / 1024.0;
-                let mut total = ((statvfs.f_frsize * statvfs.f_blocks) / 1024 / 1024) as f64 / 1024.0;
+                let free  = (((statvfs.f_bsize / 1024) as f64 * (statvfs.f_bfree / 1024) as f64) / 1024.0) as f64 / 1024.0;
+                let mut total = (((statvfs.f_frsize / 1024) as f64 * (statvfs.f_blocks / 1024) as f64) / 1024.0) as f64 / 1024.0;
                 let mut used  = total - free;
                 let mut size_char = 'G';
 
@@ -517,8 +517,8 @@ pub fn get_fs(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
                 }
 
                 map.insert(String::from(**path), FileSystemUsage {
-                    used: used,
-                    total: total,
+                    used,
+                    total,
                     used_str: format!("{:.0}{}", used, size_char),
                     total_str: format!("{:.0}{}", total, size_char),
                     use_pct: format!("{:.0}%", (used / total) * 100.0),
@@ -587,13 +587,13 @@ pub fn get_frame_cache(counter: u64, mod_top: u64, do_top_bool: bool) -> FrameCa
     println!("Size of PROC_STAT_READERS: {}\n", PROC_STAT_READERS.lock().unwrap().len());
 
     return FrameCache {
-        sysinfo:   sysinfo,
-        utsname:   utsname,
-        ps_info:   ps_info,
-        proc_stat: proc_stat,
+        sysinfo,
+        utsname,
+        ps_info,
+        proc_stat,
         mem_free:  mem.0,
         mem_total: mem.1,
-        net_dev: net_dev,
+        net_dev,
     };
 }
 
@@ -639,9 +639,9 @@ fn do_all_cpu_usage(proc_stat: &Vec<String>) {
         if percent.is_nan() { percent = 0.0 }
 
         loads_map.insert(cpu_num, CpuLoad {
-            idle: idle,
-            total: total,
-            percent: percent,
+            idle,
+            total,
+            percent,
         });
     }
 }
