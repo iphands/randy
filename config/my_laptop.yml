@@ -11,7 +11,8 @@ settings:
 
   bar_height: 8px
 
-  color_background: "#656565"
+  # color_background: "#656565"
+  color_background: "#000000"
   color_bar:      "#e1eeff"
   color_bar_med:  "#ffeeaa"
   color_bar_high: "#ffaaaa"
@@ -87,6 +88,7 @@ ui:
   - text: CPU
     type: cpus
     func: cpus
+    split: true
 
   - text: TOP CPU
     type: cpu_consumers

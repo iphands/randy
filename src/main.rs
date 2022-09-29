@@ -188,7 +188,7 @@ fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> (gtk::Label, Op
     return (val, p);
 }
 
-fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
+fn _add_cpus_regular(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
     for i in 0..*deets::CPU_COUNT {
         let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
         vbox.get_style_context().add_class("row");
@@ -227,6 +227,106 @@ fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
             pct_label: pct,
         });
     }
+}
+
+fn _add_cpus_split(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
+    let left_box  = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+    left_box.get_style_context().add_class("innerbox");
+
+    let right_box = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+    right_box.get_style_context().add_class("innerbox");
+
+    for i in 0..*deets::CPU_COUNT / 2 {
+        let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+        vbox.get_style_context().add_class("row");
+
+        let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+
+        let key = gtk::Label::new(None);
+        key.get_style_context().add_class("key");
+        key.set_text(&format!("CPU{:02}", i));
+
+        let val = gtk::Label::new(None);
+        val.get_style_context().add_class("val");
+
+        let pct = gtk::Label::new(None);
+        pct.get_style_context().add_class("val");
+        pct.get_style_context().add_class("pct");
+        pct.set_justify(gtk::Justification::Right);
+        pct.set_halign(gtk::Align::End);
+
+        let progress = gtk::ProgressBar::new();
+        progress.set_hexpand(true);
+        progress.get_style_context().add_class("cpus-progress");
+        progress.set_sensitive(false);
+
+        line_box.add(&key);
+        line_box.add(&val);
+        line_box.pack_start(&pct, true, true, 0);
+
+        vbox.add(&line_box);
+        vbox.add(&progress);
+        left_box.add(&vbox);
+
+        cpus.push(Cpu {
+            mhz: val,
+            progress: progress,
+            pct_label: pct,
+        });
+    }
+
+    for i in *deets::CPU_COUNT / 2..*deets::CPU_COUNT {
+        let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+        vbox.get_style_context().add_class("row");
+
+        let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+
+        let key = gtk::Label::new(None);
+        key.get_style_context().add_class("key");
+        key.set_text(&format!("CPU{:02}", i));
+
+        let val = gtk::Label::new(None);
+        val.get_style_context().add_class("val");
+
+        let pct = gtk::Label::new(None);
+        pct.get_style_context().add_class("val");
+        pct.get_style_context().add_class("pct");
+        pct.set_justify(gtk::Justification::Right);
+        pct.set_halign(gtk::Align::End);
+
+        let progress = gtk::ProgressBar::new();
+        progress.set_hexpand(true);
+        progress.get_style_context().add_class("cpus-progress");
+        progress.set_sensitive(false);
+
+        line_box.add(&key);
+        line_box.add(&val);
+        line_box.pack_start(&pct, true, true, 0);
+
+        vbox.add(&line_box);
+        vbox.add(&progress);
+        right_box.add(&vbox);
+
+        cpus.push(Cpu {
+            mhz: val,
+            progress: progress,
+            pct_label: pct,
+        });
+    }
+
+    inner_box.set_orientation(gtk::Orientation::Horizontal);
+    inner_box.add(&left_box);
+    inner_box.add(&right_box);
+}
+
+
+fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>, split: bool) {
+    if split {
+	_add_cpus_split(inner_box, cpus);
+	return;
+    }
+
+    _add_cpus_regular(inner_box, cpus);
 }
 
 fn add_consumers(uniq_item: &str, limit: i64, container: &gtk::Box, mems: &mut Vec<TopRow>) {
@@ -302,7 +402,7 @@ fn init_ui(stash: &mut UiStash,
             let limit = i["limit"].as_i64().unwrap_or(5);
             match i["type"].as_str().unwrap() {
                 "battery"       => add_batt(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.batts),
-                "cpus"          => add_cpus(&inner_box, &mut stash.cpus),
+                "cpus"          => add_cpus(&inner_box, &mut stash.cpus, i["split"].as_bool().unwrap_or(false)),
                 "mem_consumers" => add_consumers("MEM", limit, &inner_box, &mut stash.top_mems),
                 "cpu_consumers" => add_consumers("CPU", limit, &inner_box, &mut stash.top_cpus),
                 "filesystem"    => add_filesystem(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.fs),
