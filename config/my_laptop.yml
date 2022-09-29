@@ -5,8 +5,13 @@ settings:
   # color_label: "#87d7ff"
   # color_text:  "#fff"
 
+  # decoration: true
+  # resizable: true
+  # skip_taskbar: false
+
   bar_height: 8px
-  color_background: "rgba(0, 0, 0, 0.50);"
+
+  color_background: "#656565"
   color_bar:      "#e1eeff"
   color_bar_med:  "#ffeeaa"
   color_bar_high: "#ffaaaa"
@@ -19,12 +24,12 @@ settings:
   # skip_taskbar: true
   # color_background: "#262626"
   #font_family: "\"Noto Sans\""
-  font_family: "\"Droid Sans Mono\""
+  font_family: "\"Anadale Mono Regular\""
   font_size: 11pt
   timeout: 1
-  mod_top: 1
-  xpos: 0
-  ypos: 50
+  mod_top: 2
+  xpos: 2185
+  ypos: 0
 
 ui:
   - text: SYSTEM
@@ -74,7 +79,7 @@ ui:
     type: battery
     items:
       - name: bat0
-        path: /sys/devices/LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/device:19/PNP0C09:00/PNP0C0A:00/power_supply/BAT0
+        path: /sys/devices/LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/device:1b/PNP0C09:00/PNP0C0A:00/power_supply/BAT0
         battery_text:  "Unplugged  🔋"
         pluggged_text: "Plugged in ⚡"
         percent_template: "{}%"
@@ -85,20 +90,20 @@ ui:
 
   - text: TOP CPU
     type: cpu_consumers
-    limit: 3
+    limit: 5
 
   - text: TOP MEMORY
     type: mem_consumers
-    limit: 3
+    limit: 5
 
   - text: NETWORKING
     type: net
     items:
       - name: wifi
-        interface: wlp2s0
+        interface: wlp0s20f3
 
-  # - text: FILESYSTEM
-  #   type: filesystem
-  #   items:
-  #     - text: "root:"
-  #       mount_point: /
+  - text: FILESYSTEM
+    type: filesystem
+    items:
+      - text: "root:"
+        mount_point: /

@@ -112,6 +112,10 @@ fn build_ui(application: &gtk::Application) {
     window.set_skip_taskbar_hint(config["settings"]["skip_taskbar"].as_bool().unwrap_or(true));
     window.set_keep_below(!_is_interactive(&config["settings"]));
     window.set_accept_focus(_is_interactive(&config["settings"]));
+    // println!("Debug {:?}", _is_interactive(&config["settings"]));
+    // println!("Debug {:?}", &config["settings"]);
+
+    window.realize();
 
     let screen = window.get_screen().unwrap();
     let visual = screen.get_rgba_visual().unwrap();
