@@ -216,7 +216,7 @@ fn get_ps_from_proc(counter: u64, mod_top: u64, mem_used: f64) -> Vec<PsInfo> {
                 if line.starts_with("Name:\tkworker") || line.starts_with("Name:\tksoftirqd") {
                     return false;
                 }
-        } else if first == 109 {
+            } else if first == 109 {
                 if line.starts_with("Name:\tmigration/") {
                     return false;
                 }
@@ -347,7 +347,7 @@ fn get_ps_from_proc(counter: u64, mod_top: u64, mem_used: f64) -> Vec<PsInfo> {
                 },
                 _ => (),
             };
-         }
+        }
     });
 
     if should_run_retain {
@@ -505,22 +505,22 @@ pub fn get_fs(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
                 let mut statvfs: libc::statvfs = unsafe { mem::zeroed() };
                 unsafe { libc::statvfs(test.as_ptr(), &mut statvfs) };
 
-                let free  = ((statvfs.f_bsize  * statvfs.f_bfree) / 1024 / 1024) as f64 / 1024.0;
-                let mut total = ((statvfs.f_frsize * statvfs.f_blocks) / 1024 / 1024) as f64 / 1024.0;
+		let free  = ((statvfs.f_bsize as f64 / 1024.0) * (statvfs.f_bfree as f64 / 1024.0)) / 1024.0;
+                let mut total = ((statvfs.f_frsize as f64 / 1024.0) * (statvfs.f_blocks as f64 / 1024.0)) / 1024.0;
                 let mut used  = total - free;
                 let mut size_char = 'G';
 
-                if total < 100.0 {
-                    used = used * 1000.0;
-                    total = total * 1000.0;
+		if total < 1.0 {
+                    used = used * 100.0;
+                    total = total * 100.0;
                     size_char = 'M';
                 }
 
                 map.insert(String::from(**path), FileSystemUsage {
                     used: used,
                     total: total,
-                    used_str: format!("{:.0}{}", used, size_char),
-                    total_str: format!("{:.0}{}", total, size_char),
+                    used_str: format!("{:.2}{}", used, size_char),
+                    total_str: format!("{:.2}{}", total, size_char),
                     use_pct: format!("{:.0}%", (used / total) * 100.0),
                 });
 
