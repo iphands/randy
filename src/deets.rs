@@ -56,7 +56,7 @@ const LOAD_SHIFT_F32: f32 = (1 << libc::SI_LOAD_SHIFT) as f32;
 
 // 1000000
 #[cfg(not(feature = "timings"))]
-const YEILD_TIME: time::Duration = time::Duration::from_nanos(1024);
+const YIELD_TIME: time::Duration = time::Duration::from_nanos(1024);
 
 lazy_static! {
     // this one should be separate from frame cache
@@ -170,7 +170,7 @@ fn get_sensor_info(sensor_name: &str, label_name: &str, val: &str, whole: bool) 
                         let value = subfeature.get_value().expect("value");
                         // TODO this beeegs for a proper templating solution
                         // I think I want to start returning the raw info and
-                        // applying the tempates in main ui_update
+                        // applying the templates in main ui_update
 
                         if whole {
                             return String::from(val).replace("{}", format!("{:.0}", value).as_str());
@@ -279,7 +279,7 @@ fn get_ps_from_proc(counter: u64, mod_top: u64, mem_used: f64) -> Vec<PsInfo> {
 
     fs::read_dir("/proc").unwrap().for_each(|dir_entry| {
         #[cfg(not(feature = "timings"))]
-        thread::sleep(YEILD_TIME);
+        thread::sleep(YIELD_TIME);
 
         let entry: fs::DirEntry = match dir_entry {
             Ok(r)  => r,
@@ -408,7 +408,7 @@ pub fn get_battery(path: &str) -> (bool, String) {
     let status   = match try_strings_from_reader(status_reader, 1).unwrap()[0].as_str() {
         "Discharging" => false,
         "Full"        => true,
-        "Uknown"      => true,
+        "Unknown"     => true,
         _             => true,
     };
 
@@ -476,7 +476,7 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
                                   item["val"].as_str().unwrap(),
                                   item["whole"].as_bool().unwrap()),
         _ => {
-            println!("Unkown func: {}", func);
+            println!("Unknown func: {}", func);
             return String::from("unimpl");
         },
     };

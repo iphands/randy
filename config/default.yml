@@ -51,7 +51,7 @@ ui:
         text: "Load:"
 
       # requires that you build with --features sensors
-      # look at the output of runnig `sensors` from the CLI for the
+      # look at the output of running `sensors` from the CLI for the
       # values of: sensor_name, label_name etc
       #
       # - func: sensor_info
