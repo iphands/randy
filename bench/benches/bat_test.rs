@@ -20,7 +20,7 @@ fn get_line(reader: &mut BufReader<File>) -> bool {
     return match ret {
         "Discharging" => false,
         "Full" => true,
-        "Uknown" => true,
+        "Unknown" => true,
         _ => true,
     };
 }
@@ -29,7 +29,7 @@ fn normal(reader: &mut BufReader<File>) -> bool {
     return match try_strings_from_reader(reader, 1).unwrap()[0].as_str() {
         "Discharging" => false,
         "Full" => true,
-        "Uknown" => true,
+        "Unknown" => true,
         _ => true,
     };
 }
