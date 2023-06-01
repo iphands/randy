@@ -1,7 +1,8 @@
 #!/bin/bash
 
 FEATURES=""
-for var in `rustc --target=x86_64-linux-kernel --print target-features | fgrep inst | awk '{print $1}' | sort -u`
+TARGET="`rustc --print target-list | fgrep linuxkernel | fgrep x86_64`"
+for var in `rustc --target=${TARGET} --print target-features | fgrep inst | awk '{print $1}' | sort -u`
 do
     # echo "looking for $var"
     TMP="`fgrep -o $var /proc/cpuinfo | head -n1 | fgrep $var`"

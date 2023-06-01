@@ -439,9 +439,9 @@ fn get_cpu_speed_rpi() -> String {
 }
 
 #[cfg(feature = "nvidia")]
-fn get_nvidia_gpu_temp() -> String {
+fn get_nvidia_gpu_temp(idx: u32) -> String {
     let nvml = NVML_O.lock().unwrap();
-    let device = nvml.device_by_index(0).unwrap();
+    let device = nvml.device_by_index(idx).unwrap();
     let temperature = device.temperature(TemperatureSensor::Gpu).unwrap();
     return format!("{}C", temperature);
 }
@@ -467,7 +467,7 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
         "cpu_voltage_rpi" => timings!(func, get_cpu_voltage_rpi),
 
         #[cfg(feature = "nvidia")]
-        "nvidia_gpu_temp" => timings!("nvidia_temp", get_nvidia_gpu_temp),
+        "nvidia_gpu_temp" => timings!("nvidia_temp", get_nvidia_gpu_temp, item["idx"].as_i64().unwrap() as u32),
 
         #[cfg(feature = "sensors")]
         "sensor_info" => timings!("sensors", get_sensor_info,

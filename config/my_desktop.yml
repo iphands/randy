@@ -20,7 +20,7 @@ settings:
   font_family: "\"Anadale Mono Regular\""
   font_size: medium
   timeout: 1
-  xpos: 3350
+  xpos: 3269
   ypos: 0
   mod_top: 2
   mod_fs:  5
@@ -44,20 +44,32 @@ ui:
 
       - func: sensor_info
         sensor_name: k10temp-pci-00c3
-        label_name: Tdie
+        label_name: Tccd1
         val: "{}C"
-        text: "CPU temp:"
+        text: "CPU ccd1 temp:"
         whole: true
 
       - func: sensor_info
         sensor_name: k10temp-pci-00c3
-        label_name: Vcore
-        val: "{}mV"
-        text: "CPU vcore:"
-        whole: false
+        label_name: Tccd2
+        val: "{}C"
+        text: "CPU ccd2 temp:"
+        whole: true
+
+      # - func: sensor_info
+      #   sensor_name: k10temp-pci-00c3
+      #   label_name: Vcore
+      #   val: "{}mV"
+      #   text: "CPU vcore:"
+      #   whole: false
 
       - func: nvidia_gpu_temp
-        text: "GPU Temp:"
+        idx: 0
+        text: "GPU0 Temp:"
+
+      - func: nvidia_gpu_temp
+        idx: 1
+        text: "GPU1 Temp:"
 
       - func: ram_usage
         text: "RAM usage:"
@@ -73,6 +85,7 @@ ui:
     type: cpus
     func: cpus
     text: "CPU"
+    split: true
 
   - text: TOP CPU
     type: cpu_consumers
