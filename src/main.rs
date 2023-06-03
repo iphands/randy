@@ -160,6 +160,7 @@ fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> (gtk::Label, Op
 
     let val = gtk::Label::new(None);
     val.set_justify(gtk::Justification::Right);
+    val.set_hexpand(true);
     val.set_halign(gtk::Align::End);
     val.style_context().add_class("val");
 
@@ -301,7 +302,11 @@ fn _add_cpus_split(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
         progress.set_sensitive(false);
 
         line_box.append(&key);
+        val.set_hexpand(true);
         line_box.append(&val);
+        pct.set_justify(gtk::Justification::Right);
+        pct.set_halign(gtk::Align::End);
+        line_box.append(&pct);
         // line_box.pack_start(&pct, true, true, 0);
 
         vbox.append(&line_box);
@@ -344,15 +349,16 @@ fn add_consumers(uniq_item: &str, limit: i64, container: &gtk::Box, mems: &mut V
         match i {
             0 => {
                 label.set_halign(gtk::Align::Start);
-                // columns[0].pack_start(label, true, true, 0)
+                label.set_hexpand(true);
+		columns[i].append(label);
             },
             1 => {
+                label.set_halign(gtk::Align::End);
                 columns[i].append(label);
-                label.set_halign(gtk::Align::End)
             },
             2 => {
+                label.set_halign(gtk::Align::End);
                 columns[i].append(label);
-                label.set_halign(gtk::Align::End)
             },
             _ => (),
         }
@@ -381,6 +387,7 @@ fn add_consumers(uniq_item: &str, limit: i64, container: &gtk::Box, mems: &mut V
     }
 
     // container.pack_start(&columns[0], true, true, 0);
+    container.append(&columns[0]);
     container.append(&columns[1]);
     container.append(&columns[2]);
 }
