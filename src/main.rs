@@ -14,7 +14,6 @@ use gtk::prelude::*;
 
 use std::fs;
 use std::collections::HashMap;
-use std::env::args;
 use std::sync::Mutex;
 use std::time::Instant;
 use yaml_rust::{YamlLoader, Yaml};
@@ -744,23 +743,51 @@ fn update_ui(config: &Yaml, stash: UiStash) {
     glib::timeout_add_seconds_local(timeout as u32, update);
 }
 
-fn get_file() -> String {
-    let input = args().collect::<Vec<String>>();
-
-    #[cfg(feature = "packaged")]
-    let mut config_path = &String::from("/etc/randy/default.yml");
-
-    #[cfg(not(feature = "packaged"))]
-    let mut config_path = &String::from("./config/default.yml");
-
-    if input.len() > 1 {
-        config_path = &input[1];
-        if !config_path.ends_with(".yml") && !config_path.ends_with(".yaml") {
-            panic!("Need to provide a valid config path: {}", config_path);
-        }
+fn try_get_file() -> Option<String> {
+    let home = std::env::var("HOME").unwrap_or("".to_string());
+    if home != "" {
+	let cfg = format!("{}/.randy.yml", home);
+	if std::path::Path::new(&cfg).exists() {
+	    return Some(cfg);
+	}
     }
 
-    return match fs::read_to_string(config_path) {
+    let xdg = std::env::var("XDG_CONFIG_HOME");
+    if xdg.is_ok() {
+	let cfg = format!("{}/randy.yml", xdg.unwrap());
+	if std::path::Path::new(&cfg).exists() {
+	    return Some(cfg);
+	}
+    }
+
+    if home != "" {
+	let cfg = format!("{}/.config/randy.yml", home);
+	if std::path::Path::new(&cfg).exists() {
+	    return Some(cfg);
+	}
+    }
+
+    let cfg = "/etc/randy.yml";
+    if std::path::Path::new(&cfg).exists() {
+	return Some(cfg.to_string());
+    }
+
+    return None;
+}
+
+fn get_file() -> String {
+    let config_path = try_get_file()
+	.expect(r#"Could not find a randy.yml config file.
+Checked in this order:
+- $HOME/.randy.yml
+- $XDG_CONFIG_HOME/randy.yml
+- $HOME/.config/randy.yml
+- /etc/randy.yml
+
+Please put a randy.yml config file in one of those places.
+Exmples: https://github.com/iphands/randy/tree/main/config"#);
+    println!("Using config file: {}", config_path);
+    return match fs::read_to_string(&config_path) {
         Ok(s)  => s,
         Err(_) => panic!("Unable to open/read {}", config_path),
     };
