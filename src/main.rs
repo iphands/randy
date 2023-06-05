@@ -131,6 +131,7 @@ fn build_ui(application: &gtk::Application, s: String) {
 
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
     vbox.style_context().add_class("container");
+    vbox.set_size_request(475, -1);
 
     let mut stash = UiStash {
         batts: HashMap::new(),

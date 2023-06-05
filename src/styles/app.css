@@ -12,6 +12,7 @@ window {
 }
 
 .frame {
+    border-radius: 0 0 0 0;
     border-style: solid;
     border-width: 2px;
     padding-bottom: 0.25em;
