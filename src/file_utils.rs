@@ -11,7 +11,7 @@ pub fn get_strings_from_path(path: &str, line_end: usize) -> Vec<String> {
 }
 
 pub fn get_match_strings_from_path(path: &str, filters: &Vec<&str>) -> Vec<String> {
-    match try_match_strings_from_path(path, &filters) {
+    match try_match_strings_from_path(path, filters) {
         Ok(v)  => v,
         Err(e) => panic!("Unable to open / read {}: {}", &path, e),
     }
@@ -31,31 +31,28 @@ pub fn try_exact_match_strings_from_reader(reader: &mut BufReader<File>, filters
             Ok(0)  => return Ok(lines_vec),
             Err(e) => return Err(e),
             _ => {
-                if line == "" { return Ok(lines_vec); }
+                if line.is_empty() { return Ok(lines_vec); }
                 line_num += 1;
 
-                match hack {
-                    Some(f) => match f(&line_num, &line) {
+                if let Some(f) = hack { 
+                    match f(&line_num, line) {
                         false => return Ok(lines_vec),
                         true  => (),
-                    },
-                    None => (),
-                };
+                    } 
+                }               
 
-                match filters.iter().try_for_each(|filter| {
+                if filters.iter().try_for_each(|filter| {
                     if line.starts_with(filter) {
-                        let l = line.trim().clone().to_string();
+                        let l = line.trim().to_string();
                         lines_vec.push(l);
                         if count == filter_count {
-                            return None;
+                        return None;
                         }
                         count += 1;
                     }
-                    return Some(());
-                }) {
-                    None => { return Ok(lines_vec); },
-                    _ => (),
-                };
+                    Some(())
+                    }).is_none() { return Ok(lines_vec); 
+                }
             },
         }
     }
@@ -71,20 +68,20 @@ pub fn try_match_strings_from_file(file: &mut File, filters: &Vec<&str>) -> Resu
             ret = s.starts_with(filter);
             if ret { break; }
         }
-        return ret;
-    }).map(|s| String::from(s)).collect());
+        ret
+    }).map(String::from).collect());
 }
 
 pub fn try_match_strings_from_path(path: &str, filters: &Vec<&str>) -> Result<Vec<String>, std::io::Error> {
-    return match fs::read_to_string(&path) {
+    return match fs::read_to_string(path) {
         Ok(s) => Ok(s.lines().filter(|s| {
             let mut ret = false;
             for filter in filters {
                 ret = s.starts_with(filter);
                 if ret { break; }
             }
-            return ret;
-        }).map(|s| String::from(s)).collect()),
+            ret
+        }).map(String::from).collect()),
         Err(e) => Err(e),
     };
 }
@@ -95,22 +92,17 @@ pub fn try_strings_from_reader(reader: &mut BufReader<File>, line_end: usize) ->
     let mut lines: Vec<String> = Vec::new();
     for _ in 0..line_end {
         let mut line = String::new();
-        let e = match reader.read_line(&mut line) {
-            Err(e) => Some(e),
-            _ => None,
-        };
-
-        if e.is_some() { return Err(e.unwrap()); }
-        if line == "" { break; }
+        reader.read_line(&mut line)?;
+        if line.is_empty() { break; }
         lines.push(String::from(line.trim()));
     }
 
-    return Ok(lines);
+    Ok(lines)
 }
 
 #[inline(always)]
 pub fn try_strings_from_path(path: &str, line_end: usize) -> Result<Vec<String>, std::io::Error> {
-    let mut file = BufReader::new(match File::open(&path) {
+    let mut file = BufReader::new(match File::open(path) {
         Ok(f)  => f,
         Err(e) => return Err(e),
     });
@@ -118,15 +110,10 @@ pub fn try_strings_from_path(path: &str, line_end: usize) -> Result<Vec<String>,
     let mut lines: Vec<String> = Vec::new();
     for _ in 0..line_end {
         let mut line = String::new();
-        let e = match file.read_line(&mut line) {
-            Err(e) => Some(e),
-            _ => None,
-        };
-
-        if e.is_some() { return Err(e.unwrap()); }
-        if line == "" { break; }
+        file.read_line(&mut line)?;
+        if line.is_empty() { break; }
         lines.push(String::from(line.trim()));
     }
 
-    return Ok(lines);
+    Ok(lines)
 }
