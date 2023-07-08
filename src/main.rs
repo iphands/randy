@@ -738,35 +738,35 @@ fn update_ui(config: &Yaml, stash: UiStash) {
 }
 
 fn try_get_file() -> Option<String> {
-    let home = std::env::var("HOME").unwrap_or("".to_string());
-    if !home.is_empty() {
-	let cfg = format!("{}/.randy.yml", home);
-	if std::path::Path::new(&cfg).exists() {
-	    return Some(cfg);
-	}
+
+    if let Ok(home) = std::env::var("HOME") {
+        let cfg = format!("{home}/.randy.yml");
+        if std::path::Path::new(&cfg).exists() {
+            return Some(cfg);
+        }
     }
 
-    let xdg = std::env::var("XDG_CONFIG_HOME");
-    if xdg.is_ok() {
-	let cfg = format!("{}/randy.yml", xdg.unwrap());
-	if std::path::Path::new(&cfg).exists() {
-	    return Some(cfg);
-	}
+    if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
+        let cfg = format!("{xdg}/.randy.yml");
+        if std::path::Path::new(&cfg).exists() {
+            return Some(cfg);
+        }
     }
 
-    if !home.is_empty() {
-	let cfg = format!("{}/.config/randy.yml", home);
-	if std::path::Path::new(&cfg).exists() {
-	    return Some(cfg);
-	}
+    if let Ok(home) = std::env::var("HOME") {
+        let cfg = format!("{home}/.config/randy.yml");
+        if std::path::Path::new(&cfg).exists() {
+            return Some(cfg);
+        }
     }
 
     let cfg = "/etc/randy.yml";
-    if std::path::Path::new(&cfg).exists() {
-	return Some(cfg.to_string());
-    }
 
-    None
+    if std::path::Path::new(cfg).exists() {
+	    Some(cfg.to_string())
+    } else {
+        None
+    }
 }
 
 fn get_file() -> String {
