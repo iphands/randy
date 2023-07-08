@@ -10,12 +10,13 @@ mod deets;
 mod file_utils;
 
 use gio::prelude::*;
-use gtk::prelude::*;
+use gtk::{prelude::*, WidgetExt};
 
 use std::{
     fs,
     env,
     sync::Mutex,
+    error::Error,
     time::Instant,
     collections::HashMap,
 };
@@ -78,7 +79,7 @@ fn get_css(conf: &Yaml, composited: bool) -> String {
     let font_size = conf["font_size"].as_str().unwrap_or("large");
     let base_opacity = format!("{:1.4}", conf["base_opacity"].as_f64().unwrap_or(1.0));
 
-    return css
+    css
         .replace("{ bar_height }",       conf["bar_height"].as_str().unwrap_or("10px"))
         .replace("{ base_opacity }",     &base_opacity)
         .replace("{ color }",            conf["color_text"].as_str().unwrap_or("#e1eeeb"))
@@ -91,7 +92,7 @@ fn get_css(conf: &Yaml, composited: bool) -> String {
         .replace("{ color_trough }",     color_trough)
         .replace("{ font_family }",      conf["font_family"].as_str().unwrap_or("monospace"))
         .replace("{ font_size_top }",    conf["font_size_top"].as_str().unwrap_or(font_size))
-        .replace("{ font_size }",        font_size);
+        .replace("{ font_size }",        font_size)
 }
 
 fn _is_interactive(config: &Yaml) -> bool {
@@ -172,7 +173,7 @@ fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> (gtk::Label, Op
     line_box.add(&key);
     line_box.pack_start(&val, true, true, 0);
 
-    let mut p = None;
+    let mut prog = None;
 
     match item["widget"].as_str() {
         Some("bar") => {
@@ -184,14 +185,14 @@ fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> (gtk::Label, Op
             vbox.add(&line_box);
             vbox.add(&progress);
             inner_box.add(&vbox);
-            p = Some(progress);
+            prog = Some(progress);
         },
         _ => {
             inner_box.add(&line_box);
         },
     }
 
-    (val, p)
+    (val, prog)
 }
 
 fn _add_cpus_regular(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
@@ -324,7 +325,6 @@ fn _add_cpus_split(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
     inner_box.add(&left_box);
     inner_box.add(&right_box);
 }
-
 
 fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>, split: bool) {
     if split {
@@ -790,25 +790,34 @@ Exmples: https://github.com/iphands/randy/tree/main/config"#);
     println!("Using config file: {}", config_path);
     match fs::read_to_string(&config_path) {
         Ok(s)  => s,
-        Err(_) => panic!("Unable to open/read {}", config_path),
+        Err(e) => {
+            eprintln!("Unable to open/read {config_path}");
+            panic!("Error: {e}");
+        },
     }
 }
 
 fn get_config(yaml_str: &str) -> Vec<Yaml> {
-    
-
     match YamlLoader::load_from_str(yaml_str) {
         Ok(y)  => y,
-        Err(_) => panic!("Unable to parse config YAML"),
+        Err(e) => {
+            eprintln!("Unable to parse config YAML");
+            panic!("Error: {e}");
+        },
     }
 }
 
-fn main() {
-    let application = gtk::Application::new(Some("org.ahands.randy"), Default::default()).expect("Initialization failed...");
+fn main() -> Result<(), Box<dyn Error>> {
+    let application = gtk::Application::new(
+            Some("org.ahands.randy"),
+            Default::default()
+    ).expect("Initialization failed...");
 
     application.connect_activate(|app| {
         build_ui(app);
     });
 
     application.run(&Vec::new());
+
+    Ok(())
 }
