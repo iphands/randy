@@ -88,7 +88,7 @@ fn get_css(conf: &Yaml, composited: bool) -> String {
 }
 
 fn _is_interactive(config: &Yaml) -> bool {
-    return config["decoration"].as_bool().unwrap_or(false) || config["resizable"].as_bool().unwrap_or(false);
+    config["decoration"].as_bool().unwrap_or(false) || config["resizable"].as_bool().unwrap_or(false)
 }
 
 fn build_ui(application: &gtk::Application) {
@@ -155,7 +155,7 @@ fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> (gtk::Label, Op
 
     let key = gtk::Label::new(None);
     key.get_style_context().add_class("key");
-    key.set_text(&format!("{}", item["text"].as_str().unwrap()));
+    key.set_text(item["text"].as_str().unwrap());
 
     let val = gtk::Label::new(None);
     val.set_justify(gtk::Justification::Right);
@@ -184,7 +184,7 @@ fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> (gtk::Label, Op
         },
     }
 
-    return (val, p);
+    (val, p)
 }
 
 fn _add_cpus_regular(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
@@ -222,7 +222,7 @@ fn _add_cpus_regular(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
 
         cpus.push(Cpu {
             mhz: val,
-            progress: progress,
+            progress,
             pct_label: pct,
         });
     }
@@ -269,7 +269,7 @@ fn _add_cpus_split(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
 
         cpus.push(Cpu {
             mhz: val,
-            progress: progress,
+            progress,
             pct_label: pct,
         });
     }
@@ -308,7 +308,7 @@ fn _add_cpus_split(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
 
         cpus.push(Cpu {
             mhz: val,
-            progress: progress,
+            progress,
             pct_label: pct,
         });
     }
@@ -358,7 +358,7 @@ fn add_consumers(uniq_item: &str, limit: i64, container: &gtk::Box, mems: &mut V
 
     for (i, name) in [ "NAME             ", "      PID", &format!("     {}", uniq_item) ].iter().enumerate() {
         let label = gtk::Label::new(None);
-        label.set_text(&name);
+        label.set_text(name);
         add_to_column(i, &label, &columns);
     }
 
@@ -418,7 +418,7 @@ fn init_ui(stash: &mut UiStash,
     }
 }
 
-fn add_batt(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, Battery>) {
+fn add_batt(container: &gtk::Box, items: &[Yaml], stash: &mut HashMap<String, Battery>) {
     container.set_orientation(gtk::Orientation::Horizontal);
     container.get_style_context().add_class("batt");
 
@@ -449,7 +449,7 @@ fn add_batt(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String,
         let pct_lbl = gtk::Label::new(None);
         pct_lbl.get_style_context().add_class("val");
         pct_lbl.set_halign(gtk::Align::Start);
-        pct_lbl.set_text(&String::from(str_pct_template.replace("{}", "000")));
+        pct_lbl.set_text(&str_pct_template.replace("{}", "000"));
 
         val_box.add(&status_lbl);
         val_box.add(&pct_lbl);
@@ -468,7 +468,7 @@ fn add_batt(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String,
     container.add(&val_col);
 }
 
-fn add_net(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, (gtk::Label, gtk::Label)>) {
+fn add_net(container: &gtk::Box, items: &[Yaml], stash: &mut HashMap<String, (gtk::Label, gtk::Label)>) {
     container.set_orientation(gtk::Orientation::Horizontal);
     container.get_style_context().add_class("net");
 
@@ -548,16 +548,13 @@ fn add_filesystem(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<S
         wrapper.pack_start(&columns[1], true, true, 0);
         container.add(&wrapper);
 
-        match stash {
-            Some(s) => {
-                let progress = gtk::ProgressBar::new();
-                progress.set_hexpand(true);
-                progress.set_sensitive(false);
-
-                container.add(&progress);
-                s.insert(String::from(item["mount_point"].as_str().unwrap()), (space, progress));
-            },
-            None => (),
+        if let Some(s) = stash {
+            let progress = gtk::ProgressBar::new();
+            progress.set_hexpand(true);
+            progress.set_sensitive(false);
+            
+            container.add(&progress);
+            s.insert(String::from(item["mount_point"].as_str().unwrap()), (space, progress));
         }
     }
 
@@ -584,7 +581,7 @@ fn _update_bar(bar: &gtk::ProgressBar, fraction: f64) {
 
 fn update_ui(config: &Yaml, stash: UiStash) {
 
-    fn do_top(ps_info: &Vec<deets::PsInfo>, top_ui_items: &Vec<TopRow>, member: &str) {
+    fn do_top(ps_info: &[deets::PsInfo], top_ui_items: &[TopRow], member: &str) {
         for (i, lbl) in top_ui_items.iter().enumerate() {
             match member {
                 "mem" => lbl.pct.set_text(&format!("{:.1}%", ps_info[i].mem)),
@@ -592,7 +589,7 @@ fn update_ui(config: &Yaml, stash: UiStash) {
                 _ => (),
             };
 
-            lbl.pid.set_text(&format!("{}", ps_info[i].pid));
+            lbl.pid.set_text(&ps_info[i].pid.to_string());
 
             let comm = &ps_info[i].comm;
             if comm.len() > 20 {
@@ -616,7 +613,7 @@ fn update_ui(config: &Yaml, stash: UiStash) {
     fn _get_net_bps(cache: &mut HashMap<String, NetDevCache>, key: &str, curr_bytes: &u64) -> String {
         if !cache.contains_key(key) {
             cache.insert(String::from(key), NetDevCache {
-                last_bytes: curr_bytes.clone(),
+                last_bytes: *curr_bytes,
                 last_instant: Instant::now(),
             });
         }
@@ -627,26 +624,26 @@ fn update_ui(config: &Yaml, stash: UiStash) {
         bytes = (bytes * 1000.0) / (cache_val.last_instant.elapsed().as_millis() as f64);
 
         if bytes > 990.0 {
-            bytes = bytes / 1024.0;
+            bytes /= 1024.0;
             lbl = "MB";
         }
 
         if bytes > 990.0 {
-            bytes = bytes / 1024.0;
+            bytes /= 1024.0;
             lbl = "GB";
         }
 
         cache.insert(String::from(key), NetDevCache {
-            last_bytes: curr_bytes.clone(),
+            last_bytes: *curr_bytes,
             last_instant: Instant::now(),
         });
 
-        return format!("{:.2} {}", bytes, lbl);
+        format!("{:.2} {}", bytes, lbl)
     }
 
     let mut update = move || {
         let mut frame_counter = FRAME_COUNT.lock().unwrap();
-        let should_top = match &stash.top_cpus.len() + &stash.top_mems.len() {
+        let should_top = match stash.top_cpus.len() + stash.top_mems.len() {
             0 => false,
             _ => *frame_counter % mod_top == 0,
         };
@@ -663,7 +660,7 @@ fn update_ui(config: &Yaml, stash: UiStash) {
             do_top(&frame_cache.ps_info, &stash.top_mems, "mem");
         }
 
-        if stash.batts.len() != 0 && (*frame_counter % mod_bat == 0) {
+        if !stash.batts.is_empty() && (*frame_counter % mod_bat == 0) {
             stash.batts.iter().for_each(|(path, battery)| {
                 let (plugged, pct) = timings!("battery", get_battery, path);
                 battery.lbl_status.set_text(match plugged { true => &battery.str_plugged, false => &battery.str_battery, });
@@ -671,17 +668,17 @@ fn update_ui(config: &Yaml, stash: UiStash) {
             });
         }
 
-        if stash.net.len() != 0 {
+        if !stash.net.is_empty() {
             stash.net.iter().for_each(|(interface, (up_lbl, down_lbl))| {
                 if frame_cache.net_dev.contains_key(interface) {
                     let (up, down) = frame_cache.net_dev.get(interface).unwrap();
-                    up_lbl.set_text(&_get_net_bps(&mut net_cache, &format!("{} up", interface), &up));
-                    down_lbl.set_text(&_get_net_bps(&mut net_cache, &format!("{} down", interface), &down));
+                    up_lbl.set_text(&_get_net_bps(&mut net_cache, &format!("{} up", interface), up));
+                    down_lbl.set_text(&_get_net_bps(&mut net_cache, &format!("{} down", interface), down));
                 }
             });
         }
 
-        if stash.fs.len() != 0 && (*frame_counter % mod_fs == 0) {
+        if !stash.fs.is_empty() && (*frame_counter % mod_fs == 0) {
             let fs_usage = timings!("fs_usage", get_fs, stash.fs.keys().map(|s| s.as_str()).collect::<Vec<&str>>());
             fs_usage.iter().for_each(|(k, v)| {
                 let stash = stash.fs.get(k).unwrap();
@@ -704,22 +701,19 @@ fn update_ui(config: &Yaml, stash: UiStash) {
         stash.system.iter().for_each(|(item, val)| {
             let func: &str = item["func"].as_str().unwrap();
             let deet = deets::do_func(item, &frame_cache);
-            val.0.set_text(&deet.as_str());
+            val.0.set_text(deet.as_str());
 
-            match &val.1 {
-                Some(bar) => {
-                    match func {
-                        "cpu_usage" => _update_bar(bar, deets::get_cpu_usage(-1) / 100.0),
-                        "ram_usage" => _update_bar(bar, (frame_cache.mem_total - frame_cache.mem_free) / frame_cache.mem_total),
-                        _ => (),
-                    };
-                },
-                _ => (),
+            if let Some(bar) = &val.1 {
+                match func {
+                    "cpu_usage" => _update_bar(bar, deets::get_cpu_usage(-1) / 100.0),
+                    "ram_usage" => _update_bar(bar, (frame_cache.mem_total - frame_cache.mem_free) / frame_cache.mem_total),
+                    _ => (),
+                };
             }
         });
 
         *frame_counter += 1;
-        return glib::Continue(true);
+        glib::Continue(true)
     };
 
     // update now!!
@@ -745,7 +739,7 @@ fn update_ui(config: &Yaml, stash: UiStash) {
 
 fn try_get_file() -> Option<String> {
     let home = std::env::var("HOME").unwrap_or("".to_string());
-    if home != "" {
+    if !home.is_empty() {
 	let cfg = format!("{}/.randy.yml", home);
 	if std::path::Path::new(&cfg).exists() {
 	    return Some(cfg);
@@ -760,7 +754,7 @@ fn try_get_file() -> Option<String> {
 	}
     }
 
-    if home != "" {
+    if !home.is_empty() {
 	let cfg = format!("{}/.config/randy.yml", home);
 	if std::path::Path::new(&cfg).exists() {
 	    return Some(cfg);
@@ -772,7 +766,7 @@ fn try_get_file() -> Option<String> {
 	return Some(cfg.to_string());
     }
 
-    return None;
+    None
 }
 
 fn get_file() -> String {
@@ -787,19 +781,19 @@ Checked in this order:
 Please put a randy.yml config file in one of those places.
 Exmples: https://github.com/iphands/randy/tree/main/config"#);
     println!("Using config file: {}", config_path);
-    return match fs::read_to_string(&config_path) {
+    match fs::read_to_string(&config_path) {
         Ok(s)  => s,
         Err(_) => panic!("Unable to open/read {}", config_path),
-    };
+    }
 }
 
 fn get_config(yaml_str: &str) -> Vec<Yaml> {
-    let yaml = match YamlLoader::load_from_str(yaml_str) {
+    
+
+    match YamlLoader::load_from_str(yaml_str) {
         Ok(y)  => y,
         Err(_) => panic!("Unable to parse config YAML"),
-    };
-
-    return yaml;
+    }
 }
 
 fn main() {
