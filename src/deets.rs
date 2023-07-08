@@ -19,7 +19,7 @@ use yaml_rust::{Yaml};
 #[cfg(feature = "nvidia")]
 use nvml_wrapper::enum_wrappers::device::{TemperatureSensor};
 #[cfg(feature = "nvidia")]
-use nvml_wrapper::NVML;
+use nvml_wrapper::Nvml;
 
 pub struct FileSystemUsage {
     pub used:  f64,
@@ -77,7 +77,7 @@ lazy_static! {
 
 #[cfg(feature = "nvidia")]
 lazy_static! {
-    static ref NVML_O:         Mutex<nvml_wrapper::NVML> = Mutex::new(NVML::init().unwrap());
+    static ref NVML_O:         Mutex<nvml_wrapper::Nvml> = Mutex::new(Nvml::init().unwrap());
 }
 
 fn get_hostname_from_utsname(n: [c_char; 65]) -> String {

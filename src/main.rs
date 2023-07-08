@@ -12,11 +12,18 @@ mod file_utils;
 use gio::prelude::*;
 use gtk::prelude::*;
 
-use std::fs;
-use std::collections::HashMap;
-use std::sync::Mutex;
-use std::time::Instant;
-use yaml_rust::{YamlLoader, Yaml};
+use std::{
+    fs,
+    env,
+    sync::Mutex,
+    time::Instant,
+    collections::HashMap,
+};
+
+use yaml_rust::{
+    Yaml,
+    YamlLoader,
+};
 
 const SPACING: i32 = 3;
 
@@ -739,21 +746,21 @@ fn update_ui(config: &Yaml, stash: UiStash) {
 
 fn try_get_file() -> Option<String> {
 
-    if let Ok(home) = std::env::var("HOME") {
+    if let Ok(home) = env::var("HOME") {
         let cfg = format!("{home}/.randy.yml");
         if std::path::Path::new(&cfg).exists() {
             return Some(cfg);
         }
     }
 
-    if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
+    if let Ok(xdg) = env::var("XDG_CONFIG_HOME") {
         let cfg = format!("{xdg}/.randy.yml");
         if std::path::Path::new(&cfg).exists() {
             return Some(cfg);
         }
     }
 
-    if let Ok(home) = std::env::var("HOME") {
+    if let Ok(home) = env::var("HOME") {
         let cfg = format!("{home}/.config/randy.yml");
         if std::path::Path::new(&cfg).exists() {
             return Some(cfg);

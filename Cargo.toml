@@ -2,7 +2,7 @@
 name = "randy"
 version = "1.6.10"
 authors = ["Ian Page Hands <iphands@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "Conky like app in Rust"
 homepage = "https://github.com/iphands/randy"
 repository = "https://github.com/iphands/randy"
@@ -15,11 +15,14 @@ opt-level = "s"
 debug = 0
 
 [profile.release]
-opt-level = 3
-codegen-units = 1
-panic = 'abort'
-lto = true
-overflow-checks = false
+# https://doc.rust-lang.org/cargo/reference/profiles.html
+strip = true            # Automatically strip symbols from the binary
+incremental = true      # Save information to disk, improving re-compile times.
+lto = true              # Enable link time optimization
+opt-level = 3           # all optimizations
+overflow-checks = false # When overflow-checks are enabled, a panic will occur on overflow.
+codegen-units = 1       # Use a single codegen for size optimization
+panic = "abort"         # Remove traceback information
 
 [features]
 runtime_bench = []
@@ -35,4 +38,4 @@ yaml-rust = "0.4"
 libc = "0.2"
 lazy_static = "1.4"
 sensors = { version = "0.2", optional = true }
-nvml-wrapper = { version = "0.6", optional = true }
+nvml-wrapper = { version = "0.9", optional = true }
