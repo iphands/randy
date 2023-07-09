@@ -77,7 +77,7 @@ lazy_static! {
 
 #[cfg(feature = "nvidia")]
 lazy_static! {
-    static ref NVML_O:         Mutex<nvml_wrapper::Nvml> = Mutex::new(Nvml::init().unwrap());
+    static ref NVML_O: Mutex<nvml_wrapper::Nvml> = Mutex::new(Nvml::init().unwrap());
 }
 
 fn get_hostname_from_utsname(n: [c_char; 65]) -> String {
@@ -435,11 +435,32 @@ fn get_cpu_speed_rpi() -> String {
 }
 
 #[cfg(feature = "nvidia")]
+fn get_nvidia_gpu_brand(idx: u32) -> String {
+    let nvml = NVML_O.lock().unwrap();
+    let device = nvml.device_by_index(idx).unwrap();
+
+    let brand = device.brand().unwrap(); // GeForce on my system
+    let _power_limit = device.enforced_power_limit().unwrap(); // 275k milliwatts on my system
+    let _encoder_util = device.encoder_utilization().unwrap(); // Currently 0 on my system; Not encoding anything
+    let _memory_info = device.memory_info().unwrap(); // Currently 1.63/6.37 GB used on my system
+
+    format!("{brand:?}")
+}
+
+#[cfg(feature = "nvidia")]
 fn get_nvidia_gpu_temp(idx: u32) -> String {
     let nvml = NVML_O.lock().unwrap();
     let device = nvml.device_by_index(idx).unwrap();
     let temperature = device.temperature(TemperatureSensor::Gpu).unwrap();
-    return format!("{}C", temperature);
+    format!("{temperature}C")
+}
+
+#[cfg(feature = "nvidia")]
+fn get_nvidia_gpu_fan_speed(idx: u32) -> String {
+    let nvml = NVML_O.lock().unwrap();
+    let device = nvml.device_by_index(idx).unwrap();
+    let fan_speed = device.fan_speed(0).unwrap(); // Currently 17% on my system
+    format!("{fan_speed}%")
 }
 
 pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
@@ -463,7 +484,13 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
         "cpu_voltage_rpi" => timings!(func, get_cpu_voltage_rpi),
 
         #[cfg(feature = "nvidia")]
+        "nvidia_gpu_brand" => timings!("nvidia_brand", get_nvidia_gpu_brand, item["idx"].as_i64().unwrap() as u32),
+
+        #[cfg(feature = "nvidia")]
         "nvidia_gpu_temp" => timings!("nvidia_temp", get_nvidia_gpu_temp, item["idx"].as_i64().unwrap() as u32),
+
+        #[cfg(feature = "nvidia")]
+        "nvidia_gpu_fan_speed" => timings!("nvidia_fan_speed", get_nvidia_gpu_fan_speed, item["idx"].as_i64().unwrap() as u32),
 
         #[cfg(feature = "sensors")]
         "sensor_info" => timings!("sensors", get_sensor_info,
