@@ -31,9 +31,9 @@ packaged = []
 nvidia = [ "nvml-wrapper" ]
 
 [dependencies]
-glib = "0.10"
-gio = "0.9"
-gtk = "0.9"
+glib = "0.17"
+gio = "0.17"
+gtk = "0.17"
 yaml-rust = "0.4"
 libc = "0.2"
 lazy_static = "1.4"
