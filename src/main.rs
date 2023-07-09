@@ -701,7 +701,8 @@ fn update_ui(config: &Yaml, stash: UiStash) {
             }
 
             _update_bar(&cpu.progress, usage / 100.0);
-            cpu.pct_label.set_text(&format!("{:03.0}%", usage));
+            cpu.pct_label.set_text(&format!("{:3.0}%", usage));
+            cpu.pct_label.set_width_chars(4);
         });
 
         stash.system.iter().for_each(|(item, val)| {
