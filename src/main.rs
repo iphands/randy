@@ -103,7 +103,7 @@ fn build_ui(application: &gtk::Application) {
 
     let s: &str = &get_file();
     let config = &get_config(s)[0];
-    let screen = gtk::prelude::WidgetExt::screen(&window).unwrap();
+    let screen = gtk::prelude::WidgetExt::screen(&window).expect("Failed get Gtk Screen!");
 
     let css: &str = &get_css(&config["settings"], screen.is_composited());
     let provider = gtk::CssProvider::new();
@@ -123,7 +123,7 @@ fn build_ui(application: &gtk::Application) {
 
     window.realize();
 
-    let screen = gtk::prelude::WidgetExt::screen(&window).unwrap();
+    let screen = gtk::prelude::WidgetExt::screen(&window).expect("Failed get Gtk Screen!");
     let visual = screen.rgba_visual().unwrap();
     window.set_visual(Some(&visual));
 
@@ -808,8 +808,8 @@ fn get_config(yaml_str: &str) -> Vec<Yaml> {
 
 fn main() {
     let application = gtk::Application::new(
-            Some("org.ahands.randy"),
-            Default::default()
+        Some("org.ahands.randy"),
+        Default::default()
     );
 
     application.connect_activate(|app| {
