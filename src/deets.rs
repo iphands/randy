@@ -25,7 +25,7 @@ use crate::{
 };
 
 #[cfg(feature = "nvidia")]
-use nvml_wrapper::enum_wrappers::device::{TemperatureSensor};
+use nvml_wrapper::enum_wrappers::device::TemperatureSensor;
 #[cfg(feature = "nvidia")]
 use nvml_wrapper::Nvml;
 
@@ -101,13 +101,27 @@ fn get_uname(r: [c_char; 65]) -> String {
     str_from_bytes(release.to_vec())
 }
 
-fn get_uptime_string(uptime: c_int) -> String {
-    let d = uptime / 60 / 60 / 24;
-    let h = (uptime / 60 / 60) - (d * 24);
-    let m = (uptime / 60) - (h * 60) - ((d * 24) * 60);
-    let s = (uptime) - ((d * 24) * 60 * 60) - (h * 60 * 60) - (m * 60);
+const SECONDS_IN_A_MINUTE: i32 = 60;
+const SECONDS_IN_AN_HOUR: i32  = 60 * SECONDS_IN_A_MINUTE;
+const SECONDS_IN_A_DAY: i32    = 24 * SECONDS_IN_AN_HOUR;
 
-    format!("{}d {}h {:02}m {:02}s", d, h, m, s)
+/// Convert number of seconds into hours, minutes and seconds
+fn get_uptime_string(uptime: c_int) -> String {
+    // extract days
+    let days = uptime / SECONDS_IN_A_DAY;
+
+    // extract hours
+    let hour_seconds = uptime % SECONDS_IN_A_DAY;
+    let hours = hour_seconds / SECONDS_IN_AN_HOUR;
+
+    // extract minutes
+    let minute_seconds = hour_seconds % SECONDS_IN_AN_HOUR;
+    let minutes = minute_seconds / SECONDS_IN_A_MINUTE;
+
+    // extract the remaining seconds
+    let seconds = minute_seconds % SECONDS_IN_A_MINUTE;
+
+    format!("{}d {}h {:02}m {:02}s", days, hours, minutes, seconds)
 }
 
 fn get_sysinfo() -> libc::sysinfo {
@@ -454,9 +468,9 @@ pub fn nvidia_gpu_info(idx: u32) -> HashMap<&'static str, String> {
     let gpu_info = [
         ("model", model),
         ("fan_speed", format!("{fan_speed}%")),
-        ("temp",  format!("{temperature}C")),
-        ("power_limit",  format!("{power_limit:?}")),
-        ("memory_info",  format!("{memory_info:?}GB")),
+        ("temp", format!("{temperature}C")),
+        ("power_limit", format!("{power_limit:?}")),
+        ("memory_info", format!("{memory_info:?}GB")),
     ];
 
     HashMap::from(gpu_info)
