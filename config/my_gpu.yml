@@ -92,8 +92,6 @@ ui:
   - text: FILESYSTEM
     type: filesystem
     items:
-      - text: "boot:"
-        mount_point: /boot
       - text: "root:"
         mount_point: /
       - text: "home:"

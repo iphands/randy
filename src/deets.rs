@@ -444,7 +444,7 @@ pub fn nvidia_gpu_info(idx: u32) -> HashMap<&'static str, String> {
     let nvml = NVML_O.lock().unwrap();
     let device = nvml.device_by_index(idx).unwrap();
 
-    let name = device.name().unwrap(); // GeForce on my system
+    let model = device.name().unwrap(); // GeForce on my system
     let power_limit = device.enforced_power_limit().unwrap(); // 275k milliwatts on my system
     let _encoder_util = device.encoder_utilization().unwrap(); // Currently 0 on my system; Not encoding anything
     let memory_info = device.memory_info().unwrap(); // Currently 1.63/6.37 GB used on my system
@@ -452,7 +452,7 @@ pub fn nvidia_gpu_info(idx: u32) -> HashMap<&'static str, String> {
     let temperature = device.temperature(TemperatureSensor::Gpu).unwrap();
 
     let gpu_info = [
-        ("name", format!("{name}")),
+        ("model", model),
         ("fan_speed", format!("{fan_speed}%")),
         ("temp",  format!("{temperature}C")),
         ("power_limit",  format!("{power_limit:?}")),

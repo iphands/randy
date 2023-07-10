@@ -38,7 +38,7 @@ struct Cpu {
 
 #[allow(dead_code)]
 struct Gpu {
-    name: gtk::Label,
+    model: gtk::Label,
     temp: gtk::Label,
     fan_speed: gtk::Label,
 }
@@ -352,10 +352,10 @@ fn add_gpus(inner_box: &gtk::Box, gpus: &mut Vec<Gpu>) {
         key1.set_halign(gtk::Align::Start);
         key1.set_hexpand(true);
 
-        let name = gtk::Label::new(None);
-        name.style_context().add_class("val");
-        name.set_justify(gtk::Justification::Right);
-        name.set_halign(gtk::Align::End);
+        let model = gtk::Label::new(None);
+        model.style_context().add_class("val");
+        model.set_justify(gtk::Justification::Right);
+        model.set_halign(gtk::Align::End);
 
         let key2 = gtk::Label::new(None);
         key2.style_context().add_class("key");
@@ -380,7 +380,7 @@ fn add_gpus(inner_box: &gtk::Box, gpus: &mut Vec<Gpu>) {
         fan_speed.set_halign(gtk::Align::End);
 
         line_box1.add(&key1);
-        line_box1.add(&name);
+        line_box1.add(&model);
 
         line_box2.add(&key2);
         line_box2.add(&temp);
@@ -395,7 +395,7 @@ fn add_gpus(inner_box: &gtk::Box, gpus: &mut Vec<Gpu>) {
         inner_box.add(&vbox);
 
         gpus.push(Gpu {
-            name,
+            model,
             temp,
             fan_speed,
         });
@@ -779,11 +779,11 @@ fn update_ui(config: &Yaml, stash: UiStash) {
 
             let info = deets::nvidia_gpu_info(index as u32);
 
-            let name = &info["name"];
+            let model = &info["model"];
             let temp = &info["temp"];
             let fan_speed = &info["fan_speed"];
 
-            gpu.name.set_text(&name);
+            gpu.model.set_text(&model);
             gpu.temp.set_text(&temp);
             gpu.fan_speed.set_text(&fan_speed);
         });
