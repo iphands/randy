@@ -1,28 +1,16 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
 fn my_is_digit(byte: u8) -> bool {
-    return match byte {
-        48 => true,
-        49 => true,
-        50 => true,
-        51 => true,
-        52 => true,
-        53 => true,
-        54 => true,
-        55 => true,
-        56 => true,
-        57 => true,
-        _  => false,
-    }
+    matches!(byte, 48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57)
 }
 
 fn is_digit(byte: u8) -> bool {
-    return byte.is_ascii_digit();
+    byte.is_ascii_digit()
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let num_byte = "/proc/2135".bytes().nth(6).unwrap();
-    let char_byte = "/proc/asdf".bytes().nth(6).unwrap();
+    let num_byte = "/proc/2135".as_bytes()[6];
+    let char_byte = "/proc/asdf".as_bytes()[6];
 
     let mut group = c.benchmark_group("direntry");
     for i in 0..50 {

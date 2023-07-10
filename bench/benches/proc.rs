@@ -2,10 +2,8 @@
 // #![allow(unused_imports)]
 #![allow(unused_must_use)]
 
-#[path = "../../src/file_utils.rs"]
-mod file_utils;
-
 use criterion::{criterion_group, criterion_main, Criterion};
+use randy::file_utils;
 
 use std::io::prelude::*;
 use std::fs::File;
@@ -13,34 +11,32 @@ use std::io::{BufReader, Seek, SeekFrom};
 
 fn _hack(line_num: &i32, line: &str) -> bool {
     if line_num == &0 {
-        let first = line.bytes().nth(6).unwrap();
+        let first = line.as_bytes()[6];
         if first == 107 {
             if line.starts_with("Name:\tkworker") || line.starts_with("Name:\tksoftirqd") {
                 return false;
             }
-        } else if first == 109 {
-            if line.starts_with("Name:\tmigration/") {
-                return false;
-            }
+        } else if first == 109 && line.starts_with("Name:\tmigration/") {
+            return false;
         }
     }
-    return true;
+    true
 }
 
-fn test_status(match_vec: &Vec<&str>, mut reader: &mut BufReader<File>) -> (String, f64) {
+fn test_status(match_vec: &Vec<&str>, reader: &mut BufReader<File>) -> (String, f64) {
     reader.seek(SeekFrom::Start(0)).unwrap();
-    let status_lines = file_utils::try_exact_match_strings_from_reader(&mut reader, &match_vec, Some(_hack)).unwrap();
+    let status_lines = file_utils::try_exact_match_strings_from_reader(reader, match_vec, Some(_hack)).unwrap();
     let used = status_lines[1][7..(status_lines[1].len() - 3)].trim().parse::<f64>().unwrap();
     let comm = String::from(&status_lines[0][6..]);
 
-    return (comm, used);
+    (comm, used)
 }
 
 fn test_other(comm_path: &str, statm_path: &str) -> (String, f64) {
     let comm = &file_utils::get_strings_from_path(comm_path, 1)[0];
     let statm = &file_utils::get_strings_from_path(statm_path, 1)[0];
     let rss = (statm.split(' ').collect::<Vec<&str>>()[1].parse::<u64>().unwrap() * 4096) as f64;
-    return (String::from(comm), rss);
+    (String::from(comm), rss)
 }
 
 fn test_buff (comm_reader: &mut BufReader<File>, statm_reader: &mut BufReader<File>) -> (String, f64) {
@@ -53,7 +49,7 @@ fn test_buff (comm_reader: &mut BufReader<File>, statm_reader: &mut BufReader<Fi
     let statm = &mut String::new();
     statm_reader.read_line(statm);
     let rss = (statm.split(' ').collect::<Vec<&str>>()[1].parse::<u64>().unwrap() * 4096) as f64;
-    return (comm.trim().to_string(), rss);
+    (comm.trim().to_string(), rss)
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
@@ -62,7 +58,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     {
         let match_vec = vec!["Name", "VmRSS"];
-        let file = File::open(&format!("{}/status", &path)).unwrap();
+        let file = File::open(format!("{}/status", &path)).unwrap();
         let mut reader = BufReader::new(file);
         group.bench_function("status", |b| b.iter(|| test_status(&match_vec, &mut reader)));
     }
@@ -70,13 +66,13 @@ fn criterion_benchmark(c: &mut Criterion) {
     {
         let comm_path = &format!("{}/comm", &path);
         let statm_path = &format!("{}/statm", &path);
-        group.bench_function("comm+statm", |b| b.iter(|| test_other (&comm_path, &statm_path)));
+        group.bench_function("comm+statm", |b| b.iter(|| test_other (comm_path, statm_path)));
     }
 
     {
-        let statm_file = File::open(&format!("{}/statm", &path)).unwrap();
+        let statm_file = File::open(format!("{}/statm", &path)).unwrap();
         let mut statm_reader = BufReader::new(statm_file);
-        let comm_file = File::open(&format!("{}/comm", &path)).unwrap();
+        let comm_file = File::open(format!("{}/comm", &path)).unwrap();
         let mut comm_reader = BufReader::new(comm_file);
         group.bench_function("comm+statm cached", |b| b.iter(|| test_buff  (&mut comm_reader, &mut statm_reader)));
     }

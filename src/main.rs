@@ -1,29 +1,32 @@
-#[macro_use]
-extern crate lazy_static;
-extern crate gio;
-extern crate gtk;
-extern crate yaml_rust;
-
-#[macro_use]
-mod macros;
-mod deets;
-mod file_utils;
-
 use gio::prelude::*;
 use gtk::prelude::*;
+use lazy_static::lazy_static;
 
 use std::{
     fs,
     env,
     sync::Mutex,
     time::Instant,
-    collections::HashMap,
+    collections::HashMap, 
 };
 
 use yaml_rust::{
     Yaml,
     YamlLoader,
 };
+
+use randy::*; // To use functions defined in lib.rs
+
+struct UiStash {
+    batts: HashMap<String, Battery>,
+    cpus: Vec<Cpu>,
+    gpus: Vec<Gpu>,
+    fs: HashMap<String, (gtk::Label, gtk::ProgressBar)>,
+    net: HashMap<String, (gtk::Label, gtk::Label)>,
+    system: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
+    top_mems: Vec<TopRow>,
+    top_cpus: Vec<TopRow>,
+}
 
 const SPACING: i32 = 3;
 
@@ -33,20 +36,17 @@ struct Cpu {
     pct_label: gtk::Label,
 }
 
+#[allow(dead_code)]
+struct Gpu {
+    name: gtk::Label,
+    temp: gtk::Label,
+    fan_speed: gtk::Label,
+}
+
 struct TopRow {
     name: gtk::Label,
     pid: gtk::Label,
     pct: gtk::Label,
-}
-
-struct UiStash {
-    batts: HashMap<String, Battery>,
-    cpus: Vec<Cpu>,
-    fs: HashMap<String, (gtk::Label, gtk::ProgressBar)>,
-    net: HashMap<String, (gtk::Label, gtk::Label)>,
-    system: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
-    top_mems: Vec<TopRow>,
-    top_cpus: Vec<TopRow>,
 }
 
 struct Battery {
@@ -142,6 +142,7 @@ fn build_ui(application: &gtk::Application) {
         batts: HashMap::new(),
         system: HashMap::new(),
         cpus: Vec::new(),
+        gpus: Vec::new(),
         net: HashMap::new(),
         top_mems: Vec::new(),
         top_cpus: Vec::new(),
@@ -327,11 +328,78 @@ fn _add_cpus_split(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
 
 fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>, split: bool) {
     if split {
-	_add_cpus_split(inner_box, cpus);
-	return;
+	    _add_cpus_split(inner_box, cpus);
+    } else {
+        _add_cpus_regular(inner_box, cpus);
     }
+}
 
-    _add_cpus_regular(inner_box, cpus);
+fn add_gpus(inner_box: &gtk::Box, gpus: &mut Vec<Gpu>) {
+
+    let gpu_count = 1;
+
+    for _i in 0..gpu_count {
+        let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+        vbox.style_context().add_class("row");
+
+        let line_box1 = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+        let line_box2 = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+        let line_box3 = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+
+        let key1 = gtk::Label::new(None);
+        key1.style_context().add_class("key");
+        key1.set_text("Model:");
+        key1.set_halign(gtk::Align::Start);
+        key1.set_hexpand(true);
+
+        let name = gtk::Label::new(None);
+        name.style_context().add_class("val");
+        name.set_justify(gtk::Justification::Right);
+        name.set_halign(gtk::Align::End);
+
+        let key2 = gtk::Label::new(None);
+        key2.style_context().add_class("key");
+        key2.set_text("Temperature:");
+        key2.set_halign(gtk::Align::Start);
+        key2.set_hexpand(true);
+
+        let temp = gtk::Label::new(None);
+        temp.style_context().add_class("val");
+        temp.set_justify(gtk::Justification::Right);
+        temp.set_halign(gtk::Align::End);
+
+        let key3 = gtk::Label::new(None);
+        key3.style_context().add_class("key");
+        key3.set_text("Fan Speed:");
+        key3.set_halign(gtk::Align::Start);
+        key3.set_hexpand(true);
+
+        let fan_speed = gtk::Label::new(None);
+        fan_speed.style_context().add_class("val");
+        fan_speed.set_justify(gtk::Justification::Right);
+        fan_speed.set_halign(gtk::Align::End);
+
+        line_box1.add(&key1);
+        line_box1.add(&name);
+
+        line_box2.add(&key2);
+        line_box2.add(&temp);
+
+        line_box3.add(&key3);
+        line_box3.add(&fan_speed);
+
+        vbox.add(&line_box1);
+        vbox.add(&line_box2);
+        vbox.add(&line_box3);
+
+        inner_box.add(&vbox);
+
+        gpus.push(Gpu {
+            name,
+            temp,
+            fan_speed,
+        });
+    }
 }
 
 fn add_consumers(uniq_item: &str, limit: i64, container: &gtk::Box, mems: &mut Vec<TopRow>) {
@@ -362,7 +430,7 @@ fn add_consumers(uniq_item: &str, limit: i64, container: &gtk::Box, mems: &mut V
         }
     }
 
-    for (i, name) in [ "NAME             ", "      PID", &format!("     {}", uniq_item) ].iter().enumerate() {
+    for (i, name) in ["NAME", "PID", uniq_item].iter().enumerate() {
         let label = gtk::Label::new(None);
         label.set_text(name);
         add_to_column(i, &label, &columns);
@@ -393,8 +461,8 @@ fn init_ui(stash: &mut UiStash,
            vbox: &gtk::Box,
            ui_config: &yaml_rust::Yaml) {
 
-    for i in ui_config.as_vec().unwrap() {
-        let label = Some(i["text"].as_str().unwrap());
+    for yaml in ui_config.as_vec().unwrap() {
+        let label = Some(yaml["text"].as_str().unwrap());
         let frame = gtk::Frame::new(label);
         frame.style_context().add_class("frame");
         vbox.add(&frame);
@@ -403,17 +471,18 @@ fn init_ui(stash: &mut UiStash,
         inner_box.style_context().add_class("innerbox");
         frame.add(&inner_box);
 
-        if !i["type"].is_badvalue() {
-            let limit = i["limit"].as_i64().unwrap_or(5);
-            match i["type"].as_str().unwrap() {
-                "battery"       => add_batt(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.batts),
-                "cpus"          => add_cpus(&inner_box, &mut stash.cpus, i["split"].as_bool().unwrap_or(false)),
+        if !yaml["type"].is_badvalue() {
+            let limit = yaml["limit"].as_i64().unwrap_or(5);
+            match yaml["type"].as_str().unwrap() {
+                "battery"       => add_batt(&inner_box, yaml["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.batts),
+                "cpus"          => add_cpus(&inner_box, &mut stash.cpus, yaml["split"].as_bool().unwrap_or(false)),
+                "gpus"          => add_gpus(&inner_box, &mut stash.gpus),
                 "mem_consumers" => add_consumers("MEM", limit, &inner_box, &mut stash.top_mems),
                 "cpu_consumers" => add_consumers("CPU", limit, &inner_box, &mut stash.top_cpus),
-                "filesystem"    => add_filesystem(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.fs),
-                "net"           => add_net(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.net),
+                "filesystem"    => add_filesystem(&inner_box, yaml["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.fs),
+                "net"           => add_net(&inner_box, yaml["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.net),
                 "system" => {
-                    for item in i["items"].as_vec().unwrap_or(&Vec::new()) {
+                    for item in yaml["items"].as_vec().unwrap_or(&Vec::new()) {
                         let val = add_standard(item, &inner_box);
                         stash.system.insert(item.clone(), val);
                     }
@@ -703,6 +772,20 @@ fn update_ui(config: &Yaml, stash: UiStash) {
             _update_bar(&cpu.progress, usage / 100.0);
             cpu.pct_label.set_text(&format!("{:3.0}%", usage));
             cpu.pct_label.set_width_chars(4);
+        });
+
+        #[cfg(feature = "nvidia")]
+        stash.gpus.iter().enumerate().for_each(|(index, gpu)| {
+
+            let info = deets::nvidia_gpu_info(index as u32);
+
+            let name = &info["name"];
+            let temp = &info["temp"];
+            let fan_speed = &info["fan_speed"];
+
+            gpu.name.set_text(&name);
+            gpu.temp.set_text(&temp);
+            gpu.fan_speed.set_text(&fan_speed);
         });
 
         stash.system.iter().for_each(|(item, val)| {

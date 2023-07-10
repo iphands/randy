@@ -1,20 +1,28 @@
-use crate::file_utils::*;
-
-use libc::{c_char, c_int, c_ulong};
-
-use std::{str, mem, slice, fs};
 #[cfg(not(feature = "timings"))]
 use std::thread;
 #[cfg(not(feature = "timings"))]
 use std::time;
-use std::collections::{HashMap, HashSet};
-use std::ffi::CString;
-use std::fs::File;
-use std::io::{BufReader, Seek, SeekFrom};
-use std::process::Command;
-use std::sync::Mutex;
 
-use yaml_rust::{Yaml};
+use libc::{c_char, c_int, c_ulong};
+use lazy_static::lazy_static;
+use yaml_rust::Yaml;
+
+use std::{
+    str, mem, slice, 
+    fs::{self, File},
+    io::{BufReader, SeekFrom, Seek},
+    sync::Mutex,
+    ffi::CString,
+    process::Command,
+    collections::{HashMap, HashSet},
+};
+
+use crate::{
+    file_utils::*, 
+    split_to_strs, 
+    timings, 
+    split_spc_to_strs,
+};
 
 #[cfg(feature = "nvidia")]
 use nvml_wrapper::enum_wrappers::device::{TemperatureSensor};
@@ -28,20 +36,17 @@ pub struct FileSystemUsage {
     pub total_str: String,
     pub use_pct: String,
 }
-
 struct CpuLoad {
     idle:  u64,
     total: u64,
     percent: f64,
 }
-
 pub struct PsInfo {
     pub pid: String,
     pub cpu: f32,
     pub mem: f32,
     pub comm: String,
 }
-
 pub struct FrameCache {
     pub mem_total: f64,
     pub mem_free: f64,
@@ -435,32 +440,26 @@ fn get_cpu_speed_rpi() -> String {
 }
 
 #[cfg(feature = "nvidia")]
-fn get_nvidia_gpu_brand(idx: u32) -> String {
+pub fn nvidia_gpu_info(idx: u32) -> HashMap<&'static str, String> {
     let nvml = NVML_O.lock().unwrap();
     let device = nvml.device_by_index(idx).unwrap();
 
-    let brand = device.brand().unwrap(); // GeForce on my system
-    let _power_limit = device.enforced_power_limit().unwrap(); // 275k milliwatts on my system
+    let name = device.name().unwrap(); // GeForce on my system
+    let power_limit = device.enforced_power_limit().unwrap(); // 275k milliwatts on my system
     let _encoder_util = device.encoder_utilization().unwrap(); // Currently 0 on my system; Not encoding anything
-    let _memory_info = device.memory_info().unwrap(); // Currently 1.63/6.37 GB used on my system
-
-    format!("{brand:?}")
-}
-
-#[cfg(feature = "nvidia")]
-fn get_nvidia_gpu_temp(idx: u32) -> String {
-    let nvml = NVML_O.lock().unwrap();
-    let device = nvml.device_by_index(idx).unwrap();
-    let temperature = device.temperature(TemperatureSensor::Gpu).unwrap();
-    format!("{temperature}C")
-}
-
-#[cfg(feature = "nvidia")]
-fn get_nvidia_gpu_fan_speed(idx: u32) -> String {
-    let nvml = NVML_O.lock().unwrap();
-    let device = nvml.device_by_index(idx).unwrap();
+    let memory_info = device.memory_info().unwrap(); // Currently 1.63/6.37 GB used on my system
     let fan_speed = device.fan_speed(0).unwrap(); // Currently 17% on my system
-    format!("{fan_speed}%")
+    let temperature = device.temperature(TemperatureSensor::Gpu).unwrap();
+
+    let gpu_info = [
+        ("name", format!("{name}")),
+        ("fan_speed", format!("{fan_speed}%")),
+        ("temp",  format!("{temperature}C")),
+        ("power_limit",  format!("{power_limit:?}")),
+        ("memory_info",  format!("{memory_info:?}GB")),
+    ];
+
+    HashMap::from(gpu_info)
 }
 
 pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
@@ -483,21 +482,14 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
         "cpu_speed_rpi" =>   timings!(func, get_cpu_speed_rpi),
         "cpu_voltage_rpi" => timings!(func, get_cpu_voltage_rpi),
 
-        #[cfg(feature = "nvidia")]
-        "nvidia_gpu_brand" => timings!("nvidia_brand", get_nvidia_gpu_brand, item["idx"].as_i64().unwrap() as u32),
-
-        #[cfg(feature = "nvidia")]
-        "nvidia_gpu_temp" => timings!("nvidia_temp", get_nvidia_gpu_temp, item["idx"].as_i64().unwrap() as u32),
-
-        #[cfg(feature = "nvidia")]
-        "nvidia_gpu_fan_speed" => timings!("nvidia_fan_speed", get_nvidia_gpu_fan_speed, item["idx"].as_i64().unwrap() as u32),
-
         #[cfg(feature = "sensors")]
         "sensor_info" => timings!("sensors", get_sensor_info,
-                                  item["sensor_name"].as_str().unwrap(),
-                                  item["label_name"].as_str().unwrap(),
-                                  item["val"].as_str().unwrap(),
-                                  item["whole"].as_bool().unwrap()),
+            item["sensor_name"].as_str().unwrap(),
+            item["label_name"].as_str().unwrap(),
+            item["val"].as_str().unwrap(),
+            item["whole"].as_bool().unwrap()
+        ),
+
         _ => {
             println!("Unknown func: {}", func);
             return String::from("unimpl");
@@ -506,7 +498,6 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
 
     ret
 }
-
 
 pub fn get_fs(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
     let mut map: HashMap<String, FileSystemUsage> = HashMap::new();
