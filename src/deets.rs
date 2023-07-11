@@ -3,12 +3,17 @@ use std::thread;
 #[cfg(not(feature = "timings"))]
 use std::time;
 
-use libc::{c_char, c_int, c_ulong};
+use libc::{c_int, c_ulong};
 use lazy_static::lazy_static;
 use yaml_rust::Yaml;
 
+use sysinfo::{
+    System,
+    SystemExt,
+};
+
 use std::{
-    str, mem, slice, 
+    str, mem,
     fs::{self, File},
     io::{BufReader, SeekFrom, Seek},
     sync::Mutex,
@@ -54,7 +59,6 @@ pub struct FrameCache {
     pub ps_info: Vec<PsInfo>,
     proc_stat: Vec<String>,
     sysinfo: libc::sysinfo,
-    utsname: libc::utsname,
 }
 
 const LOAD_SHIFT_F32: f32 = (1 << libc::SI_LOAD_SHIFT) as f32;
@@ -65,9 +69,50 @@ const YIELD_TIME: time::Duration = time::Duration::from_nanos(1024);
 
 type Buffers = (BufReader<File>, BufReader<File>);
 
+/// System information
+#[derive(Debug, Default, PartialEq, Clone)]
+pub struct SystemInfo {
+    sys_name: Option<String>,
+    kernel_version: Option<String>,
+    os_version: Option<String>,
+    hostname: Option<String>,
+    memory_used : u64,
+    memory_total: u64,
+    cpu_number: i32,
+}
+
+impl SystemInfo {
+    // https://pola-rs.github.io/polars/sysinfo/index.html
+    pub fn get_info() -> Self {
+
+        // Please note that we use "new_all" to ensure that all list of
+        // components, network interfaces, disks and users are already
+        // filled!
+        let mut sys = System::new_all();
+
+        // First we update all information of our `System` struct.
+        sys.refresh_all();
+
+        // RAM and swap information
+        let sys_used_memory : u64 = sys.used_memory()  / (1024 * 1024);
+        let sys_total_memory: u64 = sys.total_memory() / (1024 * 1024);
+
+        SystemInfo {
+            sys_name: sys.name(),
+            kernel_version: sys.kernel_version(),
+            os_version: sys.os_version(),
+            hostname: sys.host_name(),
+            memory_used : sys_used_memory,
+            memory_total: sys_total_memory,
+            cpu_number: sys.cpus().len() as i32,
+        }
+    }
+}
+
 lazy_static! {
     // this one should be separate from frame cache
     // it has to persist beyond a single frame
+
     static ref CPU_LOADS:      Mutex<HashMap<i32, CpuLoad>> = Mutex::new(HashMap::new());
     static ref PROC_LOAD_HIST: Mutex<HashMap<u32, (f64, f64)>> = Mutex::new(HashMap::new());
     static ref PROC_PID_FILES: Mutex<HashMap<String, BufReader<File>>> = Mutex::new(HashMap::new());
@@ -75,8 +120,9 @@ lazy_static! {
     static ref MOUNTS_READER:  Mutex<BufReader<File>> = Mutex::new(BufReader::new(File::open("/proc/mounts").unwrap()));
     static ref CPU_INFO_FILE:  Mutex<File> = Mutex::new(File::open("/proc/cpuinfo").unwrap());
     static ref BATTERY_CACHE:  Mutex<HashMap<String, Buffers>> = Mutex::new(HashMap::new());
-
-    pub static ref CPU_COUNT: i32 = get_match_strings_from_path("/proc/cpuinfo", &vec!["processor"]).len() as i32;
+    pub static ref CPU_COUNT: i32 = SystemInfo::get_info().cpu_number;
+    pub static ref KERNEL_VERSION: String = SystemInfo::get_info().kernel_version.unwrap();
+    pub static ref HOST_NAME: String = SystemInfo::get_info().hostname.unwrap();
     pub static ref CPU_COUNT_FLOAT: f64 = *CPU_COUNT as f64;
 }
 
@@ -85,20 +131,12 @@ lazy_static! {
     static ref NVML_O: Mutex<nvml_wrapper::Nvml> = Mutex::new(Nvml::init().unwrap());
 }
 
-fn get_hostname_from_utsname(n: [c_char; 65]) -> String {
-    let hostname: &[u8] = unsafe{ slice::from_raw_parts(n.as_ptr() as *const u8, n.len()) };
-    str_from_bytes(hostname.to_vec())
+fn get_hostname() -> String {
+    HOST_NAME.to_string()
 }
 
-fn get_utsname() -> libc::utsname {
-    let mut utsname: libc::utsname = unsafe { mem::zeroed() };
-    unsafe { libc::uname(&mut utsname); };
-    utsname
-}
-
-fn get_uname(r: [c_char; 65]) -> String {
-    let release: &[u8] = unsafe{ slice::from_raw_parts(r.as_ptr() as *const u8, r.len()) };
-    str_from_bytes(release.to_vec())
+fn get_uname() -> String {
+    KERNEL_VERSION.to_string()
 }
 
 const SECONDS_IN_A_MINUTE: i32 = 60;
@@ -121,7 +159,7 @@ fn get_uptime_string(uptime: c_int) -> String {
     // extract the remaining seconds
     let seconds = minute_seconds % SECONDS_IN_A_MINUTE;
 
-    format!("{}d {}h {:02}m {:02}s", days, hours, minutes, seconds)
+    format!("{days}d {hours}h {minutes:02}m {seconds:02}s")
 }
 
 fn get_sysinfo() -> libc::sysinfo {
@@ -481,8 +519,8 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
     let val: Option<&str> = item["val"].as_str();
 
     let ret: String = match func {
-        "hostname" =>    timings!(func, get_hostname_from_utsname, frame_cache.utsname.nodename as [c_char; 65]),
-        "kernel" =>      timings!(func, get_uname, frame_cache.utsname.release as [c_char; 65]),
+        "hostname" =>    timings!(func, get_hostname),
+        "kernel" =>      timings!(func, get_uname),
         "uptime" =>      timings!(func, get_uptime_string, frame_cache.sysinfo.uptime as c_int),
         "load" =>        timings!(func, get_load, frame_cache.sysinfo.loads as [c_ulong; 3]),
         "procs_count" => timings!(func, get_procs_count, &frame_cache.proc_stat),
@@ -606,7 +644,6 @@ pub fn get_frame_cache(counter: u64, mod_top: u64, do_top_bool: bool) -> FrameCa
     let mem = timings!("ram_usage", get_ram_usage);
     let ps_info = timings!("ps_info", _do_top, counter, mod_top, do_top_bool, mem.1);
     let sysinfo = timings!("sysinfo", get_sysinfo);
-    let utsname = timings!("utsname", get_utsname);
     let net_dev = timings!("net_dev", get_net_dev);
 
     #[cfg(feature = "timings")]
@@ -616,7 +653,6 @@ pub fn get_frame_cache(counter: u64, mod_top: u64, do_top_bool: bool) -> FrameCa
 
     FrameCache {
         sysinfo,
-        utsname,
         ps_info,
         proc_stat,
         mem_free:  mem.0,
@@ -678,9 +714,3 @@ pub fn get_cpu_usage(cpu_num: i32) -> f64 {
     last_load.percent
 }
 
-#[inline(always)]
-fn str_from_bytes(mut buffer: Vec<u8>) -> String {
-    let end = buffer.iter().position(|&b| b == 0).unwrap_or(buffer.len());
-    buffer.resize(end, 0);
-    String::from_utf8(buffer).unwrap()
-}

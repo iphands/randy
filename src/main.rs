@@ -580,6 +580,7 @@ fn add_net(container: &gtk::Box, items: &[Yaml], stash: &mut HashMap<String, (gt
         down_box.set_halign(gtk::Align::Start);
         down_lbl.set_halign(gtk::Align::Start);
         down_lbl.set_text("Down");
+        down_lbl.set_width_chars(12);
         down_box.add(&down_lbl);
 
         let down_val = gtk::Label::new(None);
@@ -587,6 +588,7 @@ fn add_net(container: &gtk::Box, items: &[Yaml], stash: &mut HashMap<String, (gt
         down_val.set_hexpand(true);
         down_val.set_halign(gtk::Align::End);
         down_val.set_text("0000.00 KB");
+        down_val.set_width_chars(12);
         down_box.add(&down_val);
         down_box.set_halign(gtk::Align::Fill);
         down_col.add(&down_box);
@@ -599,7 +601,7 @@ fn add_net(container: &gtk::Box, items: &[Yaml], stash: &mut HashMap<String, (gt
     container.add(&down_col);
 }
 
-fn add_filesystem(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, (gtk::Label, gtk::ProgressBar)>) {
+fn add_filesystem(container: &gtk::Box, items: &[Yaml], stash: &mut HashMap<String, (gtk::Label, gtk::ProgressBar)>) {
     container.set_orientation(gtk::Orientation::Vertical);
 
     fn _add_item(container: &gtk::Box, item: &Yaml, stash: Option<&mut HashMap<String, (gtk::Label, gtk::ProgressBar)>>) {
@@ -811,7 +813,7 @@ fn update_ui(config: &Yaml, stash: UiStash) {
 
     #[cfg(feature = "runtime_bench")]
     {
-        use std::time::{Instant};
+        use std::time::Instant;
         let bench_update = move || {
             let now = Instant::now();
             for _ in 0..1024 {
