@@ -30,4 +30,4 @@ name = "bat_test"
 harness = false
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = "0.5"

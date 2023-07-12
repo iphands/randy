@@ -5,7 +5,7 @@ fn split_char(s: &str) -> Vec<String> {
 }
 
 fn split_str(s: &str) -> Vec<String> {
-    return s.split(" ").map(String::from).collect();
+    return s.split(' ').map(String::from).collect();
 }
 
 fn split_whitespace (s: &str) -> Vec<String> {

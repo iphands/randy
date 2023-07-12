@@ -1,0 +1,102 @@
+---
+# cargo b -r && cargo install --path=. --features sensors,nvidia
+
+settings:
+  # color_bar:   "#fff"
+  # color_label: "#eee"
+  # color_text:  "#fff"
+  # decoration: false
+  # resizable: false
+  # skip_taskbar: true
+  
+  color_background: "#656565"
+  color_bar:      "#e1eeff"
+  color_bar_med:  "#ffeeaa"
+  color_bar_high: "#ffaaaa"
+
+  color_label: "#87d7ff"
+  color_text:  "#e1eeeb"
+  
+  bar_height: 5px
+  base_opacity: 0.7
+
+  # font_family: "\"Droid Sans Mono\""
+  # font_family: "\"Noto Sans Mono ExtraCondensed Medium\""
+  # font_family: "\"Anadale Mono Regular\""
+  font_family: "\"Noto Sans Regular\""
+  font_size: 16px
+  timeout: 1
+  # xpos: 7210
+  ypos: 6
+  mod_top: 2
+  mod_fs:  5
+
+ui:
+  - text: SYSTEM
+    type: system
+    items:
+      - func: hostname
+        text: "Hostname:"
+
+      - func: kernel
+        text: "Kernel:"
+
+      - func: uptime
+        text: "Uptime:"
+
+      - func: cpu_usage
+        text: "CPU usage:"
+        widget: bar
+
+      - func: sensor_info
+        sensor_name: nct6798-isa-0290
+        label_name: CPUTIN
+        val: "{}C"
+        text: "CPU temp:"
+        whole: true
+
+      - func: ram_usage
+        text: "RAM usage:"
+        widget: bar
+
+      - func: procs_count
+        text: "Running processes:"
+
+      - func: load
+        text: "Load:"
+
+  - text: CPUS
+    type: cpus
+    func: cpus
+    text: "CPU"
+    split: true
+
+  - text: GPUS
+    type: gpus
+    text: "GPU"
+
+  - text: TOP CPU
+    type: cpu_consumers
+    limit: 6
+
+  - text: TOP MEMORY
+    type: mem_consumers
+    limit: 6
+
+  - text: NETWORKING
+    type: net
+    items:
+      - name: wifi
+        interface: wlan0
+
+  - text: FILESYSTEM
+    type: filesystem
+    items:
+      - text: "root:"
+        mount_point: /
+      - text: "home:"
+        mount_point: /home
+      - text: "media:"
+        mount_point: /run/media
+      - text: "mnt:"
+        mount_point: /mnt

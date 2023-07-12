@@ -1,22 +1,32 @@
-#[macro_use]
-extern crate lazy_static;
-extern crate gio;
-extern crate gtk;
-extern crate yaml_rust;
-
-#[macro_use]
-mod macros;
-mod deets;
-mod file_utils;
-
 use gio::prelude::*;
 use gtk::prelude::*;
+use lazy_static::lazy_static;
 
-use std::fs;
-use std::collections::HashMap;
-use std::sync::Mutex;
-use std::time::Instant;
-use yaml_rust::{YamlLoader, Yaml};
+use std::{
+    fs,
+    env,
+    sync::Mutex,
+    time::Instant,
+    collections::HashMap, 
+};
+
+use yaml_rust::{
+    Yaml,
+    YamlLoader,
+};
+
+use randy::*; // To use functions defined in lib.rs
+
+struct UiStash {
+    batts: HashMap<String, Battery>,
+    cpus: Vec<Cpu>,
+    gpus: Vec<Gpu>,
+    fs: HashMap<String, (gtk::Label, gtk::ProgressBar)>,
+    net: HashMap<String, (gtk::Label, gtk::Label)>,
+    system: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
+    top_mems: Vec<TopRow>,
+    top_cpus: Vec<TopRow>,
+}
 
 const SPACING: i32 = 3;
 
@@ -26,20 +36,17 @@ struct Cpu {
     pct_label: gtk::Label,
 }
 
+#[allow(dead_code)]
+struct Gpu {
+    model: gtk::Label,
+    temp: gtk::Label,
+    fan_speed: gtk::Label,
+}
+
 struct TopRow {
     name: gtk::Label,
     pid: gtk::Label,
     pct: gtk::Label,
-}
-
-struct UiStash {
-    batts: HashMap<String, Battery>,
-    cpus: Vec<Cpu>,
-    fs: HashMap<String, (gtk::Label, gtk::ProgressBar)>,
-    net: HashMap<String, (gtk::Label, gtk::Label)>,
-    system: HashMap<yaml_rust::Yaml, (gtk::Label, Option<gtk::ProgressBar>)>,
-    top_mems: Vec<TopRow>,
-    top_cpus: Vec<TopRow>,
 }
 
 struct Battery {
@@ -71,7 +78,7 @@ fn get_css(conf: &Yaml, composited: bool) -> String {
     let font_size = conf["font_size"].as_str().unwrap_or("large");
     let base_opacity = format!("{:1.4}", conf["base_opacity"].as_f64().unwrap_or(1.0));
 
-    return css
+    css
         .replace("{ bar_height }",       conf["bar_height"].as_str().unwrap_or("10px"))
         .replace("{ base_opacity }",     &base_opacity)
         .replace("{ color }",            conf["color_text"].as_str().unwrap_or("#e1eeeb"))
@@ -84,11 +91,11 @@ fn get_css(conf: &Yaml, composited: bool) -> String {
         .replace("{ color_trough }",     color_trough)
         .replace("{ font_family }",      conf["font_family"].as_str().unwrap_or("monospace"))
         .replace("{ font_size_top }",    conf["font_size_top"].as_str().unwrap_or(font_size))
-        .replace("{ font_size }",        font_size);
+        .replace("{ font_size }",        font_size)
 }
 
 fn _is_interactive(config: &Yaml) -> bool {
-    return config["decoration"].as_bool().unwrap_or(false) || config["resizable"].as_bool().unwrap_or(false);
+    config["decoration"].as_bool().unwrap_or(false) || config["resizable"].as_bool().unwrap_or(false)
 }
 
 fn build_ui(application: &gtk::Application) {
@@ -96,7 +103,7 @@ fn build_ui(application: &gtk::Application) {
 
     let s: &str = &get_file();
     let config = &get_config(s)[0];
-    let screen = window.get_screen().unwrap();
+    let screen = gtk::prelude::WidgetExt::screen(&window).expect("Failed get Gtk Screen!");
 
     let css: &str = &get_css(&config["settings"], screen.is_composited());
     let provider = gtk::CssProvider::new();
@@ -116,8 +123,8 @@ fn build_ui(application: &gtk::Application) {
 
     window.realize();
 
-    let screen = window.get_screen().unwrap();
-    let visual = screen.get_rgba_visual().unwrap();
+    let screen = gtk::prelude::WidgetExt::screen(&window).expect("Failed get Gtk Screen!");
+    let visual = screen.rgba_visual().unwrap();
     window.set_visual(Some(&visual));
 
     if !config["settings"]["xpos"].is_badvalue() &&
@@ -129,12 +136,13 @@ fn build_ui(application: &gtk::Application) {
         }
 
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-    vbox.get_style_context().add_class("container");
+    vbox.style_context().add_class("container");
 
     let mut stash = UiStash {
         batts: HashMap::new(),
         system: HashMap::new(),
         cpus: Vec::new(),
+        gpus: Vec::new(),
         net: HashMap::new(),
         top_mems: Vec::new(),
         top_cpus: Vec::new(),
@@ -151,21 +159,21 @@ fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> (gtk::Label, Op
     // let deet = deets::do_func(item);
 
     let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
-    line_box.get_style_context().add_class("row");
+    line_box.style_context().add_class("row");
 
     let key = gtk::Label::new(None);
-    key.get_style_context().add_class("key");
-    key.set_text(&format!("{}", item["text"].as_str().unwrap()));
+    key.style_context().add_class("key");
+    key.set_text(item["text"].as_str().unwrap());
 
     let val = gtk::Label::new(None);
     val.set_justify(gtk::Justification::Right);
     val.set_halign(gtk::Align::End);
-    val.get_style_context().add_class("val");
+    val.style_context().add_class("val");
 
     line_box.add(&key);
     line_box.pack_start(&val, true, true, 0);
 
-    let mut p = None;
+    let mut prog = None;
 
     match item["widget"].as_str() {
         Some("bar") => {
@@ -177,39 +185,39 @@ fn add_standard(item: &yaml_rust::Yaml, inner_box: &gtk::Box) -> (gtk::Label, Op
             vbox.add(&line_box);
             vbox.add(&progress);
             inner_box.add(&vbox);
-            p = Some(progress);
+            prog = Some(progress);
         },
         _ => {
             inner_box.add(&line_box);
         },
     }
 
-    return (val, p);
+    (val, prog)
 }
 
 fn _add_cpus_regular(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
     for i in 0..*deets::CPU_COUNT {
         let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-        vbox.get_style_context().add_class("row");
+        vbox.style_context().add_class("row");
 
         let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
 
         let key = gtk::Label::new(None);
-        key.get_style_context().add_class("key");
+        key.style_context().add_class("key");
         key.set_text(&format!("CPU{:02}", i));
 
         let val = gtk::Label::new(None);
-        val.get_style_context().add_class("val");
+        val.style_context().add_class("val");
 
         let pct = gtk::Label::new(None);
-        pct.get_style_context().add_class("val");
-        pct.get_style_context().add_class("pct");
+        pct.style_context().add_class("val");
+        pct.style_context().add_class("pct");
         pct.set_justify(gtk::Justification::Right);
         pct.set_halign(gtk::Align::End);
 
         let progress = gtk::ProgressBar::new();
         progress.set_hexpand(true);
-        progress.get_style_context().add_class("cpus-progress");
+        progress.style_context().add_class("cpus-progress");
         progress.set_sensitive(false);
 
         line_box.add(&key);
@@ -222,7 +230,7 @@ fn _add_cpus_regular(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
 
         cpus.push(Cpu {
             mhz: val,
-            progress: progress,
+            progress,
             pct_label: pct,
         });
     }
@@ -230,33 +238,33 @@ fn _add_cpus_regular(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
 
 fn _add_cpus_split(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
     let left_box  = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-    left_box.get_style_context().add_class("innerbox");
+    left_box.style_context().add_class("innerbox");
 
     let right_box = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-    right_box.get_style_context().add_class("innerbox");
+    right_box.style_context().add_class("innerbox");
 
     for i in 0..*deets::CPU_COUNT / 2 {
         let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-        vbox.get_style_context().add_class("row");
+        vbox.style_context().add_class("row");
 
         let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
 
         let key = gtk::Label::new(None);
-        key.get_style_context().add_class("key");
+        key.style_context().add_class("key");
         key.set_text(&format!("CPU{:02}", i));
 
         let val = gtk::Label::new(None);
-        val.get_style_context().add_class("val");
+        val.style_context().add_class("val");
 
         let pct = gtk::Label::new(None);
-        pct.get_style_context().add_class("val");
-        pct.get_style_context().add_class("pct");
+        pct.style_context().add_class("val");
+        pct.style_context().add_class("pct");
         pct.set_justify(gtk::Justification::Right);
         pct.set_halign(gtk::Align::End);
 
         let progress = gtk::ProgressBar::new();
         progress.set_hexpand(true);
-        progress.get_style_context().add_class("cpus-progress");
+        progress.style_context().add_class("cpus-progress");
         progress.set_sensitive(false);
 
         line_box.add(&key);
@@ -269,33 +277,33 @@ fn _add_cpus_split(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
 
         cpus.push(Cpu {
             mhz: val,
-            progress: progress,
+            progress,
             pct_label: pct,
         });
     }
 
     for i in *deets::CPU_COUNT / 2..*deets::CPU_COUNT {
         let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-        vbox.get_style_context().add_class("row");
+        vbox.style_context().add_class("row");
 
         let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
 
         let key = gtk::Label::new(None);
-        key.get_style_context().add_class("key");
+        key.style_context().add_class("key");
         key.set_text(&format!("CPU{:02}", i));
 
         let val = gtk::Label::new(None);
-        val.get_style_context().add_class("val");
+        val.style_context().add_class("val");
 
         let pct = gtk::Label::new(None);
-        pct.get_style_context().add_class("val");
-        pct.get_style_context().add_class("pct");
+        pct.style_context().add_class("val");
+        pct.style_context().add_class("pct");
         pct.set_justify(gtk::Justification::Right);
         pct.set_halign(gtk::Align::End);
 
         let progress = gtk::ProgressBar::new();
         progress.set_hexpand(true);
-        progress.get_style_context().add_class("cpus-progress");
+        progress.style_context().add_class("cpus-progress");
         progress.set_sensitive(false);
 
         line_box.add(&key);
@@ -308,7 +316,7 @@ fn _add_cpus_split(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
 
         cpus.push(Cpu {
             mhz: val,
-            progress: progress,
+            progress,
             pct_label: pct,
         });
     }
@@ -318,18 +326,84 @@ fn _add_cpus_split(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>) {
     inner_box.add(&right_box);
 }
 
-
 fn add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>, split: bool) {
     if split {
-	_add_cpus_split(inner_box, cpus);
-	return;
+	    _add_cpus_split(inner_box, cpus);
+    } else {
+        _add_cpus_regular(inner_box, cpus);
     }
+}
 
-    _add_cpus_regular(inner_box, cpus);
+fn add_gpus(inner_box: &gtk::Box, gpus: &mut Vec<Gpu>) {
+
+    let gpu_count = 1;
+
+    for _i in 0..gpu_count {
+        let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+        vbox.style_context().add_class("row");
+
+        let line_box1 = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+        let line_box2 = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+        let line_box3 = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+
+        let key1 = gtk::Label::new(None);
+        key1.style_context().add_class("key");
+        key1.set_text("Model:");
+        key1.set_halign(gtk::Align::Start);
+        key1.set_hexpand(true);
+
+        let model = gtk::Label::new(None);
+        model.style_context().add_class("val");
+        model.set_justify(gtk::Justification::Right);
+        model.set_halign(gtk::Align::End);
+
+        let key2 = gtk::Label::new(None);
+        key2.style_context().add_class("key");
+        key2.set_text("Temperature:");
+        key2.set_halign(gtk::Align::Start);
+        key2.set_hexpand(true);
+
+        let temp = gtk::Label::new(None);
+        temp.style_context().add_class("val");
+        temp.set_justify(gtk::Justification::Right);
+        temp.set_halign(gtk::Align::End);
+
+        let key3 = gtk::Label::new(None);
+        key3.style_context().add_class("key");
+        key3.set_text("Fan Speed:");
+        key3.set_halign(gtk::Align::Start);
+        key3.set_hexpand(true);
+
+        let fan_speed = gtk::Label::new(None);
+        fan_speed.style_context().add_class("val");
+        fan_speed.set_justify(gtk::Justification::Right);
+        fan_speed.set_halign(gtk::Align::End);
+
+        line_box1.add(&key1);
+        line_box1.add(&model);
+
+        line_box2.add(&key2);
+        line_box2.add(&temp);
+
+        line_box3.add(&key3);
+        line_box3.add(&fan_speed);
+
+        vbox.add(&line_box1);
+        vbox.add(&line_box2);
+        vbox.add(&line_box3);
+
+        inner_box.add(&vbox);
+
+        gpus.push(Gpu {
+            model,
+            temp,
+            fan_speed,
+        });
+    }
 }
 
 fn add_consumers(uniq_item: &str, limit: i64, container: &gtk::Box, mems: &mut Vec<TopRow>) {
-    container.get_style_context().add_class("top-frame");
+    container.style_context().add_class("top-frame");
     container.set_orientation(gtk::Orientation::Horizontal);
 
     let columns = [
@@ -356,9 +430,9 @@ fn add_consumers(uniq_item: &str, limit: i64, container: &gtk::Box, mems: &mut V
         }
     }
 
-    for (i, name) in [ "NAME             ", "      PID", &format!("     {}", uniq_item) ].iter().enumerate() {
+    for (i, name) in ["NAME", "PID", uniq_item].iter().enumerate() {
         let label = gtk::Label::new(None);
-        label.set_text(&name);
+        label.set_text(name);
         add_to_column(i, &label, &columns);
     }
 
@@ -387,27 +461,28 @@ fn init_ui(stash: &mut UiStash,
            vbox: &gtk::Box,
            ui_config: &yaml_rust::Yaml) {
 
-    for i in ui_config.as_vec().unwrap() {
-        let label = Some(i["text"].as_str().unwrap());
+    for yaml in ui_config.as_vec().unwrap() {
+        let label = Some(yaml["text"].as_str().unwrap());
         let frame = gtk::Frame::new(label);
-        frame.get_style_context().add_class("frame");
+        frame.style_context().add_class("frame");
         vbox.add(&frame);
 
         let inner_box = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-        inner_box.get_style_context().add_class("innerbox");
+        inner_box.style_context().add_class("innerbox");
         frame.add(&inner_box);
 
-        if !i["type"].is_badvalue() {
-            let limit = i["limit"].as_i64().unwrap_or(5);
-            match i["type"].as_str().unwrap() {
-                "battery"       => add_batt(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.batts),
-                "cpus"          => add_cpus(&inner_box, &mut stash.cpus, i["split"].as_bool().unwrap_or(false)),
+        if !yaml["type"].is_badvalue() {
+            let limit = yaml["limit"].as_i64().unwrap_or(5);
+            match yaml["type"].as_str().unwrap() {
+                "battery"       => add_batt(&inner_box, yaml["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.batts),
+                "cpus"          => add_cpus(&inner_box, &mut stash.cpus, yaml["split"].as_bool().unwrap_or(false)),
+                "gpus"          => add_gpus(&inner_box, &mut stash.gpus),
                 "mem_consumers" => add_consumers("MEM", limit, &inner_box, &mut stash.top_mems),
                 "cpu_consumers" => add_consumers("CPU", limit, &inner_box, &mut stash.top_cpus),
-                "filesystem"    => add_filesystem(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.fs),
-                "net"           => add_net(&inner_box, i["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.net),
+                "filesystem"    => add_filesystem(&inner_box, yaml["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.fs),
+                "net"           => add_net(&inner_box, yaml["items"].as_vec().unwrap_or(&Vec::new()), &mut stash.net),
                 "system" => {
-                    for item in i["items"].as_vec().unwrap_or(&Vec::new()) {
+                    for item in yaml["items"].as_vec().unwrap_or(&Vec::new()) {
                         let val = add_standard(item, &inner_box);
                         stash.system.insert(item.clone(), val);
                     }
@@ -418,9 +493,9 @@ fn init_ui(stash: &mut UiStash,
     }
 }
 
-fn add_batt(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, Battery>) {
+fn add_batt(container: &gtk::Box, items: &[Yaml], stash: &mut HashMap<String, Battery>) {
     container.set_orientation(gtk::Orientation::Horizontal);
-    container.get_style_context().add_class("batt");
+    container.style_context().add_class("batt");
 
     let key_col = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
     let val_col = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
@@ -431,7 +506,7 @@ fn add_batt(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String,
         let str_pct_template = item["percent_template"].as_str().unwrap();
 
         let key = gtk::Label::new(None);
-        key.get_style_context().add_class("key");
+        key.style_context().add_class("key");
         key.set_text(&format!("{}:", item["name"].as_str().unwrap()));
         key.set_halign(gtk::Align::Start);
         key.set_hexpand(true);
@@ -441,15 +516,15 @@ fn add_batt(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String,
         val_box.set_halign(gtk::Align::Start);
 
         let status_lbl = gtk::Label::new(None);
-        status_lbl.get_style_context().add_class("val");
-        status_lbl.get_style_context().add_class("emoji");
+        status_lbl.style_context().add_class("val");
+        status_lbl.style_context().add_class("emoji");
         status_lbl.set_halign(gtk::Align::Start);
         status_lbl.set_text(str_battery);
 
         let pct_lbl = gtk::Label::new(None);
-        pct_lbl.get_style_context().add_class("val");
+        pct_lbl.style_context().add_class("val");
         pct_lbl.set_halign(gtk::Align::Start);
-        pct_lbl.set_text(&String::from(str_pct_template.replace("{}", "000")));
+        pct_lbl.set_text(&str_pct_template.replace("{}", "000"));
 
         val_box.add(&status_lbl);
         val_box.add(&pct_lbl);
@@ -468,9 +543,9 @@ fn add_batt(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String,
     container.add(&val_col);
 }
 
-fn add_net(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, (gtk::Label, gtk::Label)>) {
+fn add_net(container: &gtk::Box, items: &[Yaml], stash: &mut HashMap<String, (gtk::Label, gtk::Label)>) {
     container.set_orientation(gtk::Orientation::Horizontal);
-    container.get_style_context().add_class("net");
+    container.style_context().add_class("net");
 
     let key_col  = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
     let up_col   = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
@@ -478,7 +553,7 @@ fn add_net(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, 
 
     items.iter().for_each(|item| {
         let key = gtk::Label::new(None);
-        key.get_style_context().add_class("key");
+        key.style_context().add_class("key");
         key.set_text(&format!("{}:", item["name"].as_str().unwrap()));
         key.set_halign(gtk::Align::Start);
         key.set_hexpand(true);
@@ -492,7 +567,7 @@ fn add_net(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, 
         up_box.add(&up_lbl);
 
         let up_val = gtk::Label::new(None);
-        up_val.get_style_context().add_class("val");
+        up_val.style_context().add_class("val");
         up_val.set_hexpand(true);
         up_val.set_halign(gtk::Align::End);
         up_val.set_text("0000.00 KB");
@@ -505,13 +580,15 @@ fn add_net(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, 
         down_box.set_halign(gtk::Align::Start);
         down_lbl.set_halign(gtk::Align::Start);
         down_lbl.set_text("Down");
+        down_lbl.set_width_chars(12);
         down_box.add(&down_lbl);
 
         let down_val = gtk::Label::new(None);
-        down_val.get_style_context().add_class("val");
+        down_val.style_context().add_class("val");
         down_val.set_hexpand(true);
         down_val.set_halign(gtk::Align::End);
         down_val.set_text("0000.00 KB");
+        down_val.set_width_chars(12);
         down_box.add(&down_val);
         down_box.set_halign(gtk::Align::Fill);
         down_col.add(&down_box);
@@ -524,7 +601,7 @@ fn add_net(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, 
     container.add(&down_col);
 }
 
-fn add_filesystem(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String, (gtk::Label, gtk::ProgressBar)>) {
+fn add_filesystem(container: &gtk::Box, items: &[Yaml], stash: &mut HashMap<String, (gtk::Label, gtk::ProgressBar)>) {
     container.set_orientation(gtk::Orientation::Vertical);
 
     fn _add_item(container: &gtk::Box, item: &Yaml, stash: Option<&mut HashMap<String, (gtk::Label, gtk::ProgressBar)>>) {
@@ -535,29 +612,26 @@ fn add_filesystem(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<S
 
         let wrapper = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
         let text = gtk::Label::new(None);
-        text.get_style_context().add_class("key");
+        text.style_context().add_class("key");
         text.set_text(item["text"].as_str().unwrap());
         columns[0].add(&text);
 
         let space = gtk::Label::new(None);
         space.set_halign(gtk::Align::End);
-        space.get_style_context().add_class("val");
+        space.style_context().add_class("val");
         columns[1].add(&space);
 
         wrapper.add(&columns[0]);
         wrapper.pack_start(&columns[1], true, true, 0);
         container.add(&wrapper);
 
-        match stash {
-            Some(s) => {
-                let progress = gtk::ProgressBar::new();
-                progress.set_hexpand(true);
-                progress.set_sensitive(false);
-
-                container.add(&progress);
-                s.insert(String::from(item["mount_point"].as_str().unwrap()), (space, progress));
-            },
-            None => (),
+        if let Some(s) = stash {
+            let progress = gtk::ProgressBar::new();
+            progress.set_hexpand(true);
+            progress.set_sensitive(false);
+            
+            container.add(&progress);
+            s.insert(String::from(item["mount_point"].as_str().unwrap()), (space, progress));
         }
     }
 
@@ -569,14 +643,14 @@ fn add_filesystem(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<S
 
 fn _update_bar(bar: &gtk::ProgressBar, fraction: f64) {
     if fraction > 0.80 {
-        bar.get_style_context().remove_class("med");
-        bar.get_style_context().add_class("high");
+        bar.style_context().remove_class("med");
+        bar.style_context().add_class("high");
     } else if fraction > 0.50 {
-        bar.get_style_context().add_class("med");
-        bar.get_style_context().remove_class("high");
+        bar.style_context().add_class("med");
+        bar.style_context().remove_class("high");
     } else {
-        bar.get_style_context().remove_class("med");
-        bar.get_style_context().remove_class("high");
+        bar.style_context().remove_class("med");
+        bar.style_context().remove_class("high");
     }
 
     bar.set_fraction(fraction);
@@ -584,7 +658,7 @@ fn _update_bar(bar: &gtk::ProgressBar, fraction: f64) {
 
 fn update_ui(config: &Yaml, stash: UiStash) {
 
-    fn do_top(ps_info: &Vec<deets::PsInfo>, top_ui_items: &Vec<TopRow>, member: &str) {
+    fn do_top(ps_info: &[deets::PsInfo], top_ui_items: &[TopRow], member: &str) {
         for (i, lbl) in top_ui_items.iter().enumerate() {
             match member {
                 "mem" => lbl.pct.set_text(&format!("{:.1}%", ps_info[i].mem)),
@@ -592,7 +666,7 @@ fn update_ui(config: &Yaml, stash: UiStash) {
                 _ => (),
             };
 
-            lbl.pid.set_text(&format!("{}", ps_info[i].pid));
+            lbl.pid.set_text(&ps_info[i].pid.to_string());
 
             let comm = &ps_info[i].comm;
             if comm.len() > 20 {
@@ -616,7 +690,7 @@ fn update_ui(config: &Yaml, stash: UiStash) {
     fn _get_net_bps(cache: &mut HashMap<String, NetDevCache>, key: &str, curr_bytes: &u64) -> String {
         if !cache.contains_key(key) {
             cache.insert(String::from(key), NetDevCache {
-                last_bytes: curr_bytes.clone(),
+                last_bytes: *curr_bytes,
                 last_instant: Instant::now(),
             });
         }
@@ -627,26 +701,26 @@ fn update_ui(config: &Yaml, stash: UiStash) {
         bytes = (bytes * 1000.0) / (cache_val.last_instant.elapsed().as_millis() as f64);
 
         if bytes > 990.0 {
-            bytes = bytes / 1024.0;
+            bytes /= 1024.0;
             lbl = "MB";
         }
 
         if bytes > 990.0 {
-            bytes = bytes / 1024.0;
+            bytes /= 1024.0;
             lbl = "GB";
         }
 
         cache.insert(String::from(key), NetDevCache {
-            last_bytes: curr_bytes.clone(),
+            last_bytes: *curr_bytes,
             last_instant: Instant::now(),
         });
 
-        return format!("{:.2} {}", bytes, lbl);
+        format!("{:.2} {}", bytes, lbl)
     }
 
     let mut update = move || {
         let mut frame_counter = FRAME_COUNT.lock().unwrap();
-        let should_top = match &stash.top_cpus.len() + &stash.top_mems.len() {
+        let should_top = match stash.top_cpus.len() + stash.top_mems.len() {
             0 => false,
             _ => *frame_counter % mod_top == 0,
         };
@@ -663,7 +737,7 @@ fn update_ui(config: &Yaml, stash: UiStash) {
             do_top(&frame_cache.ps_info, &stash.top_mems, "mem");
         }
 
-        if stash.batts.len() != 0 && (*frame_counter % mod_bat == 0) {
+        if !stash.batts.is_empty() && (*frame_counter % mod_bat == 0) {
             stash.batts.iter().for_each(|(path, battery)| {
                 let (plugged, pct) = timings!("battery", get_battery, path);
                 battery.lbl_status.set_text(match plugged { true => &battery.str_plugged, false => &battery.str_battery, });
@@ -671,17 +745,17 @@ fn update_ui(config: &Yaml, stash: UiStash) {
             });
         }
 
-        if stash.net.len() != 0 {
+        if !stash.net.is_empty() {
             stash.net.iter().for_each(|(interface, (up_lbl, down_lbl))| {
                 if frame_cache.net_dev.contains_key(interface) {
                     let (up, down) = frame_cache.net_dev.get(interface).unwrap();
-                    up_lbl.set_text(&_get_net_bps(&mut net_cache, &format!("{} up", interface), &up));
-                    down_lbl.set_text(&_get_net_bps(&mut net_cache, &format!("{} down", interface), &down));
+                    up_lbl.set_text(&_get_net_bps(&mut net_cache, &format!("{} up", interface), up));
+                    down_lbl.set_text(&_get_net_bps(&mut net_cache, &format!("{} down", interface), down));
                 }
             });
         }
 
-        if stash.fs.len() != 0 && (*frame_counter % mod_fs == 0) {
+        if !stash.fs.is_empty() && (*frame_counter % mod_fs == 0) {
             let fs_usage = timings!("fs_usage", get_fs, stash.fs.keys().map(|s| s.as_str()).collect::<Vec<&str>>());
             fs_usage.iter().for_each(|(k, v)| {
                 let stash = stash.fs.get(k).unwrap();
@@ -698,28 +772,40 @@ fn update_ui(config: &Yaml, stash: UiStash) {
             }
 
             _update_bar(&cpu.progress, usage / 100.0);
-            cpu.pct_label.set_text(&format!("{:.0}%", usage));
+            cpu.pct_label.set_text(&format!("{:3.0}%", usage));
+            cpu.pct_label.set_width_chars(4);
+        });
+
+        #[cfg(feature = "nvidia")]
+        stash.gpus.iter().enumerate().for_each(|(index, gpu)| {
+
+            let info = deets::nvidia_gpu_info(index as u32);
+
+            let model = &info["model"];
+            let temp = &info["temp"];
+            let fan_speed = &info["fan_speed"];
+
+            gpu.model.set_text(&model);
+            gpu.temp.set_text(&temp);
+            gpu.fan_speed.set_text(&fan_speed);
         });
 
         stash.system.iter().for_each(|(item, val)| {
             let func: &str = item["func"].as_str().unwrap();
             let deet = deets::do_func(item, &frame_cache);
-            val.0.set_text(&deet.as_str());
+            val.0.set_text(deet.as_str());
 
-            match &val.1 {
-                Some(bar) => {
-                    match func {
-                        "cpu_usage" => _update_bar(bar, deets::get_cpu_usage(-1) / 100.0),
-                        "ram_usage" => _update_bar(bar, (frame_cache.mem_total - frame_cache.mem_free) / frame_cache.mem_total),
-                        _ => (),
-                    };
-                },
-                _ => (),
+            if let Some(bar) = &val.1 {
+                match func {
+                    "cpu_usage" => _update_bar(bar, deets::get_cpu_usage(-1) / 100.0),
+                    "ram_usage" => _update_bar(bar, (frame_cache.mem_total - frame_cache.mem_free) / frame_cache.mem_total),
+                    _ => (),
+                };
             }
         });
 
         *frame_counter += 1;
-        return glib::Continue(true);
+        glib::Continue(true)
     };
 
     // update now!!
@@ -727,7 +813,7 @@ fn update_ui(config: &Yaml, stash: UiStash) {
 
     #[cfg(feature = "runtime_bench")]
     {
-        use std::time::{Instant};
+        use std::time::Instant;
         let bench_update = move || {
             let now = Instant::now();
             for _ in 0..1024 {
@@ -744,35 +830,35 @@ fn update_ui(config: &Yaml, stash: UiStash) {
 }
 
 fn try_get_file() -> Option<String> {
-    let home = std::env::var("HOME").unwrap_or("".to_string());
-    if home != "" {
-	let cfg = format!("{}/.randy.yml", home);
-	if std::path::Path::new(&cfg).exists() {
-	    return Some(cfg);
-	}
+
+    if let Ok(home) = env::var("HOME") {
+        let cfg = format!("{home}/.randy.yml");
+        if std::path::Path::new(&cfg).exists() {
+            return Some(cfg);
+        }
     }
 
-    let xdg = std::env::var("XDG_CONFIG_HOME");
-    if xdg.is_ok() {
-	let cfg = format!("{}/randy.yml", xdg.unwrap());
-	if std::path::Path::new(&cfg).exists() {
-	    return Some(cfg);
-	}
+    if let Ok(xdg) = env::var("XDG_CONFIG_HOME") {
+        let cfg = format!("{xdg}/.randy.yml");
+        if std::path::Path::new(&cfg).exists() {
+            return Some(cfg);
+        }
     }
 
-    if home != "" {
-	let cfg = format!("{}/.config/randy.yml", home);
-	if std::path::Path::new(&cfg).exists() {
-	    return Some(cfg);
-	}
+    if let Ok(home) = env::var("HOME") {
+        let cfg = format!("{home}/.config/randy.yml");
+        if std::path::Path::new(&cfg).exists() {
+            return Some(cfg);
+        }
     }
 
     let cfg = "/etc/randy.yml";
-    if std::path::Path::new(&cfg).exists() {
-	return Some(cfg.to_string());
-    }
 
-    return None;
+    if std::path::Path::new(cfg).exists() {
+	    Some(cfg.to_string())
+    } else {
+        None
+    }
 }
 
 fn get_file() -> String {
@@ -787,27 +873,34 @@ Checked in this order:
 Please put a randy.yml config file in one of those places.
 Exmples: https://github.com/iphands/randy/tree/main/config"#);
     println!("Using config file: {}", config_path);
-    return match fs::read_to_string(&config_path) {
+    match fs::read_to_string(&config_path) {
         Ok(s)  => s,
-        Err(_) => panic!("Unable to open/read {}", config_path),
-    };
+        Err(e) => {
+            eprintln!("Unable to open/read {config_path}");
+            panic!("Error: {e}");
+        },
+    }
 }
 
 fn get_config(yaml_str: &str) -> Vec<Yaml> {
-    let yaml = match YamlLoader::load_from_str(yaml_str) {
+    match YamlLoader::load_from_str(yaml_str) {
         Ok(y)  => y,
-        Err(_) => panic!("Unable to parse config YAML"),
-    };
-
-    return yaml;
+        Err(e) => {
+            eprintln!("Unable to parse config YAML");
+            panic!("Error: {e}");
+        },
+    }
 }
 
 fn main() {
-    let application = gtk::Application::new(Some("org.ahands.randy"), Default::default()).expect("Initialization failed...");
+    let application = gtk::Application::new(
+        Some("org.ahands.randy"),
+        Default::default()
+    );
 
     application.connect_activate(|app| {
         build_ui(app);
     });
 
-    application.run(&Vec::new());
+    application.run();
 }
