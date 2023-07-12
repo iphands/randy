@@ -39,4 +39,4 @@ libc = "0.2"
 lazy_static = "1.4"
 sensors = { version = "0.2", optional = true }
 nvml-wrapper = { version = "0.9", optional = true }
-sysinfo = "0.29"
+
