@@ -1,4 +1,4 @@
-EAPI=7
+EAPI=8
 
 CRATES="
 anyhow-1.0.34
