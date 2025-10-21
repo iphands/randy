@@ -143,6 +143,11 @@ fn build_ui(application: &gtk::Application) {
 
     init_ui(&mut stash, &vbox, &config["ui"]);
     window.add(&vbox);
+
+    // Set fixed width for the main window
+    let window_width = 375; // Fixed width
+    window.set_default_size(window_width, -1);
+
     window.show_all();
     update_ui(&config["settings"], stash);
 }

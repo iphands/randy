@@ -44,7 +44,7 @@ pub fn try_exact_match_strings_from_reader(reader: &mut BufReader<File>, filters
 
                 match filters.iter().try_for_each(|filter| {
                     if line.starts_with(filter) {
-                        let l = line.trim().clone().to_string();
+                        let l = line.trim().to_string();
                         lines_vec.push(l);
                         if count == filter_count {
                             return None;
