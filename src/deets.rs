@@ -358,7 +358,7 @@ fn get_ps_from_proc(counter: u64, mod_top: u64, mem_used: f64) -> Vec<PsInfo> {
     return procs;
 }
 
-#[cfg(feature = "include_dead")]
+#[allow(dead_code)]
 fn get_ps() -> Vec<PsInfo> {
     let output = match Command::new("ps")
         .arg("--no-headers")
@@ -534,7 +534,7 @@ pub fn get_fs(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
     return map;
 }
 
-#[cfg(feature = "include_dead")]
+#[allow(dead_code)]
 pub fn get_fs_from_df(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
     let output = match Command::new("df").arg("-h").output() {
         Ok(o) => o,
