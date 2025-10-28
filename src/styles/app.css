@@ -23,11 +23,16 @@ window {
 
 .innerbox {
     padding-bottom: 0.25em;
+		min-width: 14em;
 }
 
 label.val {
     font-weight: bolder;
     padding-right: 0.5em;
+}
+
+label.pct {
+    /*min-width: 3em;*/
 }
 
 label.key {

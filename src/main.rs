@@ -228,8 +228,8 @@ fn _add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>, is_split: bool) {
         progress.get_style_context().add_class("cpus-progress");
         progress.set_sensitive(false);
 
-        line_box.add(&key);
-        line_box.add(&val);
+        line_box.pack_start(&key, true, true, 0);
+        line_box.pack_start(&val, true, true, 0);
         line_box.pack_start(&pct, true, true, 0);
 
         vbox.add(&line_box);
@@ -241,6 +241,7 @@ fn _add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>, is_split: bool) {
         } else {
             0
         };
+
         boxes_to_use[box_index].add(&vbox);
 
         cpus.push(Cpu {
