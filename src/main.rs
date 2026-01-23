@@ -73,47 +73,27 @@ fn get_css(conf: &Yaml, composited: bool) -> String {
     let font_size = conf["font_size"].as_str().unwrap_or("large");
     let base_opacity = format!("{:1.4}", conf["base_opacity"].as_f64().unwrap_or(1.0));
 
-    return css
-        .replace(
-            "{ bar_height }",
-            conf["bar_height"].as_str().unwrap_or("10px"),
-        )
-        .replace("{ base_opacity }", &base_opacity)
-        .replace(
-            "{ color }",
-            conf["color_text"].as_str().unwrap_or("#e1eeeb"),
-        )
-        .replace("{ color_background }", color_background)
-        .replace(
-            "{ color_borders }",
-            conf["color_borders"].as_str().unwrap_or(color_text),
-        )
-        .replace(
-            "{ color_bar }",
-            conf["color_bar"].as_str().unwrap_or("#e1eeff"),
-        )
-        .replace(
-            "{ color_bar_med }",
-            conf["color_bar_med"].as_str().unwrap_or("#ffeeaa"),
-        )
-        .replace(
-            "{ color_bar_high }",
-            conf["color_bar_high"].as_str().unwrap_or("#ffaaaa"),
-        )
-        .replace(
-            "{ color_label }",
-            conf["color_label"].as_str().unwrap_or("#87d7ff"),
-        )
-        .replace("{ color_trough }", color_trough)
-        .replace(
-            "{ font_family }",
-            conf["font_family"].as_str().unwrap_or("monospace"),
-        )
-        .replace(
-            "{ font_size_top }",
-            conf["font_size_top"].as_str().unwrap_or(font_size),
-        )
-        .replace("{ font_size }", font_size);
+    let replacements = [
+        ("{ bar_height }", conf["bar_height"].as_str().unwrap_or("10px")),
+        ("{ base_opacity }", &base_opacity),
+        ("{ color }", conf["color_text"].as_str().unwrap_or("#e1eeeb")),
+        ("{ color_background }", color_background),
+        ("{ color_borders }", conf["color_borders"].as_str().unwrap_or(color_text)),
+        ("{ color_bar }", conf["color_bar"].as_str().unwrap_or("#e1eeff")),
+        ("{ color_bar_med }", conf["color_bar_med"].as_str().unwrap_or("#ffeeaa")),
+        ("{ color_bar_high }", conf["color_bar_high"].as_str().unwrap_or("#ffaaaa")),
+        ("{ color_label }", conf["color_label"].as_str().unwrap_or("#87d7ff")),
+        ("{ color_trough }", color_trough),
+        ("{ font_family }", conf["font_family"].as_str().unwrap_or("monospace")),
+        ("{ font_size_top }", conf["font_size_top"].as_str().unwrap_or(font_size)),
+        ("{ font_size }", font_size),
+    ];
+
+    let mut result = css;
+    for (placeholder, value) in &replacements {
+        result = result.replace(placeholder, value);
+    }
+    return result;
 }
 
 fn _is_interactive(config: &Yaml) -> bool {
@@ -163,8 +143,7 @@ fn build_ui(application: &gtk::Application) {
         );
     }
 
-    let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-    vbox.get_style_context().add_class("container");
+    let vbox = create_box(gtk::Orientation::Vertical, "container");
 
     let mut stash = UiStash {
         batts: HashMap::new(),
@@ -180,13 +159,12 @@ fn build_ui(application: &gtk::Application) {
     window.add(&vbox);
 
     // Set fixed width for the main window
-    let window_width = 375; // Fixed width
-    window.set_default_size(window_width, -1);
+    let initial_width = 375; // Fixed width
+    window.set_default_size(initial_width, -1);
 
     window.show_all();
 
     // Track the initial width requested by user
-    let initial_width = 375; // This matches the set_default_size call
     println!("Initial width requested: {}", initial_width);
 
     // Initialize UI with dummy maximum values to force maximum width
@@ -210,8 +188,7 @@ fn add_standard(
 ) -> (gtk::Label, Option<gtk::ProgressBar>) {
     // let deet = deets::do_func(item);
 
-    let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
-    line_box.get_style_context().add_class("row");
+    let line_box = create_box(gtk::Orientation::Horizontal, "row");
 
     let key = gtk::Label::new(None);
     key.get_style_context().add_class("key");
@@ -229,14 +206,12 @@ fn add_standard(
 
     match item["widget"].as_str() {
         Some("bar") => {
-            let progress = gtk::ProgressBar::new();
-            progress.set_hexpand(true);
-            progress.set_sensitive(false);
+            let progress = create_styled_progress_bar();
 
-            let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-            vbox.add(&line_box);
-            vbox.add(&progress);
-            inner_box.add(&vbox);
+let vbox = create_box(gtk::Orientation::Vertical, "");
+    vbox.add(&line_box);
+    vbox.add(&progress);
+    inner_box.add(&vbox);
             p = Some(progress);
         }
         _ => {
@@ -248,11 +223,8 @@ fn add_standard(
 }
 
 fn _add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>, is_split: bool) {
-    let mut left_box = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-    left_box.get_style_context().add_class("innerbox");
-
-    let mut right_box = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-    right_box.get_style_context().add_class("innerbox");
+    let mut left_box = create_box(gtk::Orientation::Vertical, "innerbox");
+    let mut right_box = create_box(gtk::Orientation::Vertical, "innerbox");
 
     let mut boxes_to_use = vec![&mut left_box];
     if is_split {
@@ -260,10 +232,8 @@ fn _add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>, is_split: bool) {
     }
 
     for i in 0..*deets::CPU_COUNT {
-        let vbox = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-        vbox.get_style_context().add_class("row");
-
-        let line_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+let vbox = create_box(gtk::Orientation::Vertical, "row");
+    let line_box = create_box(gtk::Orientation::Horizontal, "");
 
         let key = gtk::Label::new(None);
         key.get_style_context().add_class("key");
@@ -278,10 +248,8 @@ fn _add_cpus(inner_box: &gtk::Box, cpus: &mut Vec<Cpu>, is_split: bool) {
         pct.set_justify(gtk::Justification::Right);
         pct.set_halign(gtk::Align::End);
 
-        let progress = gtk::ProgressBar::new();
-        progress.set_hexpand(true);
-        progress.get_style_context().add_class("cpus-progress");
-        progress.set_sensitive(false);
+let progress = create_styled_progress_bar();
+            progress.get_style_context().add_class("cpus-progress");
 
         line_box.pack_start(&key, true, true, 0);
         line_box.pack_start(&val, true, true, 0);
@@ -327,9 +295,9 @@ fn add_consumers(uniq_item: &str, limit: i64, container: &gtk::Box, mems: &mut V
     container.set_orientation(gtk::Orientation::Horizontal);
 
     let columns = [
-        gtk::Box::new(gtk::Orientation::Vertical, SPACING),
-        gtk::Box::new(gtk::Orientation::Vertical, SPACING),
-        gtk::Box::new(gtk::Orientation::Vertical, SPACING),
+        create_box(gtk::Orientation::Vertical, ""),
+        create_box(gtk::Orientation::Vertical, ""),
+        create_box(gtk::Orientation::Vertical, ""),
     ];
 
     fn add_to_column(i: usize, label: &gtk::Label, columns: &[gtk::Box; 3]) {
@@ -391,8 +359,7 @@ fn init_ui(stash: &mut UiStash, vbox: &gtk::Box, ui_config: &yaml_rust::Yaml) {
         frame.get_style_context().add_class("frame");
         vbox.add(&frame);
 
-        let inner_box = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-        inner_box.get_style_context().add_class("innerbox");
+let inner_box = create_box(gtk::Orientation::Vertical, "innerbox");
         frame.add(&inner_box);
 
         if !i["type"].is_badvalue() {
@@ -436,8 +403,8 @@ fn add_batt(container: &gtk::Box, items: &Vec<Yaml>, stash: &mut HashMap<String,
     container.set_orientation(gtk::Orientation::Horizontal);
     container.get_style_context().add_class("batt");
 
-    let key_col = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-    let val_col = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+    let key_col = create_box(gtk::Orientation::Vertical, "");
+    let val_col = create_box(gtk::Orientation::Vertical, "");
 
     items.iter().for_each(|item| {
         let str_battery = item["battery_text"].as_str().unwrap();
@@ -493,47 +460,22 @@ fn add_net(
     container.set_orientation(gtk::Orientation::Horizontal);
     container.get_style_context().add_class("net");
 
-    let key_col = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-    let up_col = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
-    let down_col = gtk::Box::new(gtk::Orientation::Vertical, SPACING);
+    let key_col = create_box(gtk::Orientation::Vertical, "");
+    let up_col = create_box(gtk::Orientation::Vertical, "");
+    let down_col = create_box(gtk::Orientation::Vertical, "");
 
     items.iter().for_each(|item| {
-        let key = gtk::Label::new(None);
-        key.get_style_context().add_class("key");
+let key = create_styled_label("key");
         key.set_text(&format!("{}:", item["name"].as_str().unwrap()));
         key.set_halign(gtk::Align::Start);
         key.set_hexpand(true);
         key_col.add(&key);
 
-        let up_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
-        let up_lbl = gtk::Label::new(None);
-        up_box.set_halign(gtk::Align::Start);
-        up_lbl.set_halign(gtk::Align::Start);
-        up_lbl.set_text("Up");
-        up_box.add(&up_lbl);
-
-        let up_val = gtk::Label::new(None);
-        up_val.get_style_context().add_class("val");
-        up_val.set_hexpand(true);
-        up_val.set_halign(gtk::Align::End);
-        up_val.set_text("0000.00 KB");
-        up_box.add(&up_val);
+        let (up_box, up_val) = create_network_label_box("Up", "0000.00 KB", "val");
         up_box.set_halign(gtk::Align::Fill);
         up_col.add(&up_box);
 
-        let down_box = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
-        let down_lbl = gtk::Label::new(None);
-        down_box.set_halign(gtk::Align::Start);
-        down_lbl.set_halign(gtk::Align::Start);
-        down_lbl.set_text("Down");
-        down_box.add(&down_lbl);
-
-        let down_val = gtk::Label::new(None);
-        down_val.get_style_context().add_class("val");
-        down_val.set_hexpand(true);
-        down_val.set_halign(gtk::Align::End);
-        down_val.set_text("0000.00 KB");
-        down_box.add(&down_val);
+        let (down_box, down_val) = create_network_label_box("Down", "0000.00 KB", "val");
         down_box.set_halign(gtk::Align::Fill);
         down_col.add(&down_box);
 
@@ -561,11 +503,11 @@ fn add_filesystem(
         stash: Option<&mut HashMap<String, (gtk::Label, gtk::ProgressBar)>>,
     ) {
         let columns = [
-            gtk::Box::new(gtk::Orientation::Vertical, SPACING),
-            gtk::Box::new(gtk::Orientation::Vertical, SPACING),
+            create_box(gtk::Orientation::Vertical, ""),
+            create_box(gtk::Orientation::Vertical, ""),
         ];
 
-        let wrapper = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+        let wrapper = create_box(gtk::Orientation::Horizontal, "");
         let text = gtk::Label::new(None);
         text.get_style_context().add_class("key");
         text.set_text(item["text"].as_str().unwrap());
@@ -582,9 +524,7 @@ fn add_filesystem(
 
         match stash {
             Some(s) => {
-                let progress = gtk::ProgressBar::new();
-                progress.set_hexpand(true);
-                progress.set_sensitive(false);
+                let progress = create_styled_progress_bar();
 
                 container.add(&progress);
                 s.insert(
@@ -615,6 +555,44 @@ fn _update_bar(bar: &gtk::ProgressBar, fraction: f64) {
     }
 
     bar.set_fraction(fraction);
+}
+
+// Helper functions to reduce code duplication
+fn create_styled_label(css_class: &str) -> gtk::Label {
+    let label = gtk::Label::new(None);
+    label.get_style_context().add_class(css_class);
+    label
+}
+
+fn create_styled_progress_bar() -> gtk::ProgressBar {
+    let progress = gtk::ProgressBar::new();
+    progress.set_hexpand(true);
+    progress.set_sensitive(false);
+    progress
+}
+
+fn create_box(orientation: gtk::Orientation, css_class: &str) -> gtk::Box {
+    let box_container = gtk::Box::new(orientation, SPACING);
+    box_container.get_style_context().add_class(css_class);
+    box_container
+}
+
+fn create_network_label_box(label_text: &str, value_text: &str, css_class: &str) -> (gtk::Box, gtk::Label) {
+    let box_container = gtk::Box::new(gtk::Orientation::Horizontal, SPACING);
+    box_container.set_halign(gtk::Align::Start);
+    
+    let label = gtk::Label::new(None);
+    label.set_halign(gtk::Align::Start);
+    label.set_text(label_text);
+    box_container.add(&label);
+    
+    let val = create_styled_label(css_class);
+    val.set_hexpand(true);
+    val.set_halign(gtk::Align::End);
+    val.set_text(value_text);
+    box_container.add(&val);
+    
+    (box_container, val)
 }
 
 fn init_ui_with_dummy_values(stash: &UiStash) {
