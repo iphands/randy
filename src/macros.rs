@@ -38,4 +38,3 @@ macro_rules! split_spc_to_strs {
         $str.split_ascii_whitespace().collect::<Vec<&str>>()
     };
 }
-

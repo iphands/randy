@@ -2,27 +2,27 @@ use crate::file_utils::*;
 
 use libc::{c_char, c_int, c_ulong};
 
-use std::{str, mem, slice, fs};
-#[cfg(not(feature = "timings"))]
-use std::thread;
-#[cfg(not(feature = "timings"))]
-use std::time;
 use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::fs::File;
 use std::io::{BufReader, Seek, SeekFrom};
 use std::process::Command;
 use std::sync::Mutex;
+#[cfg(not(feature = "timings"))]
+use std::thread;
+#[cfg(not(feature = "timings"))]
+use std::time;
+use std::{fs, mem, slice, str};
 
-use yaml_rust::{Yaml};
+use yaml_rust::Yaml;
 
 #[cfg(feature = "nvidia")]
-use nvml_wrapper::enum_wrappers::device::{TemperatureSensor};
+use nvml_wrapper::enum_wrappers::device::TemperatureSensor;
 #[cfg(feature = "nvidia")]
 use nvml_wrapper::NVML;
 
 pub struct FileSystemUsage {
-    pub used:  f64,
+    pub used: f64,
     pub total: f64,
     pub used_str: String,
     pub total_str: String,
@@ -30,7 +30,7 @@ pub struct FileSystemUsage {
 }
 
 struct CpuLoad {
-    idle:  u64,
+    idle: u64,
     total: u64,
     percent: f64,
 }
@@ -75,22 +75,24 @@ lazy_static! {
 
 #[cfg(feature = "nvidia")]
 lazy_static! {
-    static ref NVML_O:         Mutex<nvml_wrapper::NVML> = Mutex::new(NVML::init().unwrap());
+    static ref NVML_O: Mutex<nvml_wrapper::NVML> = Mutex::new(NVML::init().unwrap());
 }
 
 fn get_hostname_from_utsname(n: [c_char; 65]) -> String {
-    let hostname: &[u8] = unsafe{ slice::from_raw_parts(n.as_ptr() as *const u8, n.len()) };
+    let hostname: &[u8] = unsafe { slice::from_raw_parts(n.as_ptr() as *const u8, n.len()) };
     return str_from_bytes(hostname.to_vec());
 }
 
 fn get_utsname() -> libc::utsname {
     let mut utsname: libc::utsname = unsafe { mem::zeroed() };
-    unsafe { libc::uname(&mut utsname); };
+    unsafe {
+        libc::uname(&mut utsname);
+    };
     return utsname;
 }
 
 fn get_uname(r: [c_char; 65]) -> String {
-    let release: &[u8] = unsafe{ slice::from_raw_parts(r.as_ptr() as *const u8, r.len()) };
+    let release: &[u8] = unsafe { slice::from_raw_parts(r.as_ptr() as *const u8, r.len()) };
     return str_from_bytes(release.to_vec());
 }
 
@@ -105,7 +107,9 @@ fn get_uptime_string(uptime: c_int) -> String {
 
 fn get_sysinfo() -> libc::sysinfo {
     let mut sysinfo: libc::sysinfo = unsafe { mem::zeroed() };
-    unsafe { libc::sysinfo(&mut sysinfo); };
+    unsafe {
+        libc::sysinfo(&mut sysinfo);
+    };
     return sysinfo;
 }
 
@@ -120,26 +124,30 @@ fn get_load(loads: [c_ulong; 3]) -> String {
 }
 
 fn get_procs_count(proc_stat: &Vec<String>) -> String {
-    return match proc_stat.iter().find(|line| { line.starts_with("procs_running") }) {
+    return match proc_stat.iter().find(|line| line.starts_with("procs_running")) {
         Some(r) => r.replace("procs_running ", ""),
         _ => panic!("Couldn't find running procs in /proc/stat"),
     };
 }
 
-fn get_ram_usage() -> (f64, f64)  {
+fn get_ram_usage() -> (f64, f64) {
     fn reduce(i: u64) -> f64 {
         return (i as f64) / 1024.0 / 1024.0;
     }
 
     fn get_item(i: usize, v: &Vec<String>) -> u64 {
         return v[i]
-            .split_ascii_whitespace().collect::<String>()
-            .split(':').collect::<Vec<&str>>()[1]
-            .replace("kB", "").parse().unwrap();
+            .split_ascii_whitespace()
+            .collect::<String>()
+            .split(':')
+            .collect::<Vec<&str>>()[1]
+            .replace("kB", "")
+            .parse()
+            .unwrap();
     }
 
     let meminfo = get_strings_from_path("/proc/meminfo", 3);
-    let free  = reduce(get_item(2, &meminfo));
+    let free = reduce(get_item(2, &meminfo));
     let total = reduce(get_item(0, &meminfo));
     return (free, total);
 }
@@ -147,11 +155,13 @@ fn get_ram_usage() -> (f64, f64)  {
 pub fn get_cpu_mhz() -> Vec<u16> {
     let mut file = CPU_INFO_FILE.lock().unwrap();
     file.seek(SeekFrom::Start(0)).unwrap();
-    return try_match_strings_from_file(&mut *file, &vec!["cpu MHz"]).unwrap()
+    return try_match_strings_from_file(&mut *file, &vec!["cpu MHz"])
+        .unwrap()
         .into_iter()
         .map(|s| {
             return split_to_strs!(s, ": ")[1].parse::<f32>().unwrap() as u16;
-        }).collect();
+        })
+        .collect();
 }
 
 fn get_proc_stat() -> Vec<String> {
@@ -188,16 +198,12 @@ fn get_sensor_info(sensor_name: &str, label_name: &str, val: &str, whole: bool) 
 
 fn get_cpu_temp_sys(val: Option<&str>) -> String {
     match fs::read_to_string("/sys/class/thermal/thermal_zone0/temp") {
-        Ok(s) => {
-            match s.trim().parse::<u32>() {
-                Ok(i) => {
-                    match val {
-                        Some(s) => s.replace("{}", format!("{}", (i / 1000)).as_str()),
-                        _ => format!("{}C", (i / 1000)),
-                    }
-                },
-                Err(e) => e.to_string(),
-            }
+        Ok(s) => match s.trim().parse::<u32>() {
+            Ok(i) => match val {
+                Some(s) => s.replace("{}", format!("{}", (i / 1000)).as_str()),
+                _ => format!("{}C", (i / 1000)),
+            },
+            Err(e) => e.to_string(),
         },
         _ => "unknown".to_string(),
     }
@@ -205,7 +211,7 @@ fn get_cpu_temp_sys(val: Option<&str>) -> String {
 
 fn get_ps_from_proc(counter: u64, mod_top: u64, mem_used: f64) -> Vec<PsInfo> {
     let mut procs = Vec::new();
-    let cpu_loads_map  = &mut CPU_LOADS.lock().unwrap();
+    let cpu_loads_map = &mut CPU_LOADS.lock().unwrap();
     let proc_files_map = &mut PROC_PID_FILES.lock().unwrap();
     let should_run_retain = counter % (mod_top * 5) == 0;
 
@@ -230,12 +236,12 @@ fn get_ps_from_proc(counter: u64, mod_top: u64, mem_used: f64) -> Vec<PsInfo> {
     fn _do_cpu(path: &str, pid: &str, total_time: f64) -> f32 {
         let proc_loads_map = &mut PROC_LOAD_HIST.lock().unwrap();
         let readers_map = &mut PROC_STAT_READERS.lock().unwrap();
-        let pid_u32   = pid.parse::<u32>().unwrap();
+        let pid_u32 = pid.parse::<u32>().unwrap();
 
         if !readers_map.contains_key(&pid_u32) {
             let p = &format!("{}/stat", &path);
             let tmp_reader = BufReader::new(match File::open(p) {
-                Ok(f)  => f,
+                Ok(f) => f,
                 Err(_) => return 0.0,
             });
 
@@ -244,22 +250,22 @@ fn get_ps_from_proc(counter: u64, mod_top: u64, mem_used: f64) -> Vec<PsInfo> {
 
         let reader = readers_map.get_mut(&pid_u32).unwrap();
         match reader.seek(SeekFrom::Start(0)) {
-            Ok(_)  => (),
+            Ok(_) => (),
             Err(_) => {
                 readers_map.remove(&pid_u32);
                 return 0.0;
-            },
+            }
         };
 
         let stat_line = match try_strings_from_reader(reader, 1) {
-            Ok(v)  => v,
+            Ok(v) => v,
             Err(_) => {
                 readers_map.remove(&pid_u32);
                 return 0.0;
-            },
+            }
         };
 
-        let stat_vec  = split_spc_to_strs!(stat_line[0]);
+        let stat_vec = split_spc_to_strs!(stat_line[0]);
 
         let proc_time: f64 = stat_vec[13].parse::<f64>().unwrap() + stat_vec[14].parse::<f64>().unwrap();
 
@@ -282,7 +288,7 @@ fn get_ps_from_proc(counter: u64, mod_top: u64, mem_used: f64) -> Vec<PsInfo> {
         thread::sleep(YIELD_TIME);
 
         let entry: fs::DirEntry = match dir_entry {
-            Ok(r)  => r,
+            Ok(r) => r,
             Err(_) => return,
         };
 
@@ -298,26 +304,26 @@ fn get_ps_from_proc(counter: u64, mod_top: u64, mem_used: f64) -> Vec<PsInfo> {
                 true => {
                     let reader = proc_files_map.get_mut(pid).unwrap();
                     match reader.seek(SeekFrom::Start(0)) {
-                        Ok(_)  => (),
-                        Err(_) => {
-                            PROC_STAT_READERS.lock().unwrap().remove(&pid.parse::<u32>().unwrap());
-                            proc_files_map.remove(pid);
-                            return
-                        },
-                    }
-
-                    match try_exact_match_strings_from_reader(reader, match_vec, Some(_hack)) {
-                        Ok(s)  => { s },
+                        Ok(_) => (),
                         Err(_) => {
                             PROC_STAT_READERS.lock().unwrap().remove(&pid.parse::<u32>().unwrap());
                             proc_files_map.remove(pid);
                             return;
-                        },
+                        }
                     }
-                },
+
+                    match try_exact_match_strings_from_reader(reader, match_vec, Some(_hack)) {
+                        Ok(s) => s,
+                        Err(_) => {
+                            PROC_STAT_READERS.lock().unwrap().remove(&pid.parse::<u32>().unwrap());
+                            proc_files_map.remove(pid);
+                            return;
+                        }
+                    }
+                }
                 false => {
                     let mut file = match File::open(&format!("{}/status", &path)) {
-                        Ok(f)  => f,
+                        Ok(f) => f,
                         Err(_) => return,
                     };
 
@@ -326,13 +332,15 @@ fn get_ps_from_proc(counter: u64, mod_top: u64, mem_used: f64) -> Vec<PsInfo> {
                             let reader = BufReader::new(file);
                             proc_files_map.insert(pid.to_string(), reader);
                             vec
-                        },
+                        }
                         Err(_) => return,
                     }
-                },
+                }
             };
 
-            if status_lines.len() != 2 { return; }
+            if status_lines.len() != 2 {
+                return;
+            }
 
             let proc_used = status_lines[1][7..(status_lines[1].len() - 3)].trim().parse::<f64>();
 
@@ -344,15 +352,15 @@ fn get_ps_from_proc(counter: u64, mod_top: u64, mem_used: f64) -> Vec<PsInfo> {
                         cpu: _do_cpu(&path, &pid, cpu_loads_map[&0].total as f64),
                         mem: (used / mem_used) as f32,
                     });
-                },
+                }
                 _ => (),
             };
         }
     });
 
     if should_run_retain {
-        PROC_STAT_READERS.lock().unwrap().retain(|i, _| { pids.contains(&i.to_string()) });
-        proc_files_map.retain(|i, _| { pids.contains(i) });
+        PROC_STAT_READERS.lock().unwrap().retain(|i, _| pids.contains(&i.to_string()));
+        proc_files_map.retain(|i, _| pids.contains(i));
     }
 
     return procs;
@@ -367,10 +375,11 @@ fn get_ps() -> Vec<PsInfo> {
         .arg("ax")
         .arg("-eo")
         .arg("pid,pcpu,pmem,comm")
-        .output() {
-            Ok(o) => o,
-            Err(e) => panic!("Error running ps!: {}", e)
-        };
+        .output()
+    {
+        Ok(o) => o,
+        Err(e) => panic!("Error running ps!: {}", e),
+    };
 
     let mut ps_info_vec = Vec::new();
     let out_str = String::from_utf8_lossy(&output.stdout);
@@ -382,9 +391,9 @@ fn get_ps() -> Vec<PsInfo> {
             .collect::<Vec<&str>>();
 
         ps_info_vec.push(PsInfo {
-            pid:  tmp[0].to_string(),
-            cpu:  tmp[1].parse::<f32>().unwrap(),
-            mem:  tmp[2].parse::<f32>().unwrap(),
+            pid: tmp[0].to_string(),
+            cpu: tmp[1].parse::<f32>().unwrap(),
+            mem: tmp[2].parse::<f32>().unwrap(),
             comm: tmp[3].to_string(),
         });
     }
@@ -397,7 +406,7 @@ pub fn get_battery(path: &str) -> (bool, String) {
     let path_string = String::from(path);
 
     if !reader_map.contains_key(path) {
-        let cap_reader    = BufReader::new(File::open(format!("{}/capacity", path)).unwrap());
+        let cap_reader = BufReader::new(File::open(format!("{}/capacity", path)).unwrap());
         let status_reader = BufReader::new(File::open(format!("{}/status", path)).unwrap());
         reader_map.insert(path_string, (cap_reader, status_reader));
     }
@@ -405,11 +414,11 @@ pub fn get_battery(path: &str) -> (bool, String) {
     let (cap_reader, status_reader) = reader_map.get_mut(path).unwrap();
     let capacity = &try_strings_from_reader(cap_reader, 1).unwrap()[0];
 
-    let status   = match try_strings_from_reader(status_reader, 1).unwrap()[0].as_str() {
+    let status = match try_strings_from_reader(status_reader, 1).unwrap()[0].as_str() {
         "Discharging" => false,
-        "Full"        => true,
-        "Unknown"     => true,
-        _             => true,
+        "Full" => true,
+        "Unknown" => true,
+        _ => true,
     };
 
     return (status, String::from(capacity));
@@ -418,7 +427,7 @@ pub fn get_battery(path: &str) -> (bool, String) {
 fn get_cpu_voltage_rpi() -> String {
     let output = match Command::new("vcgencmd").arg("measure_volts").arg("core").output() {
         Ok(o) => o,
-        Err(e) => panic!("Error running vcgencmd to get volts: {}", e)
+        Err(e) => panic!("Error running vcgencmd to get volts: {}", e),
     };
 
     let out_str = String::from_utf8_lossy(&output.stdout);
@@ -428,7 +437,7 @@ fn get_cpu_voltage_rpi() -> String {
 fn get_cpu_speed_rpi() -> String {
     let output = match Command::new("vcgencmd").arg("measure_clock").arg("arm").output() {
         Ok(o) => o,
-        Err(e) => panic!("Error running vcgencmd to get clock: {}", e)
+        Err(e) => panic!("Error running vcgencmd to get clock: {}", e),
     };
 
     let out_str = String::from_utf8_lossy(&output.stdout);
@@ -451,39 +460,43 @@ pub fn do_func(item: &Yaml, frame_cache: &FrameCache) -> String {
     let val: Option<&str> = item["val"].as_str();
 
     let ret: String = match func {
-        "hostname" =>    timings!(func, get_hostname_from_utsname, frame_cache.utsname.nodename as [c_char; 65]),
-        "kernel" =>      timings!(func, get_uname, frame_cache.utsname.release as [c_char; 65]),
-        "uptime" =>      timings!(func, get_uptime_string, frame_cache.sysinfo.uptime as c_int),
-        "load" =>        timings!(func, get_load, frame_cache.sysinfo.loads as [c_ulong; 3]),
+        "hostname" => timings!(func, get_hostname_from_utsname, frame_cache.utsname.nodename as [c_char; 65]),
+        "kernel" => timings!(func, get_uname, frame_cache.utsname.release as [c_char; 65]),
+        "uptime" => timings!(func, get_uptime_string, frame_cache.sysinfo.uptime as c_int),
+        "load" => timings!(func, get_load, frame_cache.sysinfo.loads as [c_ulong; 3]),
         "procs_count" => timings!(func, get_procs_count, &frame_cache.proc_stat),
 
-        "ram_usage" => format!("{:.2}GB / {:.2}GB",
-                               (frame_cache.mem_total - frame_cache.mem_free),
-                               frame_cache.mem_total),
+        "ram_usage" => format!(
+            "{:.2}GB / {:.2}GB",
+            (frame_cache.mem_total - frame_cache.mem_free),
+            frame_cache.mem_total
+        ),
         "cpu_usage" => format!("{:.2}%", timings!(func, get_cpu_usage, -1)),
 
-        "cpu_temp_sys" =>    timings!(func, get_cpu_temp_sys, val),
-        "cpu_speed_rpi" =>   timings!(func, get_cpu_speed_rpi),
+        "cpu_temp_sys" => timings!(func, get_cpu_temp_sys, val),
+        "cpu_speed_rpi" => timings!(func, get_cpu_speed_rpi),
         "cpu_voltage_rpi" => timings!(func, get_cpu_voltage_rpi),
 
         #[cfg(feature = "nvidia")]
         "nvidia_gpu_temp" => timings!("nvidia_temp", get_nvidia_gpu_temp, item["idx"].as_i64().unwrap() as u32),
 
         #[cfg(feature = "sensors")]
-        "sensor_info" => timings!("sensors", get_sensor_info,
-                                  item["sensor_name"].as_str().unwrap(),
-                                  item["label_name"].as_str().unwrap(),
-                                  item["val"].as_str().unwrap(),
-                                  item["whole"].as_bool().unwrap()),
+        "sensor_info" => timings!(
+            "sensors",
+            get_sensor_info,
+            item["sensor_name"].as_str().unwrap(),
+            item["label_name"].as_str().unwrap(),
+            item["val"].as_str().unwrap(),
+            item["whole"].as_bool().unwrap()
+        ),
         _ => {
             println!("Unknown func: {}", func);
             return String::from("unimpl");
-        },
+        }
     };
 
     return ret;
 }
-
 
 pub fn get_fs(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
     let mut map: HashMap<String, FileSystemUsage> = HashMap::new();
@@ -505,24 +518,27 @@ pub fn get_fs(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
                 let mut statvfs: libc::statvfs = unsafe { mem::zeroed() };
                 unsafe { libc::statvfs(test.as_ptr(), &mut statvfs) };
 
-		let free  = ((statvfs.f_bsize as f64 / 1024.0) * (statvfs.f_bfree as f64 / 1024.0)) / 1024.0;
+                let free = ((statvfs.f_bsize as f64 / 1024.0) * (statvfs.f_bfree as f64 / 1024.0)) / 1024.0;
                 let mut total = ((statvfs.f_frsize as f64 / 1024.0) * (statvfs.f_blocks as f64 / 1024.0)) / 1024.0;
-                let mut used  = total - free;
+                let mut used = total - free;
                 let mut size_char = 'G';
 
-		if total < 1.0 {
+                if total < 1.0 {
                     used = used * 100.0;
                     total = total * 100.0;
                     size_char = 'M';
                 }
 
-                map.insert(String::from(**path), FileSystemUsage {
-                    used: used,
-                    total: total,
-                    used_str: format!("{:.2}{}", used, size_char),
-                    total_str: format!("{:.2}{}", total, size_char),
-                    use_pct: format!("{:.0}%", (used / total) * 100.0),
-                });
+                map.insert(
+                    String::from(**path),
+                    FileSystemUsage {
+                        used: used,
+                        total: total,
+                        used_str: format!("{:.2}{}", used, size_char),
+                        total_str: format!("{:.2}{}", total, size_char),
+                        use_pct: format!("{:.0}%", (used / total) * 100.0),
+                    },
+                );
 
                 found_count += 1;
             }
@@ -538,24 +554,30 @@ pub fn get_fs(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
 pub fn get_fs_from_df(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
     let output = match Command::new("df").arg("-h").output() {
         Ok(o) => o,
-        Err(e) => panic!("Error running df -h!: {}", e)
+        Err(e) => panic!("Error running df -h!: {}", e),
     };
 
     let out_str = String::from_utf8_lossy(&output.stdout);
     let mut map: HashMap<String, FileSystemUsage> = HashMap::new();
 
-    for row in out_str.lines().into_iter().map(|line| {
-        line.split_whitespace().map(String::from).collect::<Vec<String>>()
-    }).collect::<Vec<Vec<String>>>() {
+    for row in out_str
+        .lines()
+        .into_iter()
+        .map(|line| line.split_whitespace().map(String::from).collect::<Vec<String>>())
+        .collect::<Vec<Vec<String>>>()
+    {
         for key in keys.iter() {
             if key == &row[5] {
-                map.insert(String::from(*key), FileSystemUsage {
-                    used: row[2][0..row[2].len()-1].parse().unwrap(),
-                    total: row[1][0..row[1].len()-1].parse().unwrap(),
-                    used_str: String::from(&row[2]),
-                    total_str: String::from(&row[1]),
-                    use_pct: String::from(&row[4]),
-                });
+                map.insert(
+                    String::from(*key),
+                    FileSystemUsage {
+                        used: row[2][0..row[2].len() - 1].parse().unwrap(),
+                        total: row[1][0..row[1].len() - 1].parse().unwrap(),
+                        used_str: String::from(&row[2]),
+                        total_str: String::from(&row[1]),
+                        use_pct: String::from(&row[4]),
+                    },
+                );
             }
         }
     }
@@ -566,7 +588,7 @@ pub fn get_fs_from_df(keys: Vec<&str>) -> HashMap<String, FileSystemUsage> {
 fn _do_top(counter: u64, mod_top: u64, do_top_bool: bool, mem_total: f64) -> Vec<PsInfo> {
     return match do_top_bool {
         true => get_ps_from_proc(counter, mod_top, mem_total * 10000.0),
-        false => Vec::new()
+        false => Vec::new(),
     };
 }
 
@@ -587,11 +609,11 @@ pub fn get_frame_cache(counter: u64, mod_top: u64, do_top_bool: bool) -> FrameCa
     println!("Size of PROC_STAT_READERS: {}\n", PROC_STAT_READERS.lock().unwrap().len());
 
     return FrameCache {
-        sysinfo:   sysinfo,
-        utsname:   utsname,
-        ps_info:   ps_info,
+        sysinfo: sysinfo,
+        utsname: utsname,
+        ps_info: ps_info,
         proc_stat: proc_stat,
-        mem_free:  mem.0,
+        mem_free: mem.0,
         mem_total: mem.1,
         net_dev: net_dev,
     };
@@ -603,8 +625,10 @@ fn get_net_dev() -> HashMap<String, (u64, u64)> {
 
     lines.iter().skip(2).for_each(|line| {
         let tokens = split_spc_to_strs!(line);
-        map.insert(String::from(&tokens[0][0..(tokens[0].len() - 1)]),
-                   (tokens[9].parse::<u64>().unwrap(), tokens[1].parse::<u64>().unwrap()));
+        map.insert(
+            String::from(&tokens[0][0..(tokens[0].len() - 1)]),
+            (tokens[9].parse::<u64>().unwrap(), tokens[1].parse::<u64>().unwrap()),
+        );
     });
 
     return map;
@@ -615,11 +639,14 @@ fn do_all_cpu_usage(proc_stat: &Vec<String>) {
 
     for cpu_num in -1..*CPU_COUNT {
         if !loads_map.contains_key(&cpu_num) {
-            loads_map.insert(cpu_num, CpuLoad {
-                idle:  0,
-                total: 0,
-                percent: 0.0,
-            });
+            loads_map.insert(
+                cpu_num,
+                CpuLoad {
+                    idle: 0,
+                    total: 0,
+                    percent: 0.0,
+                },
+            );
         }
 
         let last_load = &loads_map[&cpu_num];
@@ -629,20 +656,25 @@ fn do_all_cpu_usage(proc_stat: &Vec<String>) {
             .filter_map(|s| s.parse::<u64>().ok())
             .collect();
 
-        let idle:  u64 = proc_stat_line_items[3];
+        let idle: u64 = proc_stat_line_items[3];
         let total: u64 = proc_stat_line_items.iter().fold(0, |a, b| a + b);
 
         let totals = total - last_load.total;
-        let idles  = idle - last_load.idle;
+        let idles = idle - last_load.idle;
 
         let mut percent = ((totals as f64 - (idles as f64)) / totals as f64) * 100.0;
-        if percent.is_nan() { percent = 0.0 }
+        if percent.is_nan() {
+            percent = 0.0
+        }
 
-        loads_map.insert(cpu_num, CpuLoad {
-            idle: idle,
-            total: total,
-            percent: percent,
-        });
+        loads_map.insert(
+            cpu_num,
+            CpuLoad {
+                idle: idle,
+                total: total,
+                percent: percent,
+            },
+        );
     }
 }
 
