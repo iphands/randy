@@ -150,7 +150,7 @@ fn build_ui(application: &gtk::Application) {
     window.add(&vbox);
 
     // Set fixed width for the main window
-    let initial_width = 375; // Fixed width
+    let initial_width = 128; // Fixed width
     window.set_default_size(initial_width, -1);
 
     window.show_all();

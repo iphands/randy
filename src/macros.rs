@@ -6,12 +6,9 @@ macro_rules! timings {
             use std::time::{Instant};
             let now = Instant::now();
             let ret = $func($($optional, )*);
-            if $name.len() < 7 {
-                println!("{}:\t\tmillis: {}\tnanos: {}", $name, now.elapsed().as_millis(), now.elapsed().as_nanos());
-            } else {
-                println!("{}:\tmillis: {}\tnanos: {}", $name, now.elapsed().as_millis(), now.elapsed().as_nanos());
-            }
-
+            let elapsed = now.elapsed();
+            let tabs = if $name.len() < 7 { "\t\t" } else { "\t" };
+            println!("{}:{}millis: {}\tnanos: {}", $name, tabs, elapsed.as_millis(), elapsed.as_nanos());
             ret
         }
     };

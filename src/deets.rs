@@ -58,6 +58,35 @@ const LOAD_SHIFT_F32: f32 = (1 << libc::SI_LOAD_SHIFT) as f32;
 #[cfg(not(feature = "timings"))]
 const YIELD_TIME: time::Duration = time::Duration::from_nanos(1024);
 
+// Helper functions to reduce code duplication
+#[inline(always)]
+fn create_cpu_load(idle: u64, total: u64, percent: f64) -> CpuLoad {
+    CpuLoad { idle, total, percent }
+}
+
+fn replace_template(template: &str, value: &str, whole: bool) -> String {
+    if whole {
+        template.replace("{}", &format!("{:.0}", value))
+    } else {
+        template.replace("{}", &format!("{:.2}", value))
+    }
+}
+
+fn get_safe_file_reader(path: &str) -> Result<BufReader<File>, std::io::Error> {
+    Ok(BufReader::new(File::open(path)?))
+}
+
+fn parse_u64_with_units(s: &str) -> u64 {
+    s.split_ascii_whitespace()
+        .collect::<String>()
+        .split(':')
+        .nth(1)
+        .unwrap_or("0")
+        .replace("kB", "")
+        .parse()
+        .unwrap_or(0)
+}
+
 lazy_static! {
     // this one should be separate from frame cache
     // it has to persist beyond a single frame
@@ -132,24 +161,13 @@ fn get_procs_count(proc_stat: &Vec<String>) -> String {
 
 fn get_ram_usage() -> (f64, f64) {
     fn reduce(i: u64) -> f64 {
-        return (i as f64) / 1024.0 / 1024.0;
-    }
-
-    fn get_item(i: usize, v: &Vec<String>) -> u64 {
-        return v[i]
-            .split_ascii_whitespace()
-            .collect::<String>()
-            .split(':')
-            .collect::<Vec<&str>>()[1]
-            .replace("kB", "")
-            .parse()
-            .unwrap();
+        (i as f64) / 1024.0 / 1024.0
     }
 
     let meminfo = get_strings_from_path("/proc/meminfo", 3);
-    let free = reduce(get_item(2, &meminfo));
-    let total = reduce(get_item(0, &meminfo));
-    return (free, total);
+    let free = reduce(parse_u64_with_units(&meminfo[2]));
+    let total = reduce(parse_u64_with_units(&meminfo[0]));
+    (free, total)
 }
 
 pub fn get_cpu_mhz() -> Vec<u16> {
@@ -181,28 +199,25 @@ fn get_sensor_info(sensor_name: &str, label_name: &str, val: &str, whole: bool) 
                         // TODO this beeegs for a proper templating solution
                         // I think I want to start returning the raw info and
                         // applying the templates in main ui_update
-
-                        if whole {
-                            return String::from(val).replace("{}", format!("{:.0}", value).as_str());
-                        }
-
-                        return String::from(val).replace("{}", format!("{:.2}", value).as_str());
+                        return replace_template(val, &format!("{}", value), whole);
                     }
                 }
             }
         }
     }
-
-    return String::from("unknown");
+    "unknown".to_string()
 }
 
 fn get_cpu_temp_sys(val: Option<&str>) -> String {
     match fs::read_to_string("/sys/class/thermal/thermal_zone0/temp") {
         Ok(s) => match s.trim().parse::<u32>() {
-            Ok(i) => match val {
-                Some(s) => s.replace("{}", format!("{}", (i / 1000)).as_str()),
-                _ => format!("{}C", (i / 1000)),
-            },
+            Ok(i) => {
+                let temp_str = format!("{}", i / 1000);
+                match val {
+                    Some(template) => replace_template(template, &temp_str, true),
+                    _ => format!("{}C", i / 1000),
+                }
+            }
             Err(e) => e.to_string(),
         },
         _ => "unknown".to_string(),
@@ -239,13 +254,13 @@ fn get_ps_from_proc(counter: u64, mod_top: u64, mem_used: f64) -> Vec<PsInfo> {
         let pid_u32 = pid.parse::<u32>().unwrap();
 
         if !readers_map.contains_key(&pid_u32) {
-            let p = &format!("{}/stat", &path);
-            let tmp_reader = BufReader::new(match File::open(p) {
-                Ok(f) => f,
+            let stat_path = &format!("{}/stat", &path);
+            match get_safe_file_reader(stat_path) {
+                Ok(reader) => {
+                    readers_map.insert(pid_u32, reader);
+                }
                 Err(_) => return 0.0,
-            });
-
-            readers_map.insert(pid_u32, tmp_reader);
+            }
         }
 
         let reader = readers_map.get_mut(&pid_u32).unwrap();
@@ -639,14 +654,7 @@ fn do_all_cpu_usage(proc_stat: &Vec<String>) {
 
     for cpu_num in -1..*CPU_COUNT {
         if !loads_map.contains_key(&cpu_num) {
-            loads_map.insert(
-                cpu_num,
-                CpuLoad {
-                    idle: 0,
-                    total: 0,
-                    percent: 0.0,
-                },
-            );
+            loads_map.insert(cpu_num, create_cpu_load(0, 0, 0.0));
         }
 
         let last_load = &loads_map[&cpu_num];
@@ -667,14 +675,7 @@ fn do_all_cpu_usage(proc_stat: &Vec<String>) {
             percent = 0.0
         }
 
-        loads_map.insert(
-            cpu_num,
-            CpuLoad {
-                idle: idle,
-                total: total,
-                percent: percent,
-            },
-        );
+        loads_map.insert(cpu_num, create_cpu_load(idle, total, percent));
     }
 }
 

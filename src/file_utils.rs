@@ -3,6 +3,38 @@ use std::io::prelude::*;
 use std::io::{BufRead, BufReader, Seek, SeekFrom};
 use std::{fs, str};
 
+// Helper function to filter lines by starting strings
+fn filter_lines_by_starts<'a>(
+    lines: impl Iterator<Item = &'a str> + 'a,
+    filters: &'a [&str],
+) -> impl Iterator<Item = &'a str> + 'a {
+    lines.filter(move |s| filters.iter().any(|filter| s.starts_with(filter)))
+}
+
+// Helper function for line reading with error handling
+fn read_lines_with_error_handling<T>(
+    mut reader: impl BufRead,
+    line_end: usize,
+    mut process_line: impl FnMut(&str) -> Option<T>,
+) -> Result<Vec<T>, std::io::Error> {
+    let mut lines = Vec::new();
+    for _ in 0..line_end {
+        let mut line = String::new();
+        match reader.read_line(&mut line) {
+            Ok(0) | Err(_) => break,
+            _ => {
+                if line.is_empty() {
+                    break;
+                }
+                if let Some(result) = process_line(&line.trim()) {
+                    lines.push(result);
+                }
+            }
+        }
+    }
+    Ok(lines)
+}
+
 pub fn get_strings_from_path(path: &str, line_end: usize) -> Vec<String> {
     match try_strings_from_path(path, line_end) {
         Ok(v) => v,
@@ -73,88 +105,42 @@ pub fn try_match_strings_from_file(file: &mut File, filters: &Vec<&str>) -> Resu
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
 
-    return Ok(contents
-        .lines()
-        .filter(|s| {
-            let mut ret = false;
-            for filter in filters {
-                ret = s.starts_with(filter);
-                if ret {
-                    break;
-                }
-            }
-            return ret;
-        })
+    Ok(filter_lines_by_starts(contents.lines(), filters)
         .map(|s| String::from(s))
-        .collect());
+        .collect())
 }
 
 pub fn try_match_strings_from_path(path: &str, filters: &Vec<&str>) -> Result<Vec<String>, std::io::Error> {
-    return match fs::read_to_string(&path) {
-        Ok(s) => Ok(s
-            .lines()
-            .filter(|s| {
-                let mut ret = false;
-                for filter in filters {
-                    ret = s.starts_with(filter);
-                    if ret {
-                        break;
-                    }
-                }
-                return ret;
-            })
-            .map(|s| String::from(s))
-            .collect()),
-        Err(e) => Err(e),
-    };
+    let contents = fs::read_to_string(&path)?;
+    Ok(filter_lines_by_starts(contents.lines(), filters)
+        .map(|s| String::from(s))
+        .collect())
 }
 
 #[inline(always)]
 pub fn try_strings_from_reader(reader: &mut BufReader<File>, line_end: usize) -> Result<Vec<String>, std::io::Error> {
-    reader.seek(SeekFrom::Start(0)).unwrap();
-    let mut lines: Vec<String> = Vec::new();
-    for _ in 0..line_end {
-        let mut line = String::new();
-        let e = match reader.read_line(&mut line) {
-            Err(e) => Some(e),
-            _ => None,
-        };
-
-        if e.is_some() {
-            return Err(e.unwrap());
+    reader.seek(SeekFrom::Start(0))?;
+    read_lines_with_error_handling(reader, line_end, |line| {
+        if line.is_empty() {
+            None
+        } else {
+            Some(String::from(line))
         }
-        if line == "" {
-            break;
-        }
-        lines.push(String::from(line.trim()));
-    }
-
-    return Ok(lines);
+    })
 }
 
 #[inline(always)]
 pub fn try_strings_from_path(path: &str, line_end: usize) -> Result<Vec<String>, std::io::Error> {
-    let mut file = BufReader::new(match File::open(&path) {
-        Ok(f) => f,
-        Err(e) => return Err(e),
-    });
-
-    let mut lines: Vec<String> = Vec::new();
-    for _ in 0..line_end {
-        let mut line = String::new();
-        let e = match file.read_line(&mut line) {
-            Err(e) => Some(e),
-            _ => None,
-        };
-
-        if e.is_some() {
-            return Err(e.unwrap());
-        }
-        if line == "" {
-            break;
-        }
-        lines.push(String::from(line.trim()));
-    }
-
-    return Ok(lines);
+    let file = BufReader::new(File::open(path)?);
+    read_lines_with_error_handling(
+        file,
+        line_end,
+        |line| {
+            if line.is_empty() {
+                None
+            } else {
+                Some(String::from(line))
+            }
+        },
+    )
 }
